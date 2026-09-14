@@ -9,7 +9,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from jsonschema import Draft202012Validator, RefResolver
+from jsonschema import Draft202012Validator
+from referencing import Registry, Resource
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "schemas"
@@ -37,15 +38,16 @@ def load_yaml(path: Path) -> dict[str, Any]:
     return data
 
 
-def schema_store() -> tuple[dict[str, Any], dict[str, Any]]:
+def schema_registry() -> tuple[dict[str, Any], Registry]:
     schemas: dict[str, Any] = {}
-    store: dict[str, Any] = {}
+    resources: list[tuple[str, Resource[Any]]] = []
     for kind, filename in SCHEMA_FILES.items():
         schema = load_json(SCHEMA_DIR / filename)
         schemas[kind] = schema
-        if "$id" in schema:
-            store[schema["$id"]] = schema
-    return schemas, store
+        schema_id = schema.get("$id")
+        if schema_id:
+            resources.append((schema_id, Resource.from_contents(schema)))
+    return schemas, Registry().with_resources(resources)
 
 
 def catalog_ids(path: Path, key: str) -> set[str]:
@@ -68,7 +70,7 @@ def detect_kind(data: dict[str, Any], path: Path) -> str:
         return "project-manifest"
     if "standard_version" in data and "template_fingerprint" in data:
         return "standard-lock"
-    if "tasks" in data and "budget" in data:
+    if "strategy" in data and "routes" in data:
         return "context-manifest"
     if "target" in data and "checks" in data and "result" in data:
         return "conformance-report"
@@ -94,10 +96,9 @@ def add_check(checks: list[dict[str, Any]], code: str, status: str, severity: st
     })
 
 
-def structural_checks(data: dict[str, Any], kind: str, schemas: dict[str, Any], store: dict[str, Any]) -> list[dict[str, Any]]:
+def structural_checks(data: dict[str, Any], kind: str, schemas: dict[str, Any], registry: Registry) -> list[dict[str, Any]]:
     schema = schemas[kind]
-    resolver = RefResolver.from_schema(schema, store=store)
-    validator = Draft202012Validator(schema, resolver=resolver)
+    validator = Draft202012Validator(schema, registry=registry)
     errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
     checks: list[dict[str, Any]] = []
     for error in errors:
@@ -108,18 +109,37 @@ def structural_checks(data: dict[str, Any], kind: str, schemas: dict[str, Any], 
     return checks
 
 
+def check_known_packs(checks: list[dict[str, Any]], values: list[str], path: str, code: str) -> None:
+    known = catalog_ids(ROOT / "packs" / "catalog.yaml", "packs")
+    unknown = sorted(set(values) - known)
+    if unknown:
+        add_check(checks, code, "FAIL", "HIGH", f"Unknown packs: {', '.join(unknown)}", path)
+    else:
+        add_check(checks, code, "PASS", "INFO", "All referenced packs exist", path)
+
+
+def check_workflow(checks: list[dict[str, Any]], workflow: str | None, path: str) -> None:
+    workflows = catalog_ids(ROOT / "workflows" / "catalog.yaml", "workflows")
+    if workflow is not None and workflow not in workflows:
+        add_check(checks, "IS-SEM-004", "FAIL", "HIGH", f"Unknown workflow: {workflow}", path)
+    else:
+        add_check(checks, "IS-SEM-004", "PASS", "INFO", "Referenced workflow is available", path)
+
+
+def check_adapters(checks: list[dict[str, Any]], values: list[str], path: str) -> None:
+    adapters = adapter_statuses()
+    bad = [adapter for adapter in values if adapters.get(adapter) != "ACTIVE"]
+    if bad:
+        add_check(checks, "IS-SEM-005", "FAIL", "HIGH", f"Adapters are missing or not ACTIVE: {', '.join(sorted(bad))}", path)
+    else:
+        add_check(checks, "IS-SEM-005", "PASS", "INFO", "All referenced adapters are ACTIVE", path)
+
+
 def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
-    packs = catalog_ids(ROOT / "packs" / "catalog.yaml", "packs")
-    workflows = catalog_ids(ROOT / "workflows" / "catalog.yaml", "workflows")
-    adapters = adapter_statuses()
 
     if kind == "project-manifest":
-        unknown = sorted(set(data.get("packs", [])) - packs)
-        if unknown:
-            add_check(checks, "IS-SEM-001", "FAIL", "HIGH", f"Unknown packs: {', '.join(unknown)}", "/packs")
-        else:
-            add_check(checks, "IS-SEM-001", "PASS", "INFO", "All manifest packs exist")
+        check_known_packs(checks, data.get("packs", []), "/packs", "IS-SEM-001")
         declared = data.get("standard", {}).get("version")
         if declared != current_version():
             add_check(checks, "IS-SEM-006", "FAIL", "HIGH", f"Manifest standard version {declared!r} != supported {current_version()!r}", "/standard/version")
@@ -127,7 +147,10 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
             add_check(checks, "IS-SEM-006", "PASS", "INFO", "Manifest targets the supported Standard version")
 
     elif kind == "standard-lock":
-        artifact_paths = [a.get("path") for a in data.get("artifacts", [])]
+        check_known_packs(checks, data.get("packs", []), "/packs", "IS-SEM-001")
+        check_workflow(checks, data.get("workflow"), "/workflow")
+        check_adapters(checks, data.get("adapters", []), "/adapters")
+        artifact_paths = [artifact.get("path") for artifact in data.get("artifacts", [])]
         duplicates = sorted({p for p in artifact_paths if p is not None and artifact_paths.count(p) > 1})
         if duplicates:
             add_check(checks, "IS-SEM-002", "FAIL", "HIGH", f"Duplicate artifact paths: {', '.join(duplicates)}", "/artifacts")
@@ -138,25 +161,13 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
                 add_check(checks, "IS-WARN-001", "WARN", "MEDIUM", "MANAGED artifact has a local override; review before upgrade", f"/artifacts/{index}")
 
     elif kind == "bundle":
-        unknown_packs = sorted(set(data.get("packs", [])) - packs)
-        if unknown_packs:
-            add_check(checks, "IS-SEM-003", "FAIL", "HIGH", f"Bundle references unknown packs: {', '.join(unknown_packs)}", "/packs")
-        else:
-            add_check(checks, "IS-SEM-003", "PASS", "INFO", "All bundle packs exist")
-        workflow = data.get("workflow")
-        if workflow is not None and workflow not in workflows:
-            add_check(checks, "IS-SEM-004", "FAIL", "HIGH", f"Unknown workflow: {workflow}", "/workflow")
-        else:
-            add_check(checks, "IS-SEM-004", "PASS", "INFO", "Bundle workflow is available")
-        bad_adapters = [a for a in data.get("adapters", []) if adapters.get(a) != "ACTIVE"]
-        if bad_adapters:
-            add_check(checks, "IS-SEM-005", "FAIL", "HIGH", f"Adapters are missing or not ACTIVE: {', '.join(sorted(bad_adapters))}", "/adapters")
-        else:
-            add_check(checks, "IS-SEM-005", "PASS", "INFO", "All bundle adapters are ACTIVE")
+        check_known_packs(checks, data.get("packs", []), "/packs", "IS-SEM-003")
+        check_workflow(checks, data.get("workflow"), "/workflow")
+        check_adapters(checks, data.get("adapters", []), "/adapters")
 
     elif kind == "workflow":
         ids = [step.get("id") for step in data.get("steps", [])]
-        duplicates = sorted({i for i in ids if i is not None and ids.count(i) > 1})
+        duplicates = sorted({step_id for step_id in ids if step_id is not None and ids.count(step_id) > 1})
         if duplicates:
             add_check(checks, "IS-SEM-007", "FAIL", "HIGH", f"Duplicate workflow step IDs: {', '.join(duplicates)}", "/steps")
         else:
@@ -166,16 +177,13 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
 
 
 def validate(path: Path, kind: str | None = None) -> dict[str, Any]:
-    if path.suffix.lower() in {".yaml", ".yml"}:
-        data = load_yaml(path)
-    else:
-        data = load_json(path)
+    data = load_yaml(path) if path.suffix.lower() in {".yaml", ".yml"} else load_json(path)
     kind = kind or detect_kind(data, path)
-    schemas, store = schema_store()
-    checks = structural_checks(data, kind, schemas, store)
-    if not any(c["status"] == "FAIL" for c in checks):
+    schemas, registry = schema_registry()
+    checks = structural_checks(data, kind, schemas, registry)
+    if not any(check["status"] == "FAIL" for check in checks):
         checks.extend(semantic_checks(data, kind))
-    result = "FAIL" if any(c["status"] == "FAIL" for c in checks) else ("WARN" if any(c["status"] == "WARN" for c in checks) else "PASS")
+    result = "FAIL" if any(check["status"] == "FAIL" for check in checks) else ("WARN" if any(check["status"] == "WARN" for check in checks) else "PASS")
     return {
         "schema_version": "0.1",
         "target": str(path),
