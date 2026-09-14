@@ -179,7 +179,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C19 ESCALATE → BLOCKED.
 - [x] O0-C20 DISPUTED → BLOCKED.
 - [x] O0-C21 `max_audit_rounds = 3`.
-- [ ] O0-C22 Limite excedido → BLOCKED.
+- [x] O0-C22 Limite excedido → BLOCKED.
 - [ ] O0-C23 Estado sobrevive restart/interrupção.
 - [ ] O0-C24 Runner rejeita JSON inválido com segurança.
 - [ ] O0-C25 Runner rejeita SHA inexistente/incorreto.

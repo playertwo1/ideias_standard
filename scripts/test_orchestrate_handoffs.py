@@ -15,6 +15,7 @@ from scripts.orchestrate_handoffs import (
 
 SHA_A = "a" * 40
 SHA_B = "b" * 40
+SHA_C = "c" * 40
 
 
 def dump(path: Path, data: dict) -> None:
@@ -250,25 +251,22 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         with self.assertRaises(HandoffError):
             approve_gate(self.state_path, executor_id="runner", role="PRODUCT_AUTHORITY", gate="G01", audited_sha=SHA_A)
 
-    def test_round_limit_blocks_loop(self):
-        temp_policy = self.root / "one-round.json"
-        temp_state = self.root / "one-round-state.json"
-        dump(temp_policy, policy(rounds=1))
-        init_state(
-            temp_policy,
-            temp_state,
-            project_id="sample",
-            phase="F01",
-            gate="G01",
-            builder_branch="work/sample-f01",
-        )
-        builder_path = self.root / "builder-round.json"
-        audit_path = self.root / "audit-round.json"
-        dump(builder_path, builder_report())
-        dump(audit_path, audit_report(SHA_A, result="FAIL", blocking=True))
-        builder_handoff(temp_state, builder_path, SHA_A)
-        state = audit_handoff(temp_state, audit_path)
+    def test_third_failed_audit_blocks_default_three_round_loop(self):
+        for round_number, sha in enumerate((SHA_A, SHA_B, SHA_C), start=1):
+            builder_path = self.root / f"builder-round-{round_number}.json"
+            audit_path = self.root / f"audit-round-{round_number}.json"
+            dump(builder_path, builder_report(sha=sha))
+            dump(audit_path, audit_report(sha, result="FAIL", blocking=True))
+            builder_handoff(self.state_path, builder_path, sha)
+            state = audit_handoff(self.state_path, audit_path)
+
+            if round_number < 3:
+                self.assertEqual("FIX_REQUIRED", state["machine_state"])
+
+        self.assertEqual(3, state["audit_round"])
         self.assertEqual("BLOCKED", state["machine_state"])
+        self.assertEqual("PRODUCT_AUTHORITY", next_actor(state))
+        self.assertIsNone(state["approval"])
 
 
 if __name__ == "__main__":
