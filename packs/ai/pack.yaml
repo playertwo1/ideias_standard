@@ -1,0 +1,17 @@
+id: ai
+version: 0.1
+applies_when:
+  - project uses model/provider integration
+adds_capabilities:
+  prompt_registry: true
+  model_output_validation: true
+  token_budgeting: true
+  provenance_tracking: true
+recommended_artifacts:
+  - docs/ai/AI_CONTRACT.md
+  - docs/ai/PROMPT_REGISTRY.md
+rules:
+  - IA sugere; autoridade humana decide quando a decisao for material.
+  - Respostas estruturadas devem ser validadas antes de alterar estado aceito.
+  - Registrar provider/model/revisao quando material para reproducao.
+  - Contexto enviado deve ser minimo e isolado por projeto/tarefa.
