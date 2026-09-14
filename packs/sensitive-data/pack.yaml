@@ -1,0 +1,16 @@
+id: sensitive-data
+version: 0.1
+applies_when:
+  - project handles sensitive, confidential, regulated or high-impact data
+adds_capabilities:
+  secret_scanning: true
+  data_minimization: true
+  access_review: true
+  audit_evidence: true
+recommended_artifacts:
+  - docs/security/DATA_CLASSIFICATION.md
+  - docs/security/SECURITY_CONTRACT.md
+rules:
+  - Nao registrar secrets em codigo, logs ou evidencias.
+  - Minimizar dados enviados a servicos externos.
+  - Mudancas de permissao, autenticacao ou dados exigem validacao proporcional ao risco.
