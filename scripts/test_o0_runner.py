@@ -331,6 +331,95 @@ class O0RunnerTest(unittest.TestCase):
         self.assertIsNone(result["approval"])
         self.assertEqual("O0", result["phase"])
 
+    def test_runner_audit_escalate_blocks_for_product_authority(self):
+        target = "b" * 40
+        state = self.root / "escalate-state.json"
+        state.write_text(
+            json.dumps({
+                "schema_version": "0.1",
+                "project_id": "sample",
+                "phase": "O0",
+                "gate": "NONE",
+                "machine_state": "READY_FOR_AUDIT",
+                "builder_branch": "work",
+                "builder_executor_id": "builder-executor",
+                "auditor_executor_id": None,
+                "product_authority_id": "owner",
+                "builder_head_sha": target,
+                "audit_target_sha": target,
+                "last_audited_sha": None,
+                "audit_round": 0,
+                "max_audit_rounds": 3,
+                "last_builder_report": None,
+                "last_audit_report": None,
+                "last_audit_result": None,
+                "human_gate_required": True,
+                "approval": None,
+                "updated_at": "now",
+                "message": "",
+            }),
+            encoding="utf-8",
+        )
+        (self.root / "builder").mkdir()
+        config = self.root / "escalate-runner.json"
+        config.write_text(
+            json.dumps({
+                "repository": "repo",
+                "state_path": "escalate-state.json",
+                "reports_dir": "escalate-reports",
+                "builder_workspace": "builder",
+                "audit_workspaces": "audits",
+                "builder_command": ["builder"],
+                "auditor_command": ["auditor"],
+            }),
+            encoding="utf-8",
+        )
+
+        def escalate_audit(command, workspace, report, env, *, write_sandbox=False):
+            report.parent.mkdir(parents=True, exist_ok=True)
+            report.write_text(
+                json.dumps({
+                    "schema_version": "0.1",
+                    "executor_id": "auditor-executor",
+                    "role": "AUDITOR",
+                    "authority": "INDEPENDENT_AUDIT",
+                    "audit_result": "ESCALATE",
+                    "audited_sha": target,
+                    "summary": "Material decision requires Product Authority.",
+                    "findings": [],
+                    "checks": [{
+                        "id": "o0-c19",
+                        "status": "NOT_APPLICABLE",
+                        "evidence": "human decision required",
+                    }],
+                    "residual_risks": ["material decision unresolved"],
+                    "gate_registration": "NOT_AUTHORIZED",
+                }),
+                encoding="utf-8",
+            )
+
+        workspace = self.root / "escalate-audit-workspace"
+        workspace.mkdir()
+        snapshot = self.root / "escalate-snapshot.json"
+        with (
+            patch("scripts.o0_runner.prepare_audit_workspace", return_value=workspace),
+            patch("scripts.o0_runner.write_state_snapshot", return_value=snapshot),
+            patch("scripts.o0_runner.verify_audit_after"),
+            patch("scripts.o0_runner.run_actor", side_effect=escalate_audit),
+        ):
+            result = run_once(config)
+
+        evidence = Path(result["last_audit_report"])
+        self.assertEqual(target, result["last_audited_sha"])
+        self.assertEqual("ESCALATE", result["last_audit_result"])
+        self.assertEqual("BLOCKED", result["machine_state"])
+        self.assertEqual("PRODUCT_AUTHORITY", next_actor(result))
+        self.assertIn("escalated", result["message"].lower())
+        self.assertEqual("material decision unresolved", json.loads(evidence.read_text())["residual_risks"][0])
+        self.assertEqual("NONE", result["gate"])
+        self.assertIsNone(result["approval"])
+        self.assertEqual("O0", result["phase"])
+
     def _fix_required_state(self, target: str, report: Path, round_number: int = 1):
         return {
             "schema_version": "0.1",
