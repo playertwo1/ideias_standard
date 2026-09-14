@@ -1,0 +1,10 @@
+version: 0.1
+bundles:
+  - id: standard-android-ai
+    path: bundles/standard-android-ai/bundle.yaml
+  - id: deep-multi-agent-sensitive
+    path: bundles/deep-multi-agent-sensitive/bundle.yaml
+rules:
+  - Bundles sao conveniencias versionadas; nao substituem profile, packs ou regras especificas do projeto.
+  - Bundle nunca amplia autoridade humana, permissoes destrutivas ou gates silenciosamente.
+  - Conflitos precisam ser detectados antes da materializacao.
