@@ -1,0 +1,52 @@
+version: '0.1'
+invariants:
+  - id: INV-001
+    severity: CRITICAL
+    statement: NOT_RUN nunca equivale a PASS.
+    applies_to: [validation, gates, audit]
+    enforcement: deterministic
+  - id: INV-002
+    severity: CRITICAL
+    statement: USER_OWNED nunca pode ser sobrescrito automaticamente pelo Standard.
+    applies_to: [init, adopt, upgrade]
+    enforcement: deterministic
+  - id: INV-003
+    severity: CRITICAL
+    statement: Contexto REQUIRED nunca pode ser truncado silenciosamente por orçamento.
+    applies_to: [context]
+    enforcement: deterministic
+  - id: INV-004
+    severity: CRITICAL
+    statement: Um bundle, workflow ou adapter nunca amplia autoridade definida pelo contrato do projeto.
+    applies_to: [bundle, workflow, adapter, governance]
+    enforcement: semantic
+  - id: INV-005
+    severity: HIGH
+    statement: Projetos com sensitive-data exigem human_gates=true.
+    applies_to: [project-manifest, sensitive-data]
+    enforcement: semantic
+  - id: INV-006
+    severity: HIGH
+    statement: Projetos multi-agent exigem independent_audit=true e Builder distinto do Auditor.
+    applies_to: [project-manifest, multi-agent]
+    enforcement: semantic
+  - id: INV-007
+    severity: HIGH
+    statement: Upgrade precisa de preview/diff e nao pode atualizar o lock antes da validacao final.
+    applies_to: [upgrade, lock]
+    enforcement: workflow
+  - id: INV-008
+    severity: HIGH
+    statement: Arquivos brownfield existentes sao USER_OWNED por padrao ate classificacao explicita.
+    applies_to: [adopt]
+    enforcement: workflow
+  - id: INV-009
+    severity: HIGH
+    statement: Adapter e materializacao; nunca e fonte canonica do contrato.
+    applies_to: [adapter]
+    enforcement: semantic
+  - id: INV-010
+    severity: HIGH
+    statement: Toda transicao de gate exige evidencia executada; existencia de artefato nao prova PASS.
+    applies_to: [validation, gates, audit]
+    enforcement: governance
