@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ideias-standard.local/schemas/change.schema.json",
+  "title": "Ideias Standard Change Unit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "id", "kind", "status", "title", "rationale", "affected"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "0.1"},
+    "id": {"type": "string", "pattern": "^CHG-[0-9]{3,}$"},
+    "kind": {"enum": ["FEATURE", "FIX", "REFACTOR", "MIGRATION", "SECURITY", "DOCS"]},
+    "status": {"enum": ["PROPOSED", "ACCEPTED", "IN_PROGRESS", "VERIFYING", "CLOSED", "REJECTED"]},
+    "title": {"type": "string", "minLength": 1},
+    "rationale": {"type": "string", "minLength": 1},
+    "affected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths", "ids"],
+      "properties": {
+        "paths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      },
+      "anyOf": [
+        {"properties": {"paths": {"minItems": 1}}},
+        {"properties": {"ids": {"minItems": 1}}}
+      ]
+    },
+    "acceptance": {"type": "array", "items": {"type": "string", "minLength": 1}, "default": []},
+    "context_refs": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}, "default": []},
+    "supersedes": {"type": ["string", "null"]}
+  }
+}
