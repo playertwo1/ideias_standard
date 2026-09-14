@@ -1,6 +1,8 @@
 {
   "schema_version": "0.1",
+  "executor_id": "builder-executor",
   "role": "BUILDER",
+  "authority": "IMPLEMENTATION",
   "result": "READY_FOR_AUDIT",
   "summary": "Mudança concluída dentro do escopo autorizado.",
   "changed_paths": ["src/example.txt"],

@@ -1,6 +1,8 @@
 {
   "schema_version": "0.1",
+  "executor_id": "auditor-executor",
   "role": "AUDITOR",
+  "authority": "INDEPENDENT_AUDIT",
   "audit_result": "PASS",
   "audited_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "summary": "Independent review complete.",

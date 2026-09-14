@@ -227,6 +227,11 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
             add_check(checks, "IS-SEM-012", "FAIL", "CRITICAL", "Orchestration requires distinct Builder and Auditor role IDs", "/")
         else:
             add_check(checks, "IS-SEM-012", "PASS", "INFO", "Orchestration roles are distinct")
+        actor_ids = {data.get("builder_role_id"), data.get("auditor_role_id")}
+        if data.get("product_authority_id") in actor_ids:
+            add_check(checks, "IS-SEM-017", "FAIL", "CRITICAL", "Product Authority identity must be distinct from Builder and Auditor role identities", "/product_authority_id")
+        else:
+            add_check(checks, "IS-SEM-017", "PASS", "INFO", "Product Authority identity is distinct")
 
     elif kind == "audit-report":
         blocking = [finding for finding in data.get("findings", []) if finding.get("blocking") is True]
@@ -234,6 +239,15 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
             add_check(checks, "IS-SEM-014", "FAIL", "CRITICAL", "Audit PASS cannot contain blocking findings", "/findings")
         else:
             add_check(checks, "IS-SEM-014", "PASS", "INFO", "Audit result is consistent with blocking findings")
+        invalid_checks = [check for check in data.get("checks", []) if check.get("status") in {"FAIL", "NOT_RUN"}]
+        if data.get("audit_result") == "PASS" and invalid_checks:
+            add_check(checks, "IS-SEM-018", "FAIL", "CRITICAL", "Audit PASS cannot contain FAIL or NOT_RUN checks", "/checks")
+        else:
+            add_check(checks, "IS-SEM-018", "PASS", "INFO", "Audit checks are consistent with result")
+        if data.get("audit_result") == "FAIL" and not data.get("findings"):
+            add_check(checks, "IS-SEM-019", "FAIL", "CRITICAL", "Audit FAIL requires at least one finding", "/findings")
+        else:
+            add_check(checks, "IS-SEM-019", "PASS", "INFO", "Audit findings are consistent with result")
 
     elif kind == "orchestrator-state":
         machine = data.get("machine_state")
@@ -241,12 +255,16 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
         audited = data.get("last_audited_sha")
         result = data.get("last_audit_result")
         approval = data.get("approval")
+        if data.get("builder_executor_id") is not None and data.get("builder_executor_id") == data.get("auditor_executor_id"):
+            add_check(checks, "IS-SEM-020", "FAIL", "CRITICAL", "Builder and Auditor executor identities must be distinct", "/")
+        else:
+            add_check(checks, "IS-SEM-020", "PASS", "INFO", "Executor identities are distinct")
         if machine == "WAITING_PRODUCT_AUTHORITY" and not (result == "PASS" and target is not None and target == audited and approval is None):
             add_check(checks, "IS-SEM-013", "FAIL", "CRITICAL", "WAITING_PRODUCT_AUTHORITY requires PASS on the exact frozen SHA and no approval yet", "/")
         else:
             add_check(checks, "IS-SEM-013", "PASS", "INFO", "Waiting state is consistent")
         if machine == "GATE_APPROVED":
-            valid = bool(approval) and result == "PASS" and target is not None and target == audited and approval.get("audited_sha") == audited and approval.get("gate") == data.get("gate")
+            valid = bool(approval) and result == "PASS" and target is not None and target == audited and approval.get("audited_sha") == audited and approval.get("gate") == data.get("gate") and approval.get("executor_id") == data.get("product_authority_id") and approval.get("role") == "PRODUCT_AUTHORITY" and approval.get("authority") == "GATE_APPROVAL" and approval.get("executor_id") not in {data.get("builder_executor_id"), data.get("auditor_executor_id")}
             if not valid:
                 add_check(checks, "IS-SEM-015", "FAIL", "CRITICAL", "GATE_APPROVED requires explicit approval matching gate and audited SHA", "/approval")
             else:

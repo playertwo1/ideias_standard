@@ -44,14 +44,17 @@ FIX_REQUIRED          WAITING_PRODUCT_AUTHORITY
 ### Product Authority
 
 Continua responsável por decisão nova de produto, mudança material de escopo, decisão LOCKED, conflitos sem regra e registro de gate humano.
+Sua identidade autorizada é configurada na policy e persistida no estado; papel (`PRODUCT_AUTHORITY`) e autoridade (`GATE_APPROVAL`) são campos separados.
 
 ### Builder
 
 Pode alterar o workspace autorizado e produzir a menor mudança coerente. Ao terminar, produz `builder-report.json` e informa o commit exato candidato à auditoria.
+O relatório registra `executor_id`, papel `BUILDER` e autoridade `IMPLEMENTATION` separadamente.
 
 ### Auditor
 
 É distinto do Builder. Revisa o commit congelado, não edita o alvo auditado e produz `audit-report.json` com `PASS`, `FAIL` ou `ESCALATE`.
+O relatório registra `executor_id`, papel `AUDITOR` e autoridade `INDEPENDENT_AUDIT`; a máquina rejeita o mesmo `executor_id` nos dois handoffs.
 
 ### Orquestrador
 
@@ -80,6 +83,8 @@ O Builder registra, no mínimo, resultado, resumo, paths alterados, checks, limi
 
 O Auditor registra, no mínimo, SHA auditado, resultado, checks, findings reproduzíveis, riscos residuais e `gate_registration = NOT_AUTHORIZED`.
 
+`PASS` é inválido com check obrigatório `FAIL` ou `NOT_RUN`; `NOT_APPLICABLE` permanece permitido. `FAIL` exige ao menos um finding. `ESCALATE` mantém semântica própria.
+
 ## Ciclo de correção
 
 A política de referência usa no máximo três rodadas de auditoria.
@@ -100,7 +105,7 @@ Builder não precisa obedecer silenciosamente a finding incompatível com o cont
 
 `AUDIT RESULT: PASS` não registra um gate humano.
 
-Quando a auditoria passa, o estado obrigatório é `WAITING_PRODUCT_AUTHORITY`. Somente uma ação explícita da Product Authority pode registrar a aprovação associada ao mesmo SHA auditado.
+Quando a auditoria passa, o estado obrigatório é `WAITING_PRODUCT_AUTHORITY`. Somente uma ação explícita da identidade de Product Authority configurada pode registrar a aprovação, declarando novamente o gate e o SHA auditado. Builder, Auditor, Orquestrador, runner, workflow e adapter não podem se autoatribuir essa identidade.
 
 Mesmo após `GATE_APPROVED`, o Orquestrador de referência **não inicia a fase seguinte automaticamente**. O projeto deve materializar a nova autorização/estado conforme seu próprio contrato.
 

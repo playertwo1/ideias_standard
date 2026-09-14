@@ -26,6 +26,7 @@ def policy(builder="builder", auditor="auditor", rounds=3):
         "id": "builder-auditor-loop",
         "builder_role_id": builder,
         "auditor_role_id": auditor,
+        "product_authority_id": "human-owner",
         "max_audit_rounds": rounds,
         "immutable_audit_target": True,
         "auditor_write_access": False,
@@ -38,7 +39,9 @@ def policy(builder="builder", auditor="auditor", rounds=3):
 def builder_report(result="READY_FOR_AUDIT"):
     return {
         "schema_version": "0.1",
+        "executor_id": "builder-executor",
         "role": "BUILDER",
+        "authority": "IMPLEMENTATION",
         "result": result,
         "summary": "Mudança concluída dentro do escopo autorizado.",
         "changed_paths": ["src/example.txt"],
@@ -66,7 +69,9 @@ def audit_report(sha: str, result="PASS", blocking=False):
         )
     return {
         "schema_version": "0.1",
+        "executor_id": "auditor-executor",
         "role": "AUDITOR",
+        "authority": "INDEPENDENT_AUDIT",
         "audit_result": result,
         "audited_sha": sha,
         "summary": "Independent review complete.",
@@ -120,7 +125,7 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         self.assertEqual("WAITING_PRODUCT_AUTHORITY", state["machine_state"])
         self.assertIsNone(state["approval"])
 
-        state = approve_gate(self.state_path, authority="product-authority")
+        state = approve_gate(self.state_path, executor_id="human-owner", role="PRODUCT_AUTHORITY", gate="G01", audited_sha=SHA_B)
         self.assertEqual("GATE_APPROVED", state["machine_state"])
         self.assertEqual(SHA_B, state["approval"]["audited_sha"])
 
@@ -155,6 +160,54 @@ class OrchestrateHandoffsTest(unittest.TestCase):
                 gate="G01",
                 builder_branch="work/sample-f01",
             )
+
+    def test_same_executor_for_builder_and_auditor_is_rejected(self):
+        builder_path = self.root / "builder.json"
+        report = builder_report()
+        dump(builder_path, report)
+        builder_handoff(self.state_path, builder_path, SHA_A)
+        audit_path = self.root / "audit.json"
+        audit = audit_report(SHA_A)
+        audit["executor_id"] = report["executor_id"]
+        dump(audit_path, audit)
+        with self.assertRaises(HandoffError):
+            audit_handoff(self.state_path, audit_path)
+
+    def test_pass_with_fail_check_is_rejected(self):
+        self._assert_pass_check_rejected("FAIL")
+
+    def test_pass_with_not_run_check_is_rejected(self):
+        self._assert_pass_check_rejected("NOT_RUN")
+
+    def _assert_pass_check_rejected(self, status):
+        builder_path = self.root / f"builder-{status}.json"
+        dump(builder_path, builder_report())
+        builder_handoff(self.state_path, builder_path, SHA_A)
+        audit_path = self.root / f"audit-{status}.json"
+        report = audit_report(SHA_A)
+        report["checks"][0]["status"] = status
+        dump(audit_path, report)
+        with self.assertRaises(HandoffError):
+            audit_handoff(self.state_path, audit_path)
+
+    def test_fail_without_findings_is_rejected(self):
+        builder_path = self.root / "builder-empty-findings.json"
+        dump(builder_path, builder_report())
+        builder_handoff(self.state_path, builder_path, SHA_A)
+        audit_path = self.root / "audit-empty-findings.json"
+        dump(audit_path, audit_report(SHA_A, result="FAIL"))
+        with self.assertRaises(HandoffError):
+            audit_handoff(self.state_path, audit_path)
+
+    def test_unauthorized_gate_requester_is_rejected(self):
+        builder_path = self.root / "builder-approval.json"
+        audit_path = self.root / "audit-approval.json"
+        dump(builder_path, builder_report())
+        builder_handoff(self.state_path, builder_path, SHA_A)
+        dump(audit_path, audit_report(SHA_A))
+        audit_handoff(self.state_path, audit_path)
+        with self.assertRaises(HandoffError):
+            approve_gate(self.state_path, executor_id="runner", role="PRODUCT_AUTHORITY", gate="G01", audited_sha=SHA_A)
 
     def test_round_limit_blocks_loop(self):
         temp_policy = self.root / "one-round.json"

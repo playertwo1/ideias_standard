@@ -88,6 +88,9 @@ def init_state(
         "gate": gate,
         "machine_state": "READY_FOR_BUILD",
         "builder_branch": builder_branch,
+        "builder_executor_id": None,
+        "auditor_executor_id": None,
+        "product_authority_id": policy["product_authority_id"],
         "builder_head_sha": None,
         "audit_target_sha": None,
         "last_audited_sha": None,
@@ -122,6 +125,9 @@ def builder_handoff(
         raise HandoffError("commit_sha must be a lowercase 40-character Git SHA")
 
     state["last_builder_report"] = str(report_path)
+    if state.get("auditor_executor_id") == report["executor_id"]:
+        raise HandoffError("Builder and Auditor executor identities must be distinct")
+    state["builder_executor_id"] = report["executor_id"]
     state["builder_head_sha"] = commit_sha
 
     if report["result"] == "READY_FOR_AUDIT":
@@ -158,11 +164,19 @@ def audit_handoff(
         )
     if report["gate_registration"] != "NOT_AUTHORIZED":
         raise HandoffError("Auditor cannot register a development gate")
+    if report["executor_id"] == state.get("builder_executor_id"):
+        raise HandoffError("Builder and Auditor executor identities must be distinct")
     if report["audit_result"] == "PASS" and blocking_findings(report):
         raise HandoffError("Audit PASS cannot contain blocking findings")
+    invalid_checks = [check for check in report["checks"] if check["status"] in {"FAIL", "NOT_RUN"}]
+    if report["audit_result"] == "PASS" and invalid_checks:
+        raise HandoffError("Audit PASS requires every mandatory check to be PASS or NOT_APPLICABLE")
+    if report["audit_result"] == "FAIL" and not report["findings"]:
+        raise HandoffError("Audit FAIL requires at least one finding")
 
     state["audit_round"] += 1
     state["last_audit_report"] = str(report_path)
+    state["auditor_executor_id"] = report["executor_id"]
     state["last_audited_sha"] = report["audited_sha"]
     state["last_audit_result"] = report["audit_result"]
 
@@ -190,7 +204,10 @@ def audit_handoff(
 def approve_gate(
     state_path: Path,
     *,
-    authority: str,
+    executor_id: str,
+    role: str,
+    gate: str,
+    audited_sha: str,
 ) -> dict[str, Any]:
     state = load_json(state_path)
     validate_with_schema(state, "state")
@@ -202,11 +219,19 @@ def approve_gate(
         raise HandoffError("Gate cannot be registered without independent audit PASS")
     if state["last_audited_sha"] != state["audit_target_sha"]:
         raise HandoffError("Audited SHA no longer matches the frozen audit target")
+    if role != "PRODUCT_AUTHORITY" or executor_id != state["product_authority_id"]:
+        raise HandoffError("Gate approval requires the configured Product Authority identity")
+    if executor_id in {state.get("builder_executor_id"), state.get("auditor_executor_id")}:
+        raise HandoffError("Builder or Auditor cannot self-assign Product Authority")
+    if gate != state["gate"] or audited_sha != state["last_audited_sha"]:
+        raise HandoffError("Approval must explicitly match the gate and audited SHA")
 
     state["approval"] = {
-        "authority": authority,
-        "gate": state["gate"],
-        "audited_sha": state["last_audited_sha"],
+        "executor_id": executor_id,
+        "role": role,
+        "authority": "GATE_APPROVAL",
+        "gate": gate,
+        "audited_sha": audited_sha,
         "approved_at": now(),
     }
     state["machine_state"] = "GATE_APPROVED"
@@ -267,7 +292,10 @@ def main() -> int:
 
     approve = sub.add_parser("approve-gate")
     approve.add_argument("--state", required=True, type=Path)
-    approve.add_argument("--authority", required=True)
+    approve.add_argument("--executor-id", required=True)
+    approve.add_argument("--role", required=True)
+    approve.add_argument("--gate", required=True)
+    approve.add_argument("--audited-sha", required=True)
 
     show = sub.add_parser("status")
     show.add_argument("--state", required=True, type=Path)
@@ -288,7 +316,7 @@ def main() -> int:
         elif args.command == "audit-handoff":
             result = audit_handoff(args.state, args.report)
         elif args.command == "approve-gate":
-            result = approve_gate(args.state, authority=args.authority)
+            result = approve_gate(args.state, executor_id=args.executor_id, role=args.role, gate=args.gate, audited_sha=args.audited_sha)
         elif args.command == "status":
             result = status(args.state)
         else:

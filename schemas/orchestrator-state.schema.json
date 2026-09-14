@@ -4,7 +4,7 @@
   "title": "Ideias Standard Orchestrator State",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "project_id", "phase", "gate", "machine_state", "builder_branch", "builder_head_sha", "audit_target_sha", "last_audited_sha", "audit_round", "max_audit_rounds", "last_builder_report", "last_audit_report", "last_audit_result", "human_gate_required", "approval", "updated_at", "message"],
+  "required": ["schema_version", "project_id", "phase", "gate", "machine_state", "builder_branch", "builder_executor_id", "auditor_executor_id", "product_authority_id", "builder_head_sha", "audit_target_sha", "last_audited_sha", "audit_round", "max_audit_rounds", "last_builder_report", "last_audit_report", "last_audit_result", "human_gate_required", "approval", "updated_at", "message"],
   "properties": {
     "schema_version": {"type": "string", "const": "0.1"},
     "project_id": {"type": "string", "minLength": 1},
@@ -12,6 +12,9 @@
     "gate": {"type": "string", "minLength": 1},
     "machine_state": {"enum": ["READY_FOR_BUILD", "READY_FOR_AUDIT", "AUDITING", "FIX_REQUIRED", "WAITING_PRODUCT_AUTHORITY", "GATE_APPROVED", "BLOCKED"]},
     "builder_branch": {"type": "string", "minLength": 1},
+    "builder_executor_id": {"type": ["string", "null"], "minLength": 1},
+    "auditor_executor_id": {"type": ["string", "null"], "minLength": 1},
+    "product_authority_id": {"type": "string", "minLength": 1},
     "builder_head_sha": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[0-9a-f]{40}$"}]},
     "audit_target_sha": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[0-9a-f]{40}$"}]},
     "last_audited_sha": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^[0-9a-f]{40}$"}]},
@@ -26,6 +29,6 @@
     "message": {"type": "string"}
   },
   "$defs": {
-    "approval": {"type": "object", "additionalProperties": false, "required": ["authority", "gate", "audited_sha", "approved_at"], "properties": {"authority": {"type": "string", "minLength": 1}, "gate": {"type": "string", "minLength": 1}, "audited_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "approved_at": {"type": "string", "minLength": 1}}}
+    "approval": {"type": "object", "additionalProperties": false, "required": ["executor_id", "role", "authority", "gate", "audited_sha", "approved_at"], "properties": {"executor_id": {"type": "string", "minLength": 1}, "role": {"type": "string", "const": "PRODUCT_AUTHORITY"}, "authority": {"type": "string", "const": "GATE_APPROVAL"}, "gate": {"type": "string", "minLength": 1}, "audited_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "approved_at": {"type": "string", "minLength": 1}}}
   }
 }
