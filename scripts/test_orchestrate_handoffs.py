@@ -36,12 +36,13 @@ def policy(builder="builder", auditor="auditor", rounds=3):
     }
 
 
-def builder_report(result="READY_FOR_AUDIT"):
+def builder_report(result="READY_FOR_AUDIT", sha=SHA_A):
     return {
         "schema_version": "0.1",
         "executor_id": "builder-executor",
         "role": "BUILDER",
         "authority": "IMPLEMENTATION",
+        "result_sha": sha,
         "result": result,
         "summary": "Mudança concluída dentro do escopo autorizado.",
         "changed_paths": ["src/example.txt"],
@@ -115,7 +116,7 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         self.assertEqual(1, state["audit_round"])
 
         builder_two = self.root / "builder-2.json"
-        dump(builder_two, builder_report())
+        dump(builder_two, builder_report(sha=SHA_B))
         state = builder_handoff(self.state_path, builder_two, SHA_B)
         self.assertEqual(SHA_B, state["audit_target_sha"])
 

@@ -112,7 +112,7 @@ def init_state(
 def builder_handoff(
     state_path: Path,
     report_path: Path,
-    commit_sha: str,
+    commit_sha: str | None = None,
 ) -> dict[str, Any]:
     state = load_json(state_path)
     report = load_json(report_path)
@@ -121,8 +121,10 @@ def builder_handoff(
 
     if state["machine_state"] not in {"READY_FOR_BUILD", "FIX_REQUIRED"}:
         raise HandoffError(f"Builder handoff not allowed from {state['machine_state']}")
-    if len(commit_sha) != 40 or any(ch not in "0123456789abcdef" for ch in commit_sha):
-        raise HandoffError("commit_sha must be a lowercase 40-character Git SHA")
+    result_sha = report["result_sha"]
+    if commit_sha is not None and commit_sha != result_sha:
+        raise HandoffError("Builder report result_sha does not match commit_sha")
+    commit_sha = result_sha
 
     state["last_builder_report"] = str(report_path)
     if state.get("auditor_executor_id") == report["executor_id"]:
@@ -284,7 +286,7 @@ def main() -> int:
     builder = sub.add_parser("builder-handoff")
     builder.add_argument("--state", required=True, type=Path)
     builder.add_argument("--report", required=True, type=Path)
-    builder.add_argument("--commit-sha", required=True)
+    builder.add_argument("--commit-sha")
 
     audit = sub.add_parser("audit-handoff")
     audit.add_argument("--state", required=True, type=Path)

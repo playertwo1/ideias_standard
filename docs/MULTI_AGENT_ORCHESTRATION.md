@@ -79,7 +79,7 @@ Contratos:
 - `schemas/orchestrator-state.schema.json`;
 - `schemas/orchestration-policy.schema.json`.
 
-O Builder registra, no mínimo, resultado, resumo, paths alterados, checks, limitações e disputas.
+O Builder registra, no mínimo, `result_sha`, resultado, resumo, paths alterados, checks, limitações e disputas. A máquina usa `result_sha` como `audit_target_sha` e rejeita um SHA externo divergente.
 
 O Auditor registra, no mínimo, SHA auditado, resultado, checks, findings reproduzíveis, riscos residuais e `gate_registration = NOT_AUTHORIZED`.
 
@@ -113,7 +113,7 @@ Mesmo após `GATE_APPROVED`, o Orquestrador de referência **não inicia a fase 
 
 `scripts/orchestrate_handoffs.py` implementa somente a máquina de estados e a validação dos handoffs. Ele não inicia um fornecedor de IA.
 
-Um runner externo pode observar `next_actor` e iniciar a ferramenta escolhida pelo projeto. Esse runner é um adapter: não é fonte canônica e não pode ampliar autoridade, remover sandbox, mudar o SHA auditado, fabricar evidência ou contornar gate humano.
+O runner operacional de referência em `scripts/o0_runner.py` carrega o estado, observa `next_actor` e inicia a ferramenta configurada sem usar shell implícito. Esse runner é um adapter: não é fonte canônica e não pode ampliar autoridade, remover sandbox, mudar o SHA auditado, fabricar evidência ou contornar gate humano.
 
 Isso permite usar ferramentas diferentes para Builder e Auditor sem acoplar o Standard a um fornecedor específico.
 
