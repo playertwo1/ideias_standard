@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts.orchestrate_handoffs import init_state
 from scripts.o0_runner import (
     HandoffError,
     audit_handoff,
@@ -37,6 +38,77 @@ class O0RunnerTest(unittest.TestCase):
         path.write_text("{}", encoding="utf-8")
         with self.assertRaises(HandoffError):
             load_config(path)
+
+    def test_restart_recovers_persisted_state_without_process_memory(self):
+        repository = self.root / "repo"
+        repository.mkdir()
+        builder_workspace = self.root / "builder"
+        builder_workspace.mkdir()
+        policy_path = self.root / "policy.json"
+        state_path = self.root / "state.json"
+        report_path = self.root / "reports" / "builder-report.json"
+        config_path = self.root / "runner.json"
+        policy_path.write_text(json.dumps({
+            "schema_version": "0.1",
+            "id": "builder-auditor-loop",
+            "builder_role_id": "builder",
+            "auditor_role_id": "auditor",
+            "product_authority_id": "owner",
+            "max_audit_rounds": 3,
+            "immutable_audit_target": True,
+            "auditor_write_access": False,
+            "human_gate_required": True,
+            "auto_advance_after_audit": False,
+            "persist_handoffs": True,
+        }), encoding="utf-8")
+        init_state(
+            policy_path,
+            state_path,
+            project_id="sample",
+            phase="O0",
+            gate="S1",
+            builder_branch="builder/o0-c23",
+        )
+        report_path.parent.mkdir()
+        report_path.write_text(json.dumps({
+            "schema_version": "0.1",
+            "executor_id": "builder-executor",
+            "role": "BUILDER",
+            "authority": "IMPLEMENTATION",
+            "result_sha": "a" * 40,
+            "result": "DISPUTED",
+            "summary": "Finding disputed.",
+            "changed_paths": [],
+            "checks": [],
+            "limitations": [],
+            "disputed_findings": ["AUD-001"],
+            "escalation": None,
+        }), encoding="utf-8")
+        builder_handoff(state_path, report_path)
+        persisted = state_path.read_bytes()
+        config_path.write_text(json.dumps({
+            "repository": "repo",
+            "state_path": "state.json",
+            "reports_dir": "reports",
+            "builder_workspace": "builder",
+            "audit_workspaces": "audits",
+            "builder_command": ["must-not-run"],
+            "auditor_command": ["must-not-run"],
+        }), encoding="utf-8")
+
+        restarted = subprocess.run(
+            [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_path)],
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(0, restarted.returncode, restarted.stderr)
+        recovered = json.loads(restarted.stdout)
+        self.assertEqual("BLOCKED", recovered["machine_state"])
+        self.assertEqual("PRODUCT_AUTHORITY", recovered["next_actor"])
+        self.assertEqual(persisted, state_path.read_bytes())
 
     def test_builder_and_auditor_workspaces_must_be_separate(self):
         with self.assertRaises(HandoffError):
