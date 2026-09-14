@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ideias-standard.local/schemas/artifact-policy.schema.json",
+  "title": "Ideias Standard Artifact Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["path", "ownership", "source", "fingerprint"],
+  "properties": {
+    "path": {"type": "string", "minLength": 1},
+    "ownership": {"enum": ["MANAGED", "MERGEABLE", "USER_OWNED"]},
+    "source": {"type": "string", "minLength": 1},
+    "fingerprint": {"type": "string", "minLength": 1},
+    "profile": {"type": ["string", "null"]},
+    "pack": {"type": ["string", "null"]},
+    "local_override": {"type": "boolean", "default": false},
+    "rationale": {"type": "string", "minLength": 1}
+  }
+}
