@@ -1,0 +1,25 @@
+schema_version: '0.1'
+id: migration-first
+version: '0.1'
+description: Fluxo para mudancas de dados, schema ou compatibilidade que exigem prova de preservacao antes da nova feature.
+steps:
+  - id: inventory
+    purpose: Inventariar estado, versoes, dados e compatibilidade antes da mudanca.
+    gate: false
+    required_artifacts: []
+  - id: migration-plan
+    purpose: Definir transformacao, rollback e acceptance de preservacao.
+    gate: true
+    required_artifacts: []
+  - id: apply
+    purpose: Aplicar mudanca de forma reversivel quando possivel.
+    gate: false
+    required_artifacts: []
+  - id: verify-preservation
+    purpose: Provar que IDs, dados e invariantes exigidos foram preservados.
+    gate: true
+    required_artifacts: []
+  - id: close
+    purpose: Atualizar lock, estado e evidencias somente apos validacao.
+    gate: false
+    required_artifacts: []
