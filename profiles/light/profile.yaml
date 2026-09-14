@@ -1,0 +1,19 @@
+id: LIGHT
+version: 0.1
+purpose: Projetos pequenos, utilitarios, experimentos e mudancas de baixo risco.
+required_artifacts:
+  - AGENTS.md
+  - PROJECT_STATE.md
+  - ROADMAP.md
+  - CHANGELOG.md
+  - context-manifest.json
+required_capabilities:
+  progressive_context: true
+  evidence_before_pass: true
+  human_authority: true
+optional_capabilities:
+  independent_audit: false
+  phase_contract: false
+  migration_safety: false
+notes:
+  - LIGHT reduz burocracia, nunca controles exigidos por risco ou pack.
