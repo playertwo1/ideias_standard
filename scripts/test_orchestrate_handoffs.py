@@ -103,6 +103,21 @@ class OrchestrateHandoffsTest(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def test_reference_policy_initializes_exactly_three_audit_rounds(self):
+        reference_policy = Path(__file__).resolve().parents[1] / "orchestration" / "builder-auditor-policy.json"
+        reference_state = self.root / "reference-state.json"
+
+        state = init_state(
+            reference_policy,
+            reference_state,
+            project_id="sample",
+            phase="O0",
+            gate="S1",
+            builder_branch="builder/o0-c21",
+        )
+
+        self.assertEqual(3, state["max_audit_rounds"])
+
     def test_fail_fix_pass_human_gate_flow(self):
         builder_one = self.root / "builder-1.json"
         dump(builder_one, builder_report())
