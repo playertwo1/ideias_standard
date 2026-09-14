@@ -1,0 +1,37 @@
+{
+  "schema_version": "0.1",
+  "standard_version": "0.1.0-draft",
+  "profile": "STANDARD",
+  "packs": ["android"],
+  "bundle": null,
+  "workflow": "default",
+  "adapters": ["generic"],
+  "template_fingerprint": "sha256:template",
+  "generated_at": "2026-09-14T12:00:00Z",
+  "local_overrides": [],
+  "source_revision": "test",
+  "artifacts": [
+    {
+      "path": "AGENTS.md",
+      "ownership": "MERGEABLE",
+      "source": "templates/AGENTS.md",
+      "source_revision": "0.1",
+      "fingerprint": "sha256:a",
+      "profile": "STANDARD",
+      "pack": null,
+      "local_override": false,
+      "rationale": "Agent contract"
+    },
+    {
+      "path": "AGENTS.md",
+      "ownership": "MERGEABLE",
+      "source": "templates/AGENTS.md",
+      "source_revision": "0.1",
+      "fingerprint": "sha256:b",
+      "profile": "STANDARD",
+      "pack": null,
+      "local_override": false,
+      "rationale": "Duplicate path must fail semantically"
+    }
+  ]
+}
