@@ -1,0 +1,21 @@
+schema_version: '0.1'
+id: default
+version: '0.1'
+description: Fluxo proporcional padrao para projetos novos.
+steps:
+  - id: define
+    purpose: Definir contrato, escopo, autoridade e acceptance aplicavel.
+    gate: false
+    required_artifacts: []
+  - id: build
+    purpose: Implementar a menor mudanca coerente autorizada.
+    gate: false
+    required_artifacts: []
+  - id: verify
+    purpose: Executar validacao proporcional ao risco e impacto.
+    gate: true
+    required_artifacts: []
+  - id: handoff
+    purpose: Atualizar estado, evidencias e proxima acao.
+    gate: false
+    required_artifacts: []
