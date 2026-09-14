@@ -1,5 +1,4 @@
 import unittest
-from pathlib import Path
 
 from scripts.validate_standard import ROOT, validate
 
@@ -14,6 +13,22 @@ class ValidateStandardTest(unittest.TestCase):
 
     def test_valid_lock_passes(self):
         report = validate(ROOT / "fixtures/valid/basic.standard-lock.json", "standard-lock")
+        self.assertEqual("PASS", report["result"])
+
+    def test_valid_context_manifest_passes(self):
+        report = validate(ROOT / "fixtures/valid/basic.context-manifest.json")
+        self.assertEqual("PASS", report["result"])
+
+    def test_valid_change_passes(self):
+        report = validate(ROOT / "fixtures/valid/basic.change.json")
+        self.assertEqual("PASS", report["result"])
+
+    def test_valid_bundle_passes(self):
+        report = validate(ROOT / "bundles/standard-android-ai/bundle.yaml", "bundle")
+        self.assertEqual("PASS", report["result"])
+
+    def test_valid_workflow_passes(self):
+        report = validate(ROOT / "workflows/default/workflow.yaml", "workflow")
         self.assertEqual("PASS", report["result"])
 
     def test_unknown_pack_fails_semantically(self):
