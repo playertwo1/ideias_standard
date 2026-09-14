@@ -1,0 +1,8 @@
+{
+  "schema_version": "0.1",
+  "project": {"name": "Unknown Pack", "type": "generic"},
+  "standard": {"name": "Ideias Standard", "version": "0.1.0-draft", "profile": "STANDARD"},
+  "packs": ["does-not-exist"],
+  "governance": {"product_authority": "USER", "builder": "AI_AGENT", "auditor": "INDEPENDENT_AI_AGENT"},
+  "context": {"strategy": "PROGRESSIVE", "full_repo_scan_default": false}
+}
