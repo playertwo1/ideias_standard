@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1",
+  "project": {
+    "name": "Example Python Utility",
+    "type": "python",
+    "description": "Exemplo LIGHT com pack Python"
+  },
+  "standard": {
+    "name": "Ideias Standard",
+    "version": "0.1.0-draft",
+    "profile": "LIGHT"
+  },
+  "packs": ["python"],
+  "capabilities": {
+    "independent_audit": false,
+    "context_compilation": false,
+    "human_gates": true
+  },
+  "governance": {
+    "product_authority": "USER",
+    "builder": "AI_AGENT",
+    "auditor": "OPTIONAL"
+  },
+  "context": {
+    "strategy": "PROGRESSIVE",
+    "full_repo_scan_default": false
+  },
+  "project_rules": []
+}
