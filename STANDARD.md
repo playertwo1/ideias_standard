@@ -49,7 +49,7 @@ Contrato: `schemas/bundle.schema.json`.
 
 ## 5. Workflows
 
-Workflows organizam sequência, artefatos e gates para classes de trabalho, por exemplo fluxo padrão ou migration-first.
+Workflows organizam sequência, artefatos e gates para classes de trabalho, por exemplo fluxo padrão, migration-first ou Builder-Auditor.
 
 Workflow não muda decisões humanas, não transforma `NOT_RUN` em `PASS` e não pode enfraquecer controles de segurança.
 
@@ -64,7 +64,8 @@ Arquivos principais:
 - `context-manifest.json`: roteamento de contexto;
 - artifact policies: ownership e fingerprint por arquivo;
 - bundle/workflow/change schemas;
-- conformance report estruturado.
+- conformance report estruturado;
+- handoffs Builder/Auditor e estado/policy de orquestração quando o pack `multi-agent` se aplica.
 
 Markdown explica; contratos estruturados permitem validação determinística.
 
@@ -147,13 +148,43 @@ O contrato canônico não é `AGENTS.md`, `CLAUDE.md` nem `GEMINI.md`.
 
 Adapters são materializações. O catálogo pode conter adapters `ACTIVE` ou `PLANNED`; somente adapters ativos podem entrar em bundles materializados na versão corrente. Divergência entre adapter e contrato canônico é finding de conformance.
 
-## 14. Anti-burocracia
+## 14. Orquestração multiagente
+
+Quando o pack `multi-agent` estiver ativo, o Standard pode coordenar Builder e Auditor por handoffs estruturados sem transformar nenhum agente em Product Authority.
+
+Regras canônicas:
+
+- Builder e Auditor são distintos;
+- Builder entrega relatório estruturado e um commit candidato;
+- o SHA auditado é congelado e o resultado vale somente para esse SHA;
+- Auditor independente não possui escrita no alvo auditado;
+- `FAIL` retorna findings ao Builder dentro de um ciclo limitado;
+- disputa, escalada ou limite de rodadas gera `BLOCKED`, nunca decisão silenciosa do Orquestrador;
+- `PASS` leva a `WAITING_PRODUCT_AUTHORITY` quando há gate humano;
+- somente ação explícita da Product Authority pode registrar esse gate;
+- mesmo após aprovação, a próxima fase não começa automaticamente sem que o contrato do projeto a autorize;
+- o runner que inicia agentes é um adapter operacional e nunca fonte canônica.
+
+Contratos:
+
+- `schemas/builder-report.schema.json`;
+- `schemas/audit-report.schema.json`;
+- `schemas/orchestration-policy.schema.json`;
+- `schemas/orchestrator-state.schema.json`.
+
+Workflow de referência: `builder-auditor-loop`.
+
+Máquina de estados de referência: `scripts/orchestrate_handoffs.py`.
+
+Detalhes: `docs/MULTI_AGENT_ORCHESTRATION.md`.
+
+## 15. Anti-burocracia
 
 Mudança pequena não deve receber o mesmo ritual de projeto sensível. Profundidade cresce com risco, impacto e ambiguidade.
 
 O Standard deve reduzir ambiguidade, drift e desperdício de contexto sem criar processo maior que o problema.
 
-## 15. Regra final
+## 16. Regra final
 
 **Correção → integridade → autoridade → evidência → eficiência.**
 

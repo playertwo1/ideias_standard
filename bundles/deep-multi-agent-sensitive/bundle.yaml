@@ -9,8 +9,10 @@ packs:
   - ai
 adapters:
   - generic
-workflow: default
+workflow: builder-auditor-loop
 constraints:
   - Auditoria independente obrigatoria em gates materiais.
   - Escritas concorrentes exigem coordenacao explicita.
   - Dados sensiveis nao entram em logs, prompts ou artefatos sem necessidade autorizada.
+  - Auditor revisa SHA congelado sem escrita no alvo.
+  - PASS de auditoria para antes do gate humano; Product Authority continua explicita.

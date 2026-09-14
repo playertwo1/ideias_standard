@@ -1,0 +1,304 @@
+#!/usr/bin/env python3
+"""Deterministic Builder/Auditor handoff state machine for Ideias Standard.
+
+This module coordinates state and evidence only. It intentionally does not
+launch AI providers, edit project code, register a human gate automatically,
+or start the next phase.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+from jsonschema import Draft202012Validator
+
+ROOT = Path(__file__).resolve().parents[1]
+SCHEMAS = {
+    "policy": ROOT / "schemas" / "orchestration-policy.schema.json",
+    "state": ROOT / "schemas" / "orchestrator-state.schema.json",
+    "builder": ROOT / "schemas" / "builder-report.schema.json",
+    "audit": ROOT / "schemas" / "audit-report.schema.json",
+}
+
+
+class HandoffError(RuntimeError):
+    pass
+
+
+def now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise HandoffError(f"JSON root must be an object: {path}")
+    return data
+
+
+def write_json(path: Path, data: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    tmp.replace(path)
+
+
+def validate_with_schema(data: dict[str, Any], schema_name: str) -> None:
+    schema = load_json(SCHEMAS[schema_name])
+    errors = sorted(
+        Draft202012Validator(schema).iter_errors(data),
+        key=lambda error: list(error.absolute_path),
+    )
+    if errors:
+        details = "; ".join(
+            f"/{'/'.join(map(str, error.absolute_path)) or ''}: {error.message}"
+            for error in errors
+        )
+        raise HandoffError(f"{schema_name} schema validation failed: {details}")
+
+
+def blocking_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
+    return [finding for finding in report.get("findings", []) if finding.get("blocking") is True]
+
+
+def init_state(
+    policy_path: Path,
+    state_path: Path,
+    *,
+    project_id: str,
+    phase: str,
+    gate: str,
+    builder_branch: str,
+) -> dict[str, Any]:
+    if state_path.exists():
+        raise HandoffError(f"State already exists: {state_path}")
+    policy = load_json(policy_path)
+    validate_with_schema(policy, "policy")
+    if policy["builder_role_id"] == policy["auditor_role_id"]:
+        raise HandoffError("Builder and Auditor role IDs must be distinct")
+
+    state = {
+        "schema_version": "0.1",
+        "project_id": project_id,
+        "phase": phase,
+        "gate": gate,
+        "machine_state": "READY_FOR_BUILD",
+        "builder_branch": builder_branch,
+        "builder_head_sha": None,
+        "audit_target_sha": None,
+        "last_audited_sha": None,
+        "audit_round": 0,
+        "max_audit_rounds": policy["max_audit_rounds"],
+        "last_builder_report": None,
+        "last_audit_report": None,
+        "last_audit_result": None,
+        "human_gate_required": True,
+        "approval": None,
+        "updated_at": now(),
+        "message": "Ready for Builder.",
+    }
+    validate_with_schema(state, "state")
+    write_json(state_path, state)
+    return state
+
+
+def builder_handoff(
+    state_path: Path,
+    report_path: Path,
+    commit_sha: str,
+) -> dict[str, Any]:
+    state = load_json(state_path)
+    report = load_json(report_path)
+    validate_with_schema(state, "state")
+    validate_with_schema(report, "builder")
+
+    if state["machine_state"] not in {"READY_FOR_BUILD", "FIX_REQUIRED"}:
+        raise HandoffError(f"Builder handoff not allowed from {state['machine_state']}")
+    if len(commit_sha) != 40 or any(ch not in "0123456789abcdef" for ch in commit_sha):
+        raise HandoffError("commit_sha must be a lowercase 40-character Git SHA")
+
+    state["last_builder_report"] = str(report_path)
+    state["builder_head_sha"] = commit_sha
+
+    if report["result"] == "READY_FOR_AUDIT":
+        state["audit_target_sha"] = commit_sha
+        state["machine_state"] = "READY_FOR_AUDIT"
+        state["message"] = f"Audit target frozen at {commit_sha}."
+    else:
+        state["machine_state"] = "BLOCKED"
+        state["message"] = (
+            f"Builder returned {report['result']}; Product Authority or explicit conflict resolution is required."
+        )
+
+    state["updated_at"] = now()
+    validate_with_schema(state, "state")
+    write_json(state_path, state)
+    return state
+
+
+def audit_handoff(
+    state_path: Path,
+    report_path: Path,
+) -> dict[str, Any]:
+    state = load_json(state_path)
+    report = load_json(report_path)
+    validate_with_schema(state, "state")
+    validate_with_schema(report, "audit")
+
+    if state["machine_state"] not in {"READY_FOR_AUDIT", "AUDITING"}:
+        raise HandoffError(f"Audit handoff not allowed from {state['machine_state']}")
+    target = state.get("audit_target_sha")
+    if report["audited_sha"] != target:
+        raise HandoffError(
+            f"Audit SHA mismatch: report={report['audited_sha']} state={target}"
+        )
+    if report["gate_registration"] != "NOT_AUTHORIZED":
+        raise HandoffError("Auditor cannot register a development gate")
+    if report["audit_result"] == "PASS" and blocking_findings(report):
+        raise HandoffError("Audit PASS cannot contain blocking findings")
+
+    state["audit_round"] += 1
+    state["last_audit_report"] = str(report_path)
+    state["last_audited_sha"] = report["audited_sha"]
+    state["last_audit_result"] = report["audit_result"]
+
+    if report["audit_result"] == "PASS":
+        state["machine_state"] = "WAITING_PRODUCT_AUTHORITY"
+        state["message"] = (
+            "Independent audit passed for the frozen SHA. Automation must stop until explicit Product Authority gate registration."
+        )
+    elif report["audit_result"] == "ESCALATE":
+        state["machine_state"] = "BLOCKED"
+        state["message"] = "Auditor escalated a decision, risk, or canonical conflict."
+    elif state["audit_round"] >= state["max_audit_rounds"]:
+        state["machine_state"] = "BLOCKED"
+        state["message"] = "Maximum audit/correction rounds reached."
+    else:
+        state["machine_state"] = "FIX_REQUIRED"
+        state["message"] = "Audit failed; findings are ready for Builder correction."
+
+    state["updated_at"] = now()
+    validate_with_schema(state, "state")
+    write_json(state_path, state)
+    return state
+
+
+def approve_gate(
+    state_path: Path,
+    *,
+    authority: str,
+) -> dict[str, Any]:
+    state = load_json(state_path)
+    validate_with_schema(state, "state")
+    if state["machine_state"] != "WAITING_PRODUCT_AUTHORITY":
+        raise HandoffError(
+            f"Gate registration requires WAITING_PRODUCT_AUTHORITY, not {state['machine_state']}"
+        )
+    if state["last_audit_result"] != "PASS":
+        raise HandoffError("Gate cannot be registered without independent audit PASS")
+    if state["last_audited_sha"] != state["audit_target_sha"]:
+        raise HandoffError("Audited SHA no longer matches the frozen audit target")
+
+    state["approval"] = {
+        "authority": authority,
+        "gate": state["gate"],
+        "audited_sha": state["last_audited_sha"],
+        "approved_at": now(),
+    }
+    state["machine_state"] = "GATE_APPROVED"
+    state["message"] = (
+        "Gate registration recorded from explicit Product Authority action. The next phase is not started automatically."
+    )
+    state["updated_at"] = now()
+    validate_with_schema(state, "state")
+    write_json(state_path, state)
+    return state
+
+
+def status(state_path: Path) -> dict[str, Any]:
+    state = load_json(state_path)
+    validate_with_schema(state, "state")
+    return state
+
+
+def next_actor(state: dict[str, Any]) -> str:
+    mapping = {
+        "READY_FOR_BUILD": "BUILDER",
+        "FIX_REQUIRED": "BUILDER",
+        "READY_FOR_AUDIT": "AUDITOR",
+        "AUDITING": "AUDITOR",
+        "WAITING_PRODUCT_AUTHORITY": "PRODUCT_AUTHORITY",
+        "GATE_APPROVED": "STOP",
+        "BLOCKED": "PRODUCT_AUTHORITY",
+    }
+    return mapping[state["machine_state"]]
+
+
+def print_state(state: dict[str, Any]) -> None:
+    payload = dict(state)
+    payload["next_actor"] = next_actor(state)
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    init = sub.add_parser("init")
+    init.add_argument("--policy", required=True, type=Path)
+    init.add_argument("--state", required=True, type=Path)
+    init.add_argument("--project-id", required=True)
+    init.add_argument("--phase", required=True)
+    init.add_argument("--gate", required=True)
+    init.add_argument("--builder-branch", required=True)
+
+    builder = sub.add_parser("builder-handoff")
+    builder.add_argument("--state", required=True, type=Path)
+    builder.add_argument("--report", required=True, type=Path)
+    builder.add_argument("--commit-sha", required=True)
+
+    audit = sub.add_parser("audit-handoff")
+    audit.add_argument("--state", required=True, type=Path)
+    audit.add_argument("--report", required=True, type=Path)
+
+    approve = sub.add_parser("approve-gate")
+    approve.add_argument("--state", required=True, type=Path)
+    approve.add_argument("--authority", required=True)
+
+    show = sub.add_parser("status")
+    show.add_argument("--state", required=True, type=Path)
+
+    args = parser.parse_args()
+    try:
+        if args.command == "init":
+            result = init_state(
+                args.policy,
+                args.state,
+                project_id=args.project_id,
+                phase=args.phase,
+                gate=args.gate,
+                builder_branch=args.builder_branch,
+            )
+        elif args.command == "builder-handoff":
+            result = builder_handoff(args.state, args.report, args.commit_sha)
+        elif args.command == "audit-handoff":
+            result = audit_handoff(args.state, args.report)
+        elif args.command == "approve-gate":
+            result = approve_gate(args.state, authority=args.authority)
+        elif args.command == "status":
+            result = status(args.state)
+        else:
+            raise HandoffError(f"Unsupported command: {args.command}")
+        print_state(result)
+        return 0
+    except (HandoffError, OSError, json.JSONDecodeError) as exc:
+        print(f"HANDOFF ERROR: {exc}", file=sys.stderr)
+        return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -50,3 +50,28 @@ invariants:
     statement: Toda transicao de gate exige evidencia executada; existencia de artefato nao prova PASS.
     applies_to: [validation, gates, audit]
     enforcement: governance
+  - id: INV-011
+    severity: CRITICAL
+    statement: Resultado de auditoria multiagente vale somente para o SHA exato congelado; mudanca posterior exige nova auditoria.
+    applies_to: [multi-agent, audit, orchestration]
+    enforcement: deterministic
+  - id: INV-012
+    severity: CRITICAL
+    statement: Orquestrador, workflow ou adapter nunca registra gate humano nem inicia automaticamente a fase seguinte.
+    applies_to: [multi-agent, orchestration, gates, adapter, workflow]
+    enforcement: governance
+  - id: INV-013
+    severity: HIGH
+    statement: Ciclo automatico Builder-Auditor deve possuir limite de rodadas e escalar quando o limite for atingido.
+    applies_to: [multi-agent, orchestration]
+    enforcement: deterministic
+  - id: INV-014
+    severity: HIGH
+    statement: Auditor independente nao possui escrita no alvo auditado durante a revisao.
+    applies_to: [multi-agent, audit, orchestration]
+    enforcement: workflow
+  - id: INV-015
+    severity: HIGH
+    statement: Disputa nao resolvida entre Builder e Auditor deve escalar; o Orquestrador nao escolhe silenciosamente um vencedor.
+    applies_to: [multi-agent, orchestration]
+    enforcement: governance

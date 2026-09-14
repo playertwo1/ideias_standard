@@ -23,9 +23,14 @@ Objetivo: definir e provar o contrato antes da implementação da CLI.
 - [x] GitHub Actions em Python 3.11/3.12/3.13 com artefatos de evidência
 - [x] Suíte completa executada com matriz verde e evidência registrada
 - [x] Finding inicial de CI corrigido e revalidado
+- [x] Contratos de handoff Builder/Auditor e policy/state de orquestração multiagente
+- [x] Workflow `builder-auditor-loop` com SHA de auditoria imutável, loop limitado e gate humano
+- [x] Máquina de estados provider-neutral para handoffs e registro explícito de gate
+- [x] Fixtures e testes adversariais de orquestração integrados à conformance
+- [ ] Revalidar S0 após extensão de orquestração autorizada pela Product Authority
 - [ ] Auditoria independente S0
 
-**Gate S0:** schemas válidos; self-check PASS; fixtures reproduzíveis; golden outputs estáveis; CI verde nas versões Python suportadas; invariantes críticos protegidos; zero ambiguidade material entre profile, pack, capability, authority, ownership, bundle, workflow e compatibilidade; auditoria independente sem finding bloqueante.
+**Gate S0:** schemas válidos; self-check PASS; fixtures reproduzíveis; golden outputs estáveis; CI verde nas versões Python suportadas; invariantes críticos protegidos; orquestração multiagente não amplia autoridade e mantém Builder/Auditor separados, SHA auditado imutável, loop limitado e gate humano; zero ambiguidade material entre profile, pack, capability, authority, ownership, bundle, workflow e compatibilidade; auditoria independente sem finding bloqueante.
 
 ## S1 — Conformance first
 
@@ -113,12 +118,13 @@ Objetivo: interoperar sem acoplamento e permitir composição reutilizável.
 - Claude;
 - Gemini;
 - generic;
+- runners específicos que consumam o contrato provider-neutral de orquestração sem ampliar autoridade;
 - workflow schemas declarativos;
 - bundles versionados de profile + packs + adapters;
 - conflict checks e provenance por bundle;
 - formatos externos úteis somente via adapters.
 
-**Gate S6:** adapters materializam instruções equivalentes sem divergência canônica e bundles não ampliam autoridade silenciosamente.
+**Gate S6:** adapters materializam instruções equivalentes sem divergência canônica, runners preservam os mesmos handoffs/invariantes e bundles não ampliam autoridade silenciosamente.
 
 ## S7 — Integração com Idea
 

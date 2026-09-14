@@ -4,6 +4,9 @@ workflows:
     path: workflows/default/workflow.yaml
   - id: migration-first
     path: workflows/migration-first/workflow.yaml
+  - id: builder-auditor-loop
+    path: workflows/builder-auditor-loop/workflow.yaml
 rules:
   - Workflow organiza sequencia e gates; nao altera autoridade do projeto.
   - Um workflow nao pode converter NOT_RUN em PASS nem remover validacao exigida por risco aplicavel.
+  - Workflow multiagente nao registra gate humano nem inicia a fase seguinte automaticamente.

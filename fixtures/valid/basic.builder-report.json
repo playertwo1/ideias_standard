@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "role": "BUILDER",
+  "result": "READY_FOR_AUDIT",
+  "summary": "Mudança concluída dentro do escopo autorizado.",
+  "changed_paths": ["src/example.txt"],
+  "checks": [{"id": "unit", "status": "PASS", "evidence": "suite green"}],
+  "limitations": [],
+  "disputed_findings": [],
+  "escalation": null
+}

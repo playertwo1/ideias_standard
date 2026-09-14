@@ -7,11 +7,21 @@ adds_capabilities:
   handoff_contracts: true
   write_scope_coordination: true
   independent_audit: true
+  orchestrated_handoffs: true
+  immutable_audit_target: true
+  bounded_reaudit_loop: true
+  human_gate_stop: true
 recommended_artifacts:
   - docs/agents/ROLE_MATRIX.md
   - docs/agents/HANDOFF_CONTRACT.md
+  - orchestration/builder-auditor-policy.json
 rules:
   - Cada agente deve ter responsabilidade e escopo de escrita definidos.
   - Auditor nao deve simplesmente repetir o contexto completo do Builder.
   - Handoffs devem registrar estado, evidencia, limites e proxima acao.
   - Escritas concorrentes no mesmo artefato exigem coordenacao explicita.
+  - Toda auditoria deve ficar vinculada ao SHA exato revisado; mudanca posterior exige nova auditoria.
+  - Auditor nao pode ter escrita no alvo auditado durante a revisao independente.
+  - Ciclo automatico Builder-Auditor deve ter limite de rodadas e escalar ao atingir o limite.
+  - PASS de auditoria para em gate humano quando o contrato exigir; workflow ou adapter nao registra gate sozinho.
+  - Runner externo e adapter operacional e nunca amplia autoridade definida pelo contrato.

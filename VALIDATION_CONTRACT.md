@@ -27,6 +27,11 @@ Este contrato define os códigos determinísticos iniciais de conformance. O obj
 | `IS-SEM-009` | FAIL/CRITICAL | `sensitive-data` exige `capabilities.human_gates=true`. |
 | `IS-SEM-010` | FAIL/CRITICAL | `multi-agent` exige `capabilities.independent_audit=true`. |
 | `IS-SEM-011` | FAIL/CRITICAL | `multi-agent` exige Builder e Auditor distintos. |
+| `IS-SEM-012` | FAIL/CRITICAL | Policy de orquestração exige IDs distintos para Builder e Auditor. |
+| `IS-SEM-013` | FAIL/CRITICAL | `WAITING_PRODUCT_AUTHORITY` exige auditoria PASS do SHA congelado exato e ausência de aprovação prévia. |
+| `IS-SEM-014` | FAIL/CRITICAL | Relatório de auditoria não pode declarar PASS com finding bloqueante. |
+| `IS-SEM-015` | FAIL/CRITICAL | `GATE_APPROVED` exige aprovação explícita coerente com gate e SHA auditado. |
+| `IS-SEM-016` | FAIL/HIGH | `audit_round` não pode exceder `max_audit_rounds`. |
 | `IS-INV-001` | FAIL/CRITICAL | Registry contém IDs de invariantes duplicados. |
 | `IS-WARN-001` | WARN | Artefato `MANAGED` possui `local_override=true`; revisar antes de upgrade. |
 
@@ -41,6 +46,7 @@ Este contrato define os códigos determinísticos iniciais de conformance. O obj
 | `IS-SELF-005` | `INVARIANTS.yaml` falhou validação. |
 | `IS-SELF-006` | Bundle canônico falhou validação. |
 | `IS-SELF-007` | Workflow canônico falhou validação. |
+| `IS-SELF-008` | Policy canônica de orquestração multiagente falhou validação. |
 | `IS-CLI-001` | Erro operacional da ferramenta; exit code 2. |
 
 ## Princípios
@@ -54,3 +60,5 @@ Este contrato define os códigos determinísticos iniciais de conformance. O obj
 - `--strict` futuro pode elevar WARN operacionalmente, mas não muda o significado canônico do check.
 - O relatório estruturado usa `schemas/conformance-report.schema.json`.
 - Exit codes da futura CLI seguem `CLI_CONTRACT.md`.
+- Orquestração multiagente valida estado, handoffs e autoridade separadamente da execução do provider.
+- PASS de Auditor é evidência para o SHA auditado; não é registro automático de gate humano.

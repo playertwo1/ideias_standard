@@ -1,0 +1,38 @@
+schema_version: '0.1'
+id: builder-auditor-loop
+version: '0.1'
+description: Fluxo multiagente com Builder, auditoria independente, correção limitada e gate humano final.
+steps:
+  - id: define
+    purpose: Confirmar contrato ativo, escopo autorizado, papeis e gate aplicavel.
+    gate: false
+    required_artifacts: []
+  - id: build
+    purpose: Builder executa somente o trabalho autorizado e produz handoff estruturado.
+    gate: false
+    required_artifacts:
+      - builder-report.json
+  - id: freeze-audit-target
+    purpose: Fixar o SHA exato que sera auditado; alteracao posterior exige nova auditoria.
+    gate: false
+    required_artifacts:
+      - orchestrator-state.json
+  - id: independent-audit
+    purpose: Auditor distinto revisa o SHA congelado sem editar o alvo e emite PASS, FAIL ou ESCALATE.
+    gate: true
+    required_artifacts:
+      - audit-report.json
+  - id: correction-loop
+    purpose: Em FAIL, findings voltam ao Builder ate PASS, escalacao ou limite de rodadas.
+    gate: false
+    required_artifacts:
+      - orchestrator-state.json
+  - id: product-authority-gate
+    purpose: Em PASS, parar e aguardar registro explicito da Product Authority; nao avancar fase automaticamente.
+    gate: true
+    required_artifacts:
+      - orchestrator-state.json
+  - id: handoff
+    purpose: Registrar estado final, evidencia, limites e proxima acao.
+    gate: false
+    required_artifacts: []

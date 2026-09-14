@@ -2,47 +2,34 @@
 
 - **Versão:** 0.1.0-draft
 - **Fase:** S0 — Fundação do padrão
-- **Status:** AUDIT_READY
-- **Objetivo atual:** concluir auditoria independente S0 antes de abrir S1
-- **Última concluída:** matriz de conformance verde em Python 3.11/3.12/3.13 + evidência registrada
-- **Próxima:** auditor independente executar `S0_AUDIT_PACKET.md` e emitir `AUDIT RESULT: PASS|FAIL`
-- **Bloqueios do projeto:** nenhum conhecido
-- **Gate S0:** NOT_RUN — validação técnica PASS, auditoria independente pendente
+- **Status:** REVALIDATION_REQUIRED
+- **Objetivo atual:** revalidar S0 após a extensão multiagente autorizada pela Product Authority e então executar auditoria independente
+- **Última concluída:** implementação documental/executável do contrato de orquestração Builder ↔ Auditor
+- **Próxima:** executar a matriz `Conformance` no HEAD atual, atualizar evidência S0 e entregar o novo SHA ao Auditor independente
+- **Bloqueios do projeto:** nenhum bloqueio de produto conhecido; avanço para S1 continua bloqueado por S0
+- **Gate S0:** NOT_RUN
 - **CLI completa:** NOT_RUN
-- **Validação de fixtures:** PASS no workflow `Conformance` run `34832777706`
+- **Validação anterior:** PASS no workflow `Conformance` run `34832777706`, referente ao baseline anterior à extensão de orquestração
 
-## Evidência atual
+## Motivo da revalidação
 
-- SHA validado: `18968a30329f8063ad87bd68543df72f977b3e5a`
-- Python 3.11: PASS
-- Python 3.12: PASS
-- Python 3.13: PASS
-- Unit/adversarial fixtures: PASS
-- Self-check: PASS
-- Projeto positivo de referência: PASS
-- Evidência detalhada: `S0_VALIDATION_EVIDENCE.md`
+A Product Authority autorizou incorporar ao Standard a automação segura do ciclo Builder → Auditor → correção → reauditoria. Como isso altera contratos e invariantes da fundação S0, o SHA antes validado permanece evidência histórica, mas não é suficiente para fechar o gate atual.
 
-O primeiro run da CI falhou apenas na configuração do cache do `setup-python`; `cache-dependency-path: requirements-dev.txt` foi adicionado e a matriz foi reexecutada com sucesso.
+Nenhum PASS anterior é promovido para o novo HEAD por inferência.
 
-## Materializado
+## Materializado nesta extensão
 
-- `STANDARD.md` com lifecycle manager, ownership, conformance, bundles, workflows e change units;
-- `INVARIANTS.yaml` com invariantes críticos versionáveis;
-- `COMPATIBILITY.yaml` + `VERSIONING.md`;
-- `CLI_CONTRACT.md` com comportamento e exit codes futuros;
-- schemas de project manifest, standard lock, context manifest, artifact policy, bundle, workflow, change, conformance report e invariants;
-- perfis LIGHT / STANDARD / DEEP;
-- packs Android, Python, backend, AI, sensitive-data e multi-agent;
-- bundles e workflows declarativos;
-- catálogo de adapters ACTIVE/PLANNED;
-- política `MANAGED / MERGEABLE / USER_OWNED`;
-- examples, fixtures adversariais, fixture manifest e golden outputs;
-- `VALIDATION_CONTRACT.md`;
-- `scripts/validate_standard.py` com self-check e enforcement semântico;
-- testes data-driven;
-- `.github/workflows/conformance.yml` com matriz Python 3.11/3.12/3.13;
-- `S0_VALIDATION_EVIDENCE.md` e `S0_AUDIT_PACKET.md`;
-- roadmap S0–S8.
+- `docs/MULTI_AGENT_ORCHESTRATION.md`;
+- `schemas/builder-report.schema.json`;
+- `schemas/audit-report.schema.json`;
+- `schemas/orchestration-policy.schema.json`;
+- `schemas/orchestrator-state.schema.json`;
+- `orchestration/builder-auditor-policy.json`;
+- workflow `builder-auditor-loop`;
+- pack `multi-agent` ampliado com SHA imutável, loop limitado e parada humana;
+- `scripts/orchestrate_handoffs.py` como máquina de estados provider-neutral;
+- fixtures positivas/adversariais e testes da orquestração;
+- conformance ampliada para validar os novos contratos.
 
 ## Invariantes destacados
 
@@ -51,11 +38,24 @@ O primeiro run da CI falhou apenas na configuração do cache do `setup-python`;
 - Contexto REQUIRED nunca é truncado silenciosamente.
 - sensitive-data exige human gate.
 - multi-agent exige auditoria independente e Builder != Auditor.
+- resultado de auditoria vale somente para o SHA exato auditado.
+- Auditor não escreve no alvo da auditoria independente.
+- ciclo automático Builder/Auditor é limitado e escala ao atingir o limite.
+- PASS de auditoria não registra gate humano.
+- Orquestrador/runner/workflow/adapter não inicia a fase seguinte por conta própria.
 - bundle/workflow/adapter nunca amplia autoridade.
-- existência de artefato não substitui evidência executada.
+
+## Fronteira do runner
+
+O núcleo implementado coordena estado, handoffs, evidência, SHA e gate. Ele é independente de fornecedor.
+
+A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um adapter/runner externo. Esse runner deve consumir os mesmos contratos e não pode ampliar autoridade. Adapters específicos continuam no escopo do lifecycle de ecossistema; a fundação S0 não transforma fornecedor em fonte canônica.
 
 ## Próxima ação
 
-Auditor independente deve usar `S0_AUDIT_PACKET.md`, revisar o HEAD atual e confirmar que as mudanças documentais posteriores à evidência não introduziram regressão. A CI do HEAD deve permanecer verde.
-
-Somente após `AUDIT RESULT: PASS` registrar Gate S0 como PASS e iniciar S1 (`check`/`doctor`).
+1. CI/conformance do HEAD atual.
+2. Corrigir qualquer finding real sem reduzir invariantes.
+3. Atualizar `S0_VALIDATION_EVIDENCE.md` com o SHA e run atuais.
+4. Voltar para `AUDIT_READY` somente com evidência verde.
+5. Auditor independente executar `S0_AUDIT_PACKET.md`.
+6. Somente após `AUDIT RESULT: PASS` e registro adequado do Gate S0 iniciar S1 (`check`/`doctor`).

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ideias-standard.local/schemas/builder-report.schema.json",
+  "title": "Ideias Standard Builder Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "role", "result", "summary", "changed_paths", "checks", "limitations", "disputed_findings", "escalation"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "0.1"},
+    "role": {"type": "string", "const": "BUILDER"},
+    "result": {"enum": ["READY_FOR_AUDIT", "BLOCKED", "DISPUTED"]},
+    "summary": {"type": "string", "minLength": 1},
+    "changed_paths": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "checks": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["id", "status", "evidence"], "properties": {"id": {"type": "string", "minLength": 1}, "status": {"enum": ["PASS", "FAIL", "NOT_RUN", "NOT_APPLICABLE"]}, "evidence": {"type": "string"}}}},
+    "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "disputed_findings": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+    "escalation": {"type": ["string", "null"]}
+  }
+}

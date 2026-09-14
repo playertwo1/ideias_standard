@@ -1,0 +1,11 @@
+{
+  "schema_version": "0.1",
+  "role": "AUDITOR",
+  "audit_result": "PASS",
+  "audited_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "summary": "Independent review complete.",
+  "findings": [],
+  "checks": [{"id": "scope", "status": "PASS", "evidence": "reviewed"}],
+  "residual_risks": [],
+  "gate_registration": "NOT_AUTHORIZED"
+}

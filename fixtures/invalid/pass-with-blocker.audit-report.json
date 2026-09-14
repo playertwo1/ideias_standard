@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1",
+  "role": "AUDITOR",
+  "audit_result": "PASS",
+  "audited_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "summary": "Invalid PASS with blocker.",
+  "findings": [{
+    "id": "AUD-001",
+    "severity": "HIGH",
+    "blocking": true,
+    "files": ["src/example.txt"],
+    "evidence": "blocking evidence",
+    "problem": "Blocking problem remains.",
+    "violated_criterion": "No blocking finding on PASS.",
+    "resolution_condition": "Resolve blocker and re-audit."
+  }],
+  "checks": [],
+  "residual_risks": [],
+  "gate_registration": "NOT_AUTHORIZED"
+}
