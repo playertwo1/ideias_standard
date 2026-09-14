@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ideias-standard.local/schemas/project-manifest.schema.json",
+  "title": "Ideias Standard Project Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "project", "standard", "governance", "context"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "0.1"},
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "type": {"type": "string", "minLength": 1},
+        "description": {"type": "string"}
+      }
+    },
+    "standard": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version", "profile"],
+      "properties": {
+        "name": {"type": "string", "const": "Ideias Standard"},
+        "version": {"type": "string", "minLength": 1},
+        "profile": {"enum": ["LIGHT", "STANDARD", "DEEP"]}
+      }
+    },
+    "packs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1},
+      "default": []
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": {"type": "boolean"}
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product_authority", "builder", "auditor"],
+      "properties": {
+        "product_authority": {"type": "string", "minLength": 1},
+        "builder": {"type": "string", "minLength": 1},
+        "auditor": {"type": "string", "minLength": 1}
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["strategy", "full_repo_scan_default"],
+      "properties": {
+        "strategy": {"enum": ["PROGRESSIVE"]},
+        "full_repo_scan_default": {"type": "boolean", "const": false}
+      }
+    },
+    "project_rules": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "default": []
+    }
+  }
+}
