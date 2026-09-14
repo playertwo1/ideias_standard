@@ -2,20 +2,29 @@
 
 - **Versão:** 0.1.0-draft
 - **Fase:** S0 — Fundação do padrão
-- **Status:** REVALIDATION_REQUIRED
-- **Objetivo atual:** revalidar S0 após a extensão multiagente autorizada pela Product Authority e então executar auditoria independente
-- **Última concluída:** implementação documental/executável do contrato de orquestração Builder ↔ Auditor
-- **Próxima:** executar a matriz `Conformance` no HEAD atual, atualizar evidência S0 e entregar o novo SHA ao Auditor independente
-- **Bloqueios do projeto:** nenhum bloqueio de produto conhecido; avanço para S1 continua bloqueado por S0
-- **Gate S0:** NOT_RUN
+- **Status:** AUDIT_READY
+- **Objetivo atual:** concluir auditoria independente S0 após a extensão multiagente validada
+- **Última concluída:** matriz `Conformance` verde em Python 3.11/3.12/3.13 para a extensão de orquestração Builder ↔ Auditor
+- **Próxima:** Auditor independente executar `S0_AUDIT_PACKET.md` no HEAD atual e emitir `AUDIT RESULT: PASS|FAIL`
+- **Bloqueios do projeto:** nenhum conhecido além do gate S0 ainda não concluído
+- **Gate S0:** NOT_RUN — validação técnica PASS, auditoria independente pendente
 - **CLI completa:** NOT_RUN
-- **Validação anterior:** PASS no workflow `Conformance` run `34832777706`, referente ao baseline anterior à extensão de orquestração
+- **Validação atual:** PASS no workflow `Conformance` run `34841166585`
 
-## Motivo da revalidação
+## Evidência atual
 
-A Product Authority autorizou incorporar ao Standard a automação segura do ciclo Builder → Auditor → correção → reauditoria. Como isso altera contratos e invariantes da fundação S0, o SHA antes validado permanece evidência histórica, mas não é suficiente para fechar o gate atual.
+- SHA funcional validado: `2ab2d3881693393e53e2ba324cc947a6eb6821e8`
+- Python 3.11: PASS
+- Python 3.12: PASS
+- Python 3.13: PASS
+- Unit/adversarial fixtures: PASS
+- Testes de orquestração Builder/Auditor: PASS
+- Self-check: PASS
+- Projeto positivo de referência: PASS
+- Policy de orquestração: PASS
+- Evidência detalhada: `S0_VALIDATION_EVIDENCE.md`
 
-Nenhum PASS anterior é promovido para o novo HEAD por inferência.
+O commit que atualiza evidência/estado após o run é documental. O Auditor deve conferir o HEAD atual e confirmar que essas atualizações posteriores não alteraram os contratos executáveis validados.
 
 ## Materializado nesta extensão
 
@@ -53,9 +62,11 @@ A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um ada
 
 ## Próxima ação
 
-1. CI/conformance do HEAD atual.
-2. Corrigir qualquer finding real sem reduzir invariantes.
-3. Atualizar `S0_VALIDATION_EVIDENCE.md` com o SHA e run atuais.
-4. Voltar para `AUDIT_READY` somente com evidência verde.
-5. Auditor independente executar `S0_AUDIT_PACKET.md`.
-6. Somente após `AUDIT RESULT: PASS` e registro adequado do Gate S0 iniciar S1 (`check`/`doctor`).
+Auditor independente deve usar `S0_AUDIT_PACKET.md`, revisar o HEAD atual e confirmar:
+
+1. contratos/invariantes da extensão multiagente;
+2. evidência do run `34841166585`;
+3. ausência de regressão nas atualizações documentais posteriores ao SHA funcional validado;
+4. manutenção da separação Builder/Auditor/Product Authority.
+
+Somente após `AUDIT RESULT: PASS` registrar Gate S0 como PASS e iniciar S1 (`check`/`doctor`).
