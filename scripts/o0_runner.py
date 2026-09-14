@@ -301,6 +301,34 @@ def prepare_builder_findings(
     return handoff
 
 
+
+def validate_builder_result(
+    current: dict[str, Any],
+    payload: dict[str, Any],
+    repository: Path,
+    findings_handoff: Path | None,
+    findings_before: bytes | None,
+) -> None:
+    validate_with_schema(payload, "builder")
+    result_sha = payload["result_sha"]
+    verify_commit(repository, result_sha)
+    if current["machine_state"] != "FIX_REQUIRED":
+        return
+    previous_target = current.get("audit_target_sha")
+    if not previous_target or result_sha == previous_target:
+        raise HandoffError("Builder correction must produce a new SHA")
+    if findings_handoff is None or findings_before is None:
+        raise HandoffError("Builder correction requires findings from the failed audit")
+    if not findings_handoff.is_file() or findings_handoff.read_bytes() != findings_before:
+        raise HandoffError("Builder findings changed during correction")
+    findings = load_json(findings_handoff)
+    if (
+        findings.get("audit_target_sha") != previous_target
+        or findings.get("audit_round") != current.get("audit_round")
+    ):
+        raise HandoffError("Builder findings are not linked to the corrected audit round")
+
+
 def run_once(config_path: Path) -> dict[str, Any]:
     config_path = config_path.resolve()
     config = load_config(config_path)
@@ -326,8 +354,10 @@ def run_once(config_path: Path) -> dict[str, Any]:
         report = reports_dir / "builder-report.json"
         builder_env = {**common_env, "IDEAS_STANDARD_STATE": str(state_path)}
         findings_handoff = prepare_builder_findings(current, reports_dir)
+        findings_before = None
         if findings_handoff is not None:
             builder_env["IDEAS_STANDARD_FINDINGS"] = str(findings_handoff)
+            findings_before = findings_handoff.read_bytes()
         run_actor(
             config["builder_command"],
             builder_workspace,
@@ -335,7 +365,13 @@ def run_once(config_path: Path) -> dict[str, Any]:
             builder_env,
         )
         payload = load_json(report)
-        verify_commit(repository, payload.get("result_sha", ""))
+        validate_builder_result(
+            current,
+            payload,
+            repository,
+            findings_handoff,
+            findings_before,
+        )
         return builder_handoff(state_path, report)
 
     if actor == "AUDITOR":

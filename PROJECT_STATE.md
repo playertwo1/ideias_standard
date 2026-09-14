@@ -4,12 +4,12 @@
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
 - **Objetivo atual:** avançar S1 — Conformance First com O0 — Operational Orchestrator como tooling transversal prioritário
-- **Última concluída:** primeiro bloco O0-C01–O0-C13 implementado e validado
-- **Próxima:** auditoria independente do bloco O0-C01–O0-C13; depois avançar O0-C14 sem iniciar S2
+- **Última concluída:** O0-C15 auditado com PASS no SHA `0ecb8fc3990280c0e35b6db375244bf70dd4f776`
+- **Próxima:** auditoria independente de O0-C16; O0-C17 permanece não iniciado
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL — O0-C01–O0-C13 implementados; auditoria do bloco pendente
+- **O0:** PARTIAL — O0-C01–O0-C16 implementados; auditoria de O0-C16 pendente
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`

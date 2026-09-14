@@ -15,6 +15,7 @@ from scripts.o0_runner import (
     run_actor,
     run_once,
     validate_auditor_boundaries,
+    validate_builder_result,
     validate_workspaces,
     verify_audit_after,
 )
@@ -386,6 +387,90 @@ class O0RunnerTest(unittest.TestCase):
                 reports,
             )
         self.assertFalse((reports / "builder-findings.json").exists())
+
+
+    def _builder_report(self, result_sha: str):
+        return {
+            "schema_version": "0.1",
+            "executor_id": "builder-executor",
+            "role": "BUILDER",
+            "authority": "IMPLEMENTATION",
+            "result_sha": result_sha,
+            "result": "READY_FOR_AUDIT",
+            "summary": "Correction complete.",
+            "changed_paths": ["file.txt"],
+            "checks": [{"id": "unit", "status": "PASS", "evidence": "green"}],
+            "limitations": [],
+            "disputed_findings": [],
+            "escalation": None,
+        }
+
+    def _correction_inputs(self):
+        repository, previous, corrected = self._repository()
+        reports = self.root / "correction-reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        audit_report.write_text(json.dumps(self._fail_report(previous)), encoding="utf-8")
+        current = self._fix_required_state(previous, audit_report, round_number=2)
+        handoff = prepare_builder_findings(current, reports)
+        return repository, previous, corrected, current, handoff, handoff.read_bytes()
+
+    def test_fix_required_accepts_existing_new_sha_and_preserves_round_link(self):
+        repository, previous, corrected, current, handoff, before = self._correction_inputs()
+        validate_builder_result(
+            current,
+            self._builder_report(corrected),
+            repository,
+            handoff,
+            before,
+        )
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+        self.assertNotEqual(previous, corrected)
+        self.assertEqual(previous, payload["audit_target_sha"])
+        self.assertEqual(2, payload["audit_round"])
+
+    def test_fix_required_rejects_missing_result_sha(self):
+        repository, _, corrected, current, handoff, before = self._correction_inputs()
+        report = self._builder_report(corrected)
+        del report["result_sha"]
+        with self.assertRaises(HandoffError):
+            validate_builder_result(current, report, repository, handoff, before)
+
+    def test_fix_required_rejects_unknown_result_sha(self):
+        repository, _, _, current, handoff, before = self._correction_inputs()
+        with self.assertRaisesRegex(HandoffError, "Unknown result SHA"):
+            validate_builder_result(
+                current,
+                self._builder_report("f" * 40),
+                repository,
+                handoff,
+                before,
+            )
+
+    def test_fix_required_rejects_previous_audit_target_sha(self):
+        repository, previous, _, current, handoff, before = self._correction_inputs()
+        with self.assertRaisesRegex(HandoffError, "must produce a new SHA"):
+            validate_builder_result(
+                current,
+                self._builder_report(previous),
+                repository,
+                handoff,
+                before,
+            )
+
+    def test_fix_required_rejects_changed_findings_link(self):
+        repository, _, corrected, current, handoff, before = self._correction_inputs()
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+        payload["audit_round"] = 3
+        handoff.write_text(json.dumps(payload), encoding="utf-8")
+        with self.assertRaisesRegex(HandoffError, "findings changed"):
+            validate_builder_result(
+                current,
+                self._builder_report(corrected),
+                repository,
+                handoff,
+                before,
+            )
 
 
 if __name__ == "__main__":
