@@ -1,0 +1,9 @@
+version: 0.1
+workflows:
+  - id: default
+    path: workflows/default/workflow.yaml
+  - id: migration-first
+    path: workflows/migration-first/workflow.yaml
+rules:
+  - Workflow organiza sequencia e gates; nao altera autoridade do projeto.
+  - Um workflow nao pode converter NOT_RUN em PASS nem remover validacao exigida por risco aplicavel.
