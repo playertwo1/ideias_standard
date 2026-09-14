@@ -1,0 +1,62 @@
+version: '0.1'
+cases:
+  - id: positive-standard-android-ai
+    path: examples/standard-android-ai/project-manifest.json
+    kind: project-manifest
+    expected_result: PASS
+    expected_codes: []
+  - id: valid-lock
+    path: fixtures/valid/basic.standard-lock.json
+    kind: standard-lock
+    expected_result: PASS
+    expected_codes: []
+  - id: unknown-pack
+    path: fixtures/invalid/unknown-pack.project.json
+    kind: project-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SEM-001]
+  - id: full-repo-scan
+    path: fixtures/invalid/full-repo-scan.project.json
+    kind: project-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SCHEMA-001]
+  - id: duplicate-pack
+    path: fixtures/invalid/duplicate-pack.project.json
+    kind: project-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SCHEMA-001]
+  - id: duplicate-artifact
+    path: fixtures/invalid/duplicate-artifact.standard-lock.json
+    kind: standard-lock
+    expected_result: FAIL
+    expected_codes: [IS-SEM-002]
+  - id: inactive-adapter
+    path: fixtures/invalid/inactive-adapter.bundle.yaml
+    kind: bundle
+    expected_result: FAIL
+    expected_codes: [IS-SEM-005]
+  - id: unknown-workflow
+    path: fixtures/invalid/unknown-workflow.bundle.yaml
+    kind: bundle
+    expected_result: FAIL
+    expected_codes: [IS-SEM-004]
+  - id: duplicate-workflow-step
+    path: fixtures/invalid/duplicate-step.workflow.yaml
+    kind: workflow
+    expected_result: FAIL
+    expected_codes: [IS-SEM-007]
+  - id: sensitive-data-requires-human-gates
+    path: fixtures/invalid/sensitive-data-no-human-gates.project.json
+    kind: project-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SEM-009]
+  - id: multi-agent-requires-independent-audit
+    path: fixtures/invalid/multi-agent-no-audit.project.json
+    kind: project-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SEM-010]
+  - id: multi-agent-requires-role-separation
+    path: fixtures/invalid/multi-agent-same-builder-auditor.project.json
+    kind: project-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SEM-011]
