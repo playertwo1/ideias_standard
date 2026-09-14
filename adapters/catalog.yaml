@@ -1,0 +1,18 @@
+version: 0.1
+adapters:
+  - id: generic
+    status: ACTIVE
+    purpose: Materializacao neutra sem acoplamento a um agente especifico.
+  - id: codex
+    status: PLANNED
+    purpose: Materializacao futura para Codex.
+  - id: claude
+    status: PLANNED
+    purpose: Materializacao futura para Claude.
+  - id: gemini
+    status: PLANNED
+    purpose: Materializacao futura para Gemini.
+rules:
+  - Adapter nunca e fonte canonica do contrato.
+  - Divergencia entre adapter e contrato canonico e finding de conformance.
+  - Bundle da versao atual so pode usar adapter ACTIVE.
