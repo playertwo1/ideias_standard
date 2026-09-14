@@ -1,0 +1,14 @@
+schema_version: '0.1'
+id: standard-android-ai
+version: '0.1'
+description: Perfil STANDARD com capacidades Android e IA sem controles DEEP desnecessarios.
+profile: STANDARD
+packs:
+  - android
+  - ai
+adapters:
+  - generic
+workflow: default
+constraints:
+  - Human gates permanecem sob autoridade do projeto.
+  - Credenciais nunca entram no repositorio.
