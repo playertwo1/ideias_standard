@@ -4,7 +4,7 @@
   "title": "Ideias Standard Lock",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "standard_version", "profile", "packs", "template_fingerprint", "generated_at"],
+  "required": ["schema_version", "standard_version", "profile", "packs", "template_fingerprint", "generated_at", "artifacts"],
   "properties": {
     "schema_version": {"type": "string", "const": "0.1"},
     "standard_version": {"type": "string", "minLength": 1},
@@ -14,6 +14,22 @@
       "uniqueItems": true,
       "items": {"type": "string", "minLength": 1}
     },
+    "bundle": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "minLength": 1}
+      }
+    },
+    "workflow": {"type": ["string", "null"]},
+    "adapters": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1},
+      "default": []
+    },
     "template_fingerprint": {"type": "string", "minLength": 1},
     "generated_at": {"type": "string", "format": "date-time"},
     "local_overrides": {
@@ -21,6 +37,10 @@
       "items": {"type": "string", "minLength": 1},
       "default": []
     },
-    "source_revision": {"type": ["string", "null"]}
+    "source_revision": {"type": ["string", "null"]},
+    "artifacts": {
+      "type": "array",
+      "items": {"$ref": "artifact-policy.schema.json"}
+    }
   }
 }
