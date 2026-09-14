@@ -2,39 +2,43 @@
 
 ## S0 — Fundação do padrão
 
-Objetivo: definir o contrato antes da implementação.
+Objetivo: definir e provar o contrato antes da implementação da CLI.
 
 - [x] Missão e fronteira
-- [x] STANDARD.md
-- [x] AGENTS.md
-- [x] PROJECT_STATE.md
+- [x] STANDARD.md / AGENTS.md / PROJECT_STATE.md
 - [x] Schemas estruturados iniciais
-- [x] Perfis LIGHT/STANDARD/DEEP
-- [x] Packs iniciais
+- [x] Perfis LIGHT/STANDARD/DEEP e packs iniciais
 - [x] Política de ownership/upgrade
-- [x] Exemplos positivos de manifest
-- [x] Bundles e workflows declarativos iniciais
-- [x] Schema de change lifecycle e conformance report
-- [x] Catálogo de adapters ACTIVE/PLANNED
-- [x] Fixtures negativas/adversariais
-- [x] Validador determinístico estrutural + semântico
-- [x] Testes automatizados do validador materializados
-- [ ] Executar suíte completa em checkout limpo e registrar evidência
+- [x] Bundles, workflows, adapters e change lifecycle iniciais
+- [x] Conformance report e validation contract
+- [x] Registry estruturado de invariantes críticos
+- [x] Matriz de compatibilidade + contrato de versionamento
+- [x] Contrato da futura CLI e exit codes
+- [x] Fixtures positivas e adversariais
+- [x] Manifesto central de fixtures com resultados esperados
+- [x] Golden outputs para invariantes críticos
+- [x] Validador estrutural + semântico
+- [x] Self-check de schemas, catálogos, invariantes, bundles e workflows
+- [x] Testes automatizados data-driven
+- [x] GitHub Actions em Python 3.11/3.12/3.13 com artefatos de evidência
+- [ ] Executar suíte completa no GitHub Actions e registrar evidência verde
 - [ ] Corrigir findings da primeira execução, se houver
+- [ ] Auditoria independente S0
 
-**Gate S0:** schemas válidos, fixtures reproduzíveis, testes executados e zero ambiguidade material entre profile, pack, capability, authority, ownership, bundle e workflow.
+**Gate S0:** schemas válidos; self-check PASS; fixtures reproduzíveis; golden outputs estáveis; CI verde nas versões Python suportadas; invariantes críticos protegidos; zero ambiguidade material entre profile, pack, capability, authority, ownership, bundle, workflow e compatibilidade; auditoria independente sem finding bloqueante.
 
 ## S1 — Conformance first
 
-Objetivo: provar que o Standard consegue verificar um projeto antes de gerar projetos.
+Objetivo: transformar o núcleo validado em interface estável de conformance.
 
 - `check`: valida manifest, lock, contexto, ownership, arquivos obrigatórios e compatibilidade;
-- `doctor`: diagnóstico legível por humanos;
+- `doctor`: explica os mesmos findings do `check` em linguagem humana;
 - detecção de status duplicado, adapters divergentes e arquivos ausentes;
 - códigos determinísticos para falhas;
 - relatório PASS/FAIL/WARN sem percentual cosmético como fonte de verdade;
 - modo não interativo para automação;
-- saída estruturada compatível com `conformance-report.schema.json`.
+- saída estruturada compatível com `conformance-report.schema.json`;
+- comportamento e exit codes conforme `CLI_CONTRACT.md`.
 
 **Gate S1:** fixture correta passa; fixtures quebradas falham com códigos previsíveis; `doctor` explica os mesmos findings sem criar uma segunda regra.
 
