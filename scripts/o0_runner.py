@@ -313,13 +313,15 @@ def validate_builder_result(
     validate_with_schema(payload, "builder")
     result_sha = payload["result_sha"]
     verify_commit(repository, result_sha)
+    previous_target = current.get("audit_target_sha")
+    if current["machine_state"] == "FIX_REQUIRED" and (
+        not previous_target or result_sha == previous_target
+    ):
+        raise HandoffError("Builder correction must produce a new SHA")
     if git_head(builder_workspace or repository) != result_sha:
         raise HandoffError("Builder report result_sha does not match Builder workspace HEAD")
     if current["machine_state"] != "FIX_REQUIRED":
         return
-    previous_target = current.get("audit_target_sha")
-    if not previous_target or result_sha == previous_target:
-        raise HandoffError("Builder correction must produce a new SHA")
     if findings_handoff is None or findings_before is None:
         raise HandoffError("Builder correction requires findings from the failed audit")
     if not findings_handoff.is_file() or findings_handoff.read_bytes() != findings_before:
