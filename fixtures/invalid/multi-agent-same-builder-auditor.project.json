@@ -1,0 +1,9 @@
+{
+  "schema_version": "0.1",
+  "project": {"name": "Unsafe Role Separation App", "type": "ai"},
+  "standard": {"name": "Ideias Standard", "version": "0.1.0-draft", "profile": "DEEP"},
+  "packs": ["multi-agent"],
+  "capabilities": {"independent_audit": true, "human_gates": true},
+  "governance": {"product_authority": "USER", "builder": "SAME_AGENT", "auditor": "SAME_AGENT"},
+  "context": {"strategy": "PROGRESSIVE", "full_repo_scan_default": false}
+}
