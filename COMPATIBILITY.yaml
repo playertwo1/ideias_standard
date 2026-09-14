@@ -1,0 +1,25 @@
+standard_version: 0.1.0-draft
+schema_version: '0.1'
+supported_python:
+  - '3.11'
+  - '3.12'
+  - '3.13'
+contracts:
+  project_manifest: '0.1'
+  standard_lock: '0.1'
+  context_manifest: '0.1'
+  artifact_policy: '0.1'
+  bundle: '0.1'
+  workflow: '0.1'
+  change: '0.1'
+  conformance_report: '0.1'
+  invariants: '0.1'
+profiles:
+  - LIGHT
+  - STANDARD
+  - DEEP
+rules:
+  - Um projeto deve declarar uma versao do Standard suportada pelo validador em uso.
+  - Schemas da mesma major version precisam manter significado compativel ou exigir migration explicita.
+  - Pack, workflow, bundle ou adapter com versao futura nao e assumido compativel sem regra declarada.
+  - Compatibilidade nunca e inferida apenas porque um documento passa no JSON Schema.
