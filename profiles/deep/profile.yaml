@@ -1,0 +1,28 @@
+id: DEEP
+version: 0.1
+purpose: Sistemas amplos, sensiveis, multiagente ou com integracoes criticas.
+required_artifacts:
+  - AGENTS.md
+  - PROJECT_STATE.md
+  - PHASE_CURRENT.md
+  - ROADMAP.md
+  - EXECUTION_PLAN.md
+  - AUDIT.md
+  - CHANGELOG.md
+  - context-manifest.json
+  - docs/decisions/
+  - docs/evidence/
+  - docs/risk/
+required_capabilities:
+  progressive_context: true
+  evidence_before_pass: true
+  human_authority: true
+  independent_audit: true
+  phase_contract: true
+  migration_safety: true
+  risk_register: true
+optional_capabilities:
+  physical_device_validation: false
+  multi_agent: false
+notes:
+  - DEEP nao ativa automaticamente todos os packs; capacidades extras dependem do risco real.
