@@ -9,6 +9,7 @@ from scripts.orchestrate_handoffs import (
     audit_handoff,
     builder_handoff,
     init_state,
+    next_actor,
 )
 
 
@@ -138,6 +139,30 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         dump(audit_path, audit_report(SHA_B))
         with self.assertRaises(HandoffError):
             audit_handoff(self.state_path, audit_path)
+
+    def test_disputed_builder_report_requires_finding_reference(self):
+        disputed_path = self.root / "builder-disputed.json"
+        dump(disputed_path, builder_report(result="DISPUTED"))
+        before = self.state_path.read_bytes()
+
+        with self.assertRaises(HandoffError):
+            builder_handoff(self.state_path, disputed_path, SHA_A)
+
+        self.assertEqual(before, self.state_path.read_bytes())
+
+    def test_disputed_builder_report_blocks_for_product_authority(self):
+        disputed_path = self.root / "builder-disputed.json"
+        report = builder_report(result="DISPUTED")
+        report["disputed_findings"] = ["AUD-020-001"]
+        dump(disputed_path, report)
+
+        state = builder_handoff(self.state_path, disputed_path, SHA_A)
+
+        self.assertEqual("BLOCKED", state["machine_state"])
+        self.assertEqual("PRODUCT_AUTHORITY", next_actor(state))
+        self.assertEqual(str(disputed_path), state["last_builder_report"])
+        self.assertIsNone(state["approval"])
+        self.assertIn("DISPUTED", state["message"])
 
     def test_pass_with_blocking_finding_is_rejected(self):
         builder_path = self.root / "builder.json"

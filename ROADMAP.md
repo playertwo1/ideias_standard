@@ -177,7 +177,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C17 Novo SHA exige nova auditoria.
 - [x] O0-C18 PASS → WAITING_PRODUCT_AUTHORITY.
 - [x] O0-C19 ESCALATE → BLOCKED.
-- [ ] O0-C20 DISPUTED → BLOCKED.
+- [x] O0-C20 DISPUTED → BLOCKED.
 - [ ] O0-C21 `max_audit_rounds = 3`.
 - [ ] O0-C22 Limite excedido → BLOCKED.
 - [ ] O0-C23 Estado sobrevive restart/interrupção.

@@ -18,5 +18,11 @@
     "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
     "disputed_findings": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
     "escalation": {"type": ["string", "null"]}
-  }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"result": {"const": "DISPUTED"}}, "required": ["result"]},
+      "then": {"properties": {"disputed_findings": {"minItems": 1}}}
+    }
+  ]
 }

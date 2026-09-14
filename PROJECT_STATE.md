@@ -4,18 +4,20 @@
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
 - **Objetivo atual:** avançar S1 — Conformance First com O0 — Operational Orchestrator como tooling transversal prioritário
-- **Última concluída:** correção Builder de O0-C19-001 implementada; sem declaração de PASS
-- **Próxima:** nova auditoria independente de O0-C19; O0-C20 permanece não iniciado
+- **Última concluída:** O0-C20 — DISPUTED → BLOCKED implementado; sem declaração de PASS
+- **Próxima:** auditoria independente de O0-C20; O0-C21 permanece não iniciado
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL — O0-C01–O0-C19 implementados; O0-C19 corrigido e aguardando nova auditoria independente
+- **O0:** PARTIAL — O0-C01–O0-C20 implementados; O0-C20 aguarda auditoria independente
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
 
 ## Evidência atual
 
+- Auditoria independente de O0-C19: PASS no SHA `cfa228463f2ed2a92de0cba06225860520bb116b`
+- HEAD de reconciliação `1eca5ba80be883fe5491dd9178429f033aed6899`: merge com árvore idêntica ao SHA auditado
 - SHA funcional validado: `2ab2d3881693393e53e2ba324cc947a6eb6821e8`
 - Python 3.11: PASS
 - Python 3.12: PASS
