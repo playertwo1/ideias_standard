@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ideias-standard.local/schemas/invariants.schema.json",
+  "title": "Ideias Standard Invariant Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "invariants"],
+  "properties": {
+    "version": {"type": "string", "const": "0.1"},
+    "invariants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "statement", "applies_to", "enforcement"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^INV-[0-9]{3}$"},
+          "severity": {"enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"]},
+          "statement": {"type": "string", "minLength": 1},
+          "applies_to": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "string", "minLength": 1}
+          },
+          "enforcement": {"enum": ["deterministic", "semantic", "workflow", "governance"]}
+        }
+      }
+    }
+  }
+}
