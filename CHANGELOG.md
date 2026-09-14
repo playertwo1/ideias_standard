@@ -51,8 +51,8 @@
 
 ### Validation status
 
-Workflow `Conformance` run `34832777706`: PASS em Python 3.11, 3.12 e 3.13 para o baseline anterior à extensão multiagente.
+Workflow `Conformance` run `34841166585`, SHA funcional `2ab2d3881693393e53e2ba324cc947a6eb6821e8`: PASS em Python 3.11, 3.12 e 3.13, incluindo fixtures adversariais, self-check, projeto positivo, policy de orquestração e testes da máquina de estados Builder/Auditor.
 
-A extensão de orquestração autorizada em 14/09/2026 altera a fundação S0 e exige nova execução da matriz antes da auditoria final. O run anterior permanece evidência histórica e não é promovido ao novo HEAD.
+O run anterior `34832777706`, SHA `18968a30329f8063ad87bd68543df72f977b3e5a`, permanece como histórico do baseline anterior à extensão multiagente.
 
-S0 permanece `NOT_RUN` e S1 continua bloqueada até revalidação + auditoria independente + registro adequado do gate.
+S0 está `AUDIT_READY`, não concluída: falta auditoria independente e registro do gate. S1 continua bloqueada.
