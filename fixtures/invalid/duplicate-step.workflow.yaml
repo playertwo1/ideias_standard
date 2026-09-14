@@ -1,0 +1,13 @@
+schema_version: '0.1'
+id: duplicate-step
+version: '0.1'
+description: Workflow estruturalmente valido com IDs de steps duplicados.
+steps:
+  - id: verify
+    purpose: Primeira verificacao.
+    gate: true
+    required_artifacts: []
+  - id: verify
+    purpose: Segunda verificacao com ID duplicado.
+    gate: true
+    required_artifacts: []
