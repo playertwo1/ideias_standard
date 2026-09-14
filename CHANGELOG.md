@@ -19,12 +19,31 @@
 - brownfield/adopt e upgrade com preview + three-way diff;
 - change lifecycle baseado em delta + invariantes;
 - política de contexto progressivo e `CONTEXT_OVERFLOW`;
-- `VALIDATION_CONTRACT.md` com códigos determinísticos;
-- fixtures positivas e adversariais;
-- `scripts/validate_standard.py` e testes unitários;
+- `INVARIANTS.yaml` + schema para invariantes críticos;
+- `COMPATIBILITY.yaml` e `VERSIONING.md`;
+- `CLI_CONTRACT.md` com exit codes e comportamento futuro;
+- `VALIDATION_CONTRACT.md` com códigos determinísticos, self-check e invariantes semânticos;
+- fixture manifest data-driven e golden outputs;
+- fixtures adversariais para sensitive-data e multi-agent;
+- `scripts/validate_standard.py` com autoauditoria do Standard;
+- suíte unitária data-driven;
+- workflow `Conformance` em Python 3.11/3.12/3.13;
+- artefatos de evidência `self-check.json` e `project-check.json` por versão Python;
+- `S0_VALIDATION_EVIDENCE.md`;
+- `S0_AUDIT_PACKET.md`;
 - `docs/LIFECYCLE_MODEL.md` e política de ownership/upgrade;
 - `REFERENCE_MATRIX.md` consolidando Copier, Cruft, projen, Spec Kit, OpenSpec e padrões de contexto proporcional observados na comunidade.
 
+### Changed
+
+- `sensitive-data` passa a exigir `human_gates=true` por regra semântica executável;
+- `multi-agent` passa a exigir `independent_audit=true` e Builder distinto do Auditor;
+- S0 passa a exigir self-check, CI verde, invariantes protegidos e auditoria independente antes de abrir S1.
+
 ### Validation status
 
-A suíte foi materializada, mas ainda não foi homologada por execução em checkout limpo nesta revisão. O ambiente atual não conseguiu resolver `github.com` para clonar o repositório. `NOT_RUN != PASS`.
+Workflow `Conformance` run `34832777706`: PASS em Python 3.11, 3.12 e 3.13, com fixtures adversariais, self-check e projeto positivo aprovados.
+
+O primeiro run falhou apenas na configuração de cache do `setup-python`; `cache-dependency-path: requirements-dev.txt` corrigiu o finding de CI. A matriz seguinte ficou verde.
+
+S0 permanece `AUDIT_READY`, não concluída: falta auditoria independente e registro do gate.
