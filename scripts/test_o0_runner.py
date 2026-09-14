@@ -11,6 +11,7 @@ from scripts.o0_runner import (
     HandoffError,
     load_config,
     prepare_audit_workspace,
+    prepare_builder_findings,
     run_actor,
     run_once,
     validate_auditor_boundaries,
@@ -244,6 +245,147 @@ class O0RunnerTest(unittest.TestCase):
         self.assertEqual("FIX_REQUIRED", result["machine_state"])
         self.assertEqual("FAIL", result["last_audit_result"])
         self.assertEqual(1, result["audit_round"])
+
+    def _fix_required_state(self, target: str, report: Path, round_number: int = 1):
+        return {
+            "schema_version": "0.1",
+            "project_id": "sample",
+            "phase": "O0",
+            "gate": "NONE",
+            "machine_state": "FIX_REQUIRED",
+            "builder_branch": "work",
+            "builder_executor_id": "builder-executor",
+            "auditor_executor_id": "auditor-executor",
+            "product_authority_id": "owner",
+            "builder_head_sha": target,
+            "audit_target_sha": target,
+            "last_audited_sha": target,
+            "audit_round": round_number,
+            "max_audit_rounds": 3,
+            "last_builder_report": None,
+            "last_audit_report": str(report),
+            "last_audit_result": "FAIL",
+            "human_gate_required": True,
+            "approval": None,
+            "updated_at": "now",
+            "message": "Audit failed; findings are ready for Builder correction.",
+        }
+
+    def _fail_report(self, target: str):
+        return {
+            "schema_version": "0.1",
+            "executor_id": "auditor-executor",
+            "role": "AUDITOR",
+            "authority": "INDEPENDENT_AUDIT",
+            "audit_result": "FAIL",
+            "audited_sha": target,
+            "summary": "Blocking findings.",
+            "findings": [{
+                "id": "O0-015-001",
+                "severity": "HIGH",
+                "blocking": True,
+                "files": ["scripts/o0_runner.py"],
+                "evidence": "forwarding evidence",
+                "problem": "finding must reach Builder",
+                "violated_criterion": "O0-C15",
+                "resolution_condition": "preserve finding unchanged",
+            }],
+            "checks": [{"id": "o0-c15", "status": "FAIL", "evidence": "finding"}],
+            "residual_risks": [],
+            "gate_registration": "NOT_AUTHORIZED",
+        }
+
+    def test_fix_required_prepares_exact_findings_for_builder(self):
+        target = "a" * 40
+        reports = self.root / "reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        source = self._fail_report(target)
+        audit_report.write_text(json.dumps(source), encoding="utf-8")
+
+        handoff = prepare_builder_findings(
+            self._fix_required_state(target, audit_report, round_number=2),
+            reports,
+        )
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+
+        self.assertEqual(target, payload["audit_target_sha"])
+        self.assertEqual(2, payload["audit_round"])
+        self.assertEqual(source["findings"], payload["findings"])
+
+    def test_runner_passes_failed_audit_findings_to_builder(self):
+        target = "a" * 40
+        reports = self.root / "reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        source = self._fail_report(target)
+        audit_report.write_text(json.dumps(source), encoding="utf-8")
+        state = self.root / "state.json"
+        state.write_text(
+            json.dumps(self._fix_required_state(target, audit_report)),
+            encoding="utf-8",
+        )
+        (self.root / "builder").mkdir()
+        config = self.root / "runner.json"
+        config.write_text(
+            json.dumps({
+                "repository": "repo",
+                "state_path": "state.json",
+                "reports_dir": "reports",
+                "builder_workspace": "builder",
+                "audit_workspaces": "audits",
+                "builder_command": ["builder"],
+                "auditor_command": ["auditor"],
+            }),
+            encoding="utf-8",
+        )
+        captured = {}
+
+        def capture_builder(command, workspace, report, env, *, write_sandbox=False):
+            captured.update(env)
+            raise HandoffError("stop before O0-C16")
+
+        with patch("scripts.o0_runner.run_actor", side_effect=capture_builder):
+            with self.assertRaisesRegex(HandoffError, "stop before O0-C16"):
+                run_once(config)
+
+        handoff = Path(captured["IDEAS_STANDARD_FINDINGS"])
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+        self.assertEqual(target, payload["audit_target_sha"])
+        self.assertEqual(1, payload["audit_round"])
+        self.assertEqual(source["findings"], payload["findings"])
+
+    def test_invalid_pass_with_not_run_is_not_forwarded(self):
+        target = "a" * 40
+        reports = self.root / "reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        invalid = self._fail_report(target)
+        invalid["audit_result"] = "PASS"
+        invalid["checks"][0]["status"] = "NOT_RUN"
+        audit_report.write_text(json.dumps(invalid), encoding="utf-8")
+
+        with self.assertRaises(HandoffError):
+            prepare_builder_findings(
+                self._fix_required_state(target, audit_report),
+                reports,
+            )
+        self.assertFalse((reports / "builder-findings.json").exists())
+
+    def test_divergent_sha_is_not_forwarded(self):
+        target = "a" * 40
+        reports = self.root / "reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        divergent = self._fail_report("b" * 40)
+        audit_report.write_text(json.dumps(divergent), encoding="utf-8")
+
+        with self.assertRaisesRegex(HandoffError, "current failed audit target"):
+            prepare_builder_findings(
+                self._fix_required_state(target, audit_report),
+                reports,
+            )
+        self.assertFalse((reports / "builder-findings.json").exists())
 
 
 if __name__ == "__main__":
