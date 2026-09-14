@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ideias-standard.local/schemas/context-manifest.schema.json",
+  "title": "Ideias Standard Context Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "strategy", "routes"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "0.1"},
+    "strategy": {"enum": ["PROGRESSIVE"]},
+    "routes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["required"],
+        "properties": {
+          "required": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true
+          },
+          "conditional": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true,
+            "default": []
+          },
+          "discovery": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "uniqueItems": true,
+            "default": []
+          }
+        }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "bootstrap_target_max_bytes": {"type": "integer", "minimum": 1},
+        "task_target_max_bytes": {"type": "integer", "minimum": 1},
+        "command_output_initial_max_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "fallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "on_missing_context": {"const": "EXPAND_PROGRESSIVELY"},
+        "on_required_overflow": {"const": "CONTEXT_OVERFLOW"}
+      }
+    }
+  }
+}
