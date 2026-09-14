@@ -1,0 +1,11 @@
+id: python
+version: 0.1
+applies_when:
+  - project.type == python
+adds_capabilities:
+  python_test_validation: true
+recommended_artifacts:
+  - docs/python/COMMANDS.md
+rules:
+  - Registrar versao do Python e comando de testes.
+  - Preferir ambiente reprodutivel e dependencias declaradas.
