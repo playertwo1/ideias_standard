@@ -1,13 +1,15 @@
 # IDEIAS STANDARD — PROJECT STATE
 
 - **Versão:** 0.1.0-draft
-- **Fase:** S0 — Fundação do padrão
-- **Status:** AUDIT_READY
-- **Objetivo atual:** concluir auditoria independente S0 após a extensão multiagente validada
-- **Última concluída:** matriz `Conformance` verde em Python 3.11/3.12/3.13 para a extensão de orquestração Builder ↔ Auditor
-- **Próxima:** Auditor independente executar `S0_AUDIT_PACKET.md` no HEAD atual e emitir `AUDIT RESULT: PASS|FAIL`
-- **Bloqueios do projeto:** nenhum conhecido além do gate S0 ainda não concluído
-- **Gate S0:** NOT_RUN — validação técnica PASS, auditoria independente pendente
+- **Fase:** S1 — Conformance First
+- **Status:** ACTIVE
+- **Objetivo atual:** transformar o núcleo validado em interface estável de conformance, conforme `ROADMAP.md`
+- **Última concluída:** Gate S0 registrado como PASS pela Product Authority após auditoria independente PASS
+- **Próxima:** implementar S1 (`check`/`doctor`) dentro do escopo definido no `ROADMAP.md`
+- **Bloqueios do projeto:** nenhum conhecido
+- **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
+- **Gate S1:** NOT_RUN
+- **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34841166585`
 
@@ -62,11 +64,4 @@ A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um ada
 
 ## Próxima ação
 
-Auditor independente deve usar `S0_AUDIT_PACKET.md`, revisar o HEAD atual e confirmar:
-
-1. contratos/invariantes da extensão multiagente;
-2. evidência do run `34841166585`;
-3. ausência de regressão nas atualizações documentais posteriores ao SHA funcional validado;
-4. manutenção da separação Builder/Auditor/Product Authority.
-
-Somente após `AUDIT RESULT: PASS` registrar Gate S0 como PASS e iniciar S1 (`check`/`doctor`).
+Executar somente o escopo de S1 — Conformance First definido no `ROADMAP.md`. S2 permanece não iniciada.
