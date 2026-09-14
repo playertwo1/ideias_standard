@@ -1,0 +1,11 @@
+schema_version: '0.1'
+id: inactive-adapter
+version: '0.1'
+description: Bundle estruturalmente valido que usa adapter ainda nao ACTIVE.
+profile: STANDARD
+packs:
+  - android
+adapters:
+  - codex
+workflow: default
+constraints: []
