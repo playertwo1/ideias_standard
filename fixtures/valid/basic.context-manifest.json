@@ -1,0 +1,20 @@
+{
+  "schema_version": "0.1",
+  "strategy": "PROGRESSIVE",
+  "routes": {
+    "DOC_ONLY": {
+      "required": ["AGENTS.md", "PROJECT_STATE.md"],
+      "conditional": ["PHASE_CURRENT.md"],
+      "discovery": ["ROADMAP.md#specific-section"]
+    }
+  },
+  "budgets": {
+    "bootstrap_target_max_bytes": 12000,
+    "task_target_max_bytes": 25000,
+    "command_output_initial_max_bytes": 6000
+  },
+  "fallback": {
+    "on_missing_context": "EXPAND_PROGRESSIVELY",
+    "on_required_overflow": "CONTEXT_OVERFLOW"
+  }
+}
