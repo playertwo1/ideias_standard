@@ -1,0 +1,16 @@
+schema_version: '0.1'
+id: deep-multi-agent-sensitive
+version: '0.1'
+description: Perfil DEEP para projetos multiagente com dados sensiveis e auditoria independente.
+profile: DEEP
+packs:
+  - multi-agent
+  - sensitive-data
+  - ai
+adapters:
+  - generic
+workflow: default
+constraints:
+  - Auditoria independente obrigatoria em gates materiais.
+  - Escritas concorrentes exigem coordenacao explicita.
+  - Dados sensiveis nao entram em logs, prompts ou artefatos sem necessidade autorizada.
