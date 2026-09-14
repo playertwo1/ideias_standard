@@ -1,0 +1,17 @@
+id: multi-agent
+version: 0.1
+applies_when:
+  - project uses multiple builders, auditors or specialist agents
+adds_capabilities:
+  role_separation: true
+  handoff_contracts: true
+  write_scope_coordination: true
+  independent_audit: true
+recommended_artifacts:
+  - docs/agents/ROLE_MATRIX.md
+  - docs/agents/HANDOFF_CONTRACT.md
+rules:
+  - Cada agente deve ter responsabilidade e escopo de escrita definidos.
+  - Auditor nao deve simplesmente repetir o contexto completo do Builder.
+  - Handoffs devem registrar estado, evidencia, limites e proxima acao.
+  - Escritas concorrentes no mesmo artefato exigem coordenacao explicita.
