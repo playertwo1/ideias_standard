@@ -13,10 +13,16 @@ Objetivo: definir o contrato antes da implementação.
 - [x] Packs iniciais
 - [x] Política de ownership/upgrade
 - [x] Exemplos positivos de manifest
-- [ ] Fixtures negativas/adversariais
-- [ ] Validador determinístico
+- [x] Bundles e workflows declarativos iniciais
+- [x] Schema de change lifecycle e conformance report
+- [x] Catálogo de adapters ACTIVE/PLANNED
+- [x] Fixtures negativas/adversariais
+- [x] Validador determinístico estrutural + semântico
+- [x] Testes automatizados do validador materializados
+- [ ] Executar suíte completa em checkout limpo e registrar evidência
+- [ ] Corrigir findings da primeira execução, se houver
 
-**Gate S0:** schemas válidos, fixtures reproduzíveis e zero ambiguidade material entre profile, pack, capability, authority e ownership.
+**Gate S0:** schemas válidos, fixtures reproduzíveis, testes executados e zero ambiguidade material entre profile, pack, capability, authority, ownership, bundle e workflow.
 
 ## S1 — Conformance first
 
@@ -27,9 +33,10 @@ Objetivo: provar que o Standard consegue verificar um projeto antes de gerar pro
 - detecção de status duplicado, adapters divergentes e arquivos ausentes;
 - códigos determinísticos para falhas;
 - relatório PASS/FAIL/WARN sem percentual cosmético como fonte de verdade;
-- modo não interativo para automação.
+- modo não interativo para automação;
+- saída estruturada compatível com `conformance-report.schema.json`.
 
-**Gate S1:** fixture correta passa; fixtures quebradas falham com códigos previsíveis.
+**Gate S1:** fixture correta passa; fixtures quebradas falham com códigos previsíveis; `doctor` explica os mesmos findings sem criar uma segunda regra.
 
 ## S2 — Init / compiler
 
@@ -41,7 +48,8 @@ Objetivo: gerar projeto mínimo a partir de manifesto.
 - classificar artefatos como MANAGED/MERGEABLE/USER_OWNED;
 - dry-run e diff antes de escrever;
 - detectar conflitos entre packs;
-- adapters iniciais para agentes sem criar fontes de verdade concorrentes.
+- expandir bundle para composição explícita;
+- adapters iniciais sem criar fontes de verdade concorrentes.
 
 **Gate S2:** geração determinística e idempotente para fixtures LIGHT/STANDARD/DEEP.
 
