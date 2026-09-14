@@ -27,7 +27,7 @@ Objetivo: definir e provar o contrato antes da implementação da CLI.
 - [x] Workflow `builder-auditor-loop` com SHA de auditoria imutável, loop limitado e gate humano
 - [x] Máquina de estados provider-neutral para handoffs e registro explícito de gate
 - [x] Fixtures e testes adversariais de orquestração integrados à conformance
-- [ ] Revalidar S0 após extensão de orquestração autorizada pela Product Authority
+- [x] Revalidar S0 após extensão de orquestração autorizada pela Product Authority
 - [ ] Auditoria independente S0
 
 **Gate S0:** schemas válidos; self-check PASS; fixtures reproduzíveis; golden outputs estáveis; CI verde nas versões Python suportadas; invariantes críticos protegidos; orquestração multiagente não amplia autoridade e mantém Builder/Auditor separados, SHA auditado imutável, loop limitado e gate humano; zero ambiguidade material entre profile, pack, capability, authority, ownership, bundle, workflow e compatibilidade; auditoria independente sem finding bloqueante.
