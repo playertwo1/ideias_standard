@@ -9,7 +9,9 @@ from unittest.mock import patch
 
 from scripts.o0_runner import (
     HandoffError,
+    builder_handoff,
     load_config,
+    next_actor,
     prepare_audit_workspace,
     prepare_builder_findings,
     run_actor,
@@ -456,6 +458,54 @@ class O0RunnerTest(unittest.TestCase):
                 repository,
                 handoff,
                 before,
+            )
+
+    def test_valid_correction_requires_fresh_audit(self):
+        repository, previous, corrected, current, _, _ = self._correction_inputs()
+        state = self.root / "correction-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        report = self.root / "correction-builder.json"
+        report.write_text(json.dumps(self._builder_report(corrected)), encoding="utf-8")
+
+        result = builder_handoff(state, report)
+
+        self.assertEqual(corrected, result["audit_target_sha"])
+        self.assertEqual("READY_FOR_AUDIT", result["machine_state"])
+        self.assertEqual("AUDITOR", next_actor(result))
+        self.assertIsNone(result["last_audited_sha"])
+        self.assertIsNone(result["last_audit_result"])
+        self.assertNotEqual(previous, result["audit_target_sha"])
+
+    def test_previous_pass_is_not_reused_for_new_sha(self):
+        repository, previous, corrected, current, _, _ = self._correction_inputs()
+        current["last_audit_result"] = "PASS"
+        state = self.root / "stale-pass-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        report = self.root / "stale-pass-builder.json"
+        report.write_text(json.dumps(self._builder_report(corrected)), encoding="utf-8")
+
+        result = builder_handoff(state, report)
+
+        self.assertIsNone(result["last_audited_sha"])
+        self.assertIsNone(result["last_audit_result"])
+        self.assertEqual("AUDITOR", next_actor(result))
+
+    def test_fix_required_rejects_result_sha_divergent_from_builder_head(self):
+        repository, previous, corrected, current, handoff, before = self._correction_inputs()
+        subprocess.run(
+            ["git", "checkout", "--detach", previous],
+            cwd=repository,
+            check=True,
+            capture_output=True,
+        )
+        with self.assertRaisesRegex(HandoffError, "Builder workspace HEAD"):
+            validate_builder_result(
+                current,
+                self._builder_report(corrected),
+                repository,
+                handoff,
+                before,
+                repository,
             )
 
     def test_fix_required_rejects_changed_findings_link(self):

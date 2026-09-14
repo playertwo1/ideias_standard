@@ -133,6 +133,9 @@ def builder_handoff(
     state["builder_head_sha"] = commit_sha
 
     if report["result"] == "READY_FOR_AUDIT":
+        if commit_sha != state.get("audit_target_sha"):
+            state["last_audited_sha"] = None
+            state["last_audit_result"] = None
         state["audit_target_sha"] = commit_sha
         state["machine_state"] = "READY_FOR_AUDIT"
         state["message"] = f"Audit target frozen at {commit_sha}."

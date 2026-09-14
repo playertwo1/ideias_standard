@@ -117,7 +117,7 @@ def git_head(workspace: Path) -> str:
         check=False,
     )
     if result.returncode != 0:
-        raise HandoffError("Cannot resolve Auditor workspace HEAD")
+        raise HandoffError("Cannot resolve workspace HEAD")
     return result.stdout.strip()
 
 
@@ -308,10 +308,13 @@ def validate_builder_result(
     repository: Path,
     findings_handoff: Path | None,
     findings_before: bytes | None,
+    builder_workspace: Path | None = None,
 ) -> None:
     validate_with_schema(payload, "builder")
     result_sha = payload["result_sha"]
     verify_commit(repository, result_sha)
+    if git_head(builder_workspace or repository) != result_sha:
+        raise HandoffError("Builder report result_sha does not match Builder workspace HEAD")
     if current["machine_state"] != "FIX_REQUIRED":
         return
     previous_target = current.get("audit_target_sha")
@@ -371,6 +374,7 @@ def run_once(config_path: Path) -> dict[str, Any]:
             repository,
             findings_handoff,
             findings_before,
+            builder_workspace,
         )
         return builder_handoff(state_path, report)
 

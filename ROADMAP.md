@@ -174,7 +174,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [ ] O0-C14 FAIL → FIX_REQUIRED.
 - [ ] O0-C15 Findings são encaminhados automaticamente ao Builder.
 - [x] O0-C16 Correção produz novo SHA.
-- [ ] O0-C17 Novo SHA exige nova auditoria.
+- [x] O0-C17 Novo SHA exige nova auditoria.
 - [ ] O0-C18 PASS → WAITING_PRODUCT_AUTHORITY.
 - [ ] O0-C19 ESCALATE → BLOCKED.
 - [ ] O0-C20 DISPUTED → BLOCKED.
