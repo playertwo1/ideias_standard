@@ -24,11 +24,15 @@ SCHEMA_FILES = {
     "workflow": "workflow.schema.json",
     "change": "change.schema.json",
     "conformance-report": "conformance-report.schema.json",
+    "invariants": "invariants.schema.json",
 }
 
 
 def load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError(f"JSON root must be an object: {path}")
+    return data
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -50,14 +54,20 @@ def schema_registry() -> tuple[dict[str, Any], Registry]:
     return schemas, Registry().with_resources(resources)
 
 
-def catalog_ids(path: Path, key: str) -> set[str]:
+def catalog_items(path: Path, key: str) -> list[dict[str, Any]]:
     data = load_yaml(path)
-    return {item["id"] for item in data.get(key, [])}
+    items = data.get(key, [])
+    if not isinstance(items, list):
+        raise ValueError(f"Catalog key {key!r} must be a list: {path}")
+    return items
+
+
+def catalog_ids(path: Path, key: str) -> set[str]:
+    return {item["id"] for item in catalog_items(path, key)}
 
 
 def adapter_statuses() -> dict[str, str]:
-    data = load_yaml(ROOT / "adapters" / "catalog.yaml")
-    return {item["id"]: item["status"] for item in data.get("adapters", [])}
+    return {item["id"]: item["status"] for item in catalog_items(ROOT / "adapters" / "catalog.yaml", "adapters")}
 
 
 def current_version() -> str:
@@ -74,6 +84,8 @@ def detect_kind(data: dict[str, Any], path: Path) -> str:
         return "context-manifest"
     if "target" in data and "checks" in data and "result" in data:
         return "conformance-report"
+    if "version" in data and "invariants" in data:
+        return "invariants"
     if "kind" in data and "affected" in data and str(data.get("id", "")).startswith("CHG-"):
         return "change"
     if "steps" in data:
@@ -86,23 +98,23 @@ def detect_kind(data: dict[str, Any], path: Path) -> str:
 
 
 def add_check(checks: list[dict[str, Any]], code: str, status: str, severity: str, message: str, path: str | None = None, rationale: str | None = None) -> None:
-    checks.append({
-        "code": code,
-        "status": status,
-        "severity": severity,
-        "message": message,
-        "path": path,
-        "rationale": rationale,
-    })
+    checks.append({"code": code, "status": status, "severity": severity, "message": message, "path": path, "rationale": rationale})
+
+
+def result_from_checks(checks: list[dict[str, Any]]) -> str:
+    if any(check["status"] == "FAIL" for check in checks):
+        return "FAIL"
+    if any(check["status"] == "WARN" for check in checks):
+        return "WARN"
+    return "PASS"
 
 
 def structural_checks(data: dict[str, Any], kind: str, schemas: dict[str, Any], registry: Registry) -> list[dict[str, Any]]:
-    schema = schemas[kind]
-    validator = Draft202012Validator(schema, registry=registry)
-    errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
+    validator = Draft202012Validator(schemas[kind], registry=registry)
+    errors = sorted(validator.iter_errors(data), key=lambda error: list(error.absolute_path))
     checks: list[dict[str, Any]] = []
     for error in errors:
-        pointer = "/" + "/".join(str(p) for p in error.absolute_path) if error.absolute_path else "/"
+        pointer = "/" + "/".join(str(part) for part in error.absolute_path) if error.absolute_path else "/"
         add_check(checks, "IS-SCHEMA-001", "FAIL", "HIGH", error.message, pointer)
     if not errors:
         add_check(checks, "IS-SCHEMA-001", "PASS", "INFO", f"{kind} satisfies its JSON Schema")
@@ -139,19 +151,38 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
 
     if kind == "project-manifest":
-        check_known_packs(checks, data.get("packs", []), "/packs", "IS-SEM-001")
+        packs = set(data.get("packs", []))
+        check_known_packs(checks, list(packs), "/packs", "IS-SEM-001")
         declared = data.get("standard", {}).get("version")
         if declared != current_version():
             add_check(checks, "IS-SEM-006", "FAIL", "HIGH", f"Manifest standard version {declared!r} != supported {current_version()!r}", "/standard/version")
         else:
             add_check(checks, "IS-SEM-006", "PASS", "INFO", "Manifest targets the supported Standard version")
 
+        capabilities = data.get("capabilities", {})
+        governance = data.get("governance", {})
+        if "sensitive-data" in packs:
+            if capabilities.get("human_gates") is not True:
+                add_check(checks, "IS-SEM-009", "FAIL", "CRITICAL", "sensitive-data requires capabilities.human_gates=true", "/capabilities/human_gates")
+            else:
+                add_check(checks, "IS-SEM-009", "PASS", "INFO", "sensitive-data has human gates enabled")
+
+        if "multi-agent" in packs:
+            if capabilities.get("independent_audit") is not True:
+                add_check(checks, "IS-SEM-010", "FAIL", "CRITICAL", "multi-agent requires capabilities.independent_audit=true", "/capabilities/independent_audit")
+            else:
+                add_check(checks, "IS-SEM-010", "PASS", "INFO", "multi-agent has independent audit enabled")
+            if governance.get("builder") == governance.get("auditor"):
+                add_check(checks, "IS-SEM-011", "FAIL", "CRITICAL", "multi-agent requires Builder and Auditor to be distinct", "/governance")
+            else:
+                add_check(checks, "IS-SEM-011", "PASS", "INFO", "Builder and Auditor are distinct")
+
     elif kind == "standard-lock":
         check_known_packs(checks, data.get("packs", []), "/packs", "IS-SEM-001")
         check_workflow(checks, data.get("workflow"), "/workflow")
         check_adapters(checks, data.get("adapters", []), "/adapters")
         artifact_paths = [artifact.get("path") for artifact in data.get("artifacts", [])]
-        duplicates = sorted({p for p in artifact_paths if p is not None and artifact_paths.count(p) > 1})
+        duplicates = sorted({path for path in artifact_paths if path is not None and artifact_paths.count(path) > 1})
         if duplicates:
             add_check(checks, "IS-SEM-002", "FAIL", "HIGH", f"Duplicate artifact paths: {', '.join(duplicates)}", "/artifacts")
         else:
@@ -173,6 +204,14 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
         else:
             add_check(checks, "IS-SEM-007", "PASS", "INFO", "Workflow step IDs are unique")
 
+    elif kind == "invariants":
+        ids = [item.get("id") for item in data.get("invariants", [])]
+        duplicates = sorted({invariant_id for invariant_id in ids if invariant_id is not None and ids.count(invariant_id) > 1})
+        if duplicates:
+            add_check(checks, "IS-INV-001", "FAIL", "CRITICAL", f"Duplicate invariant IDs: {', '.join(duplicates)}", "/invariants")
+        else:
+            add_check(checks, "IS-INV-001", "PASS", "INFO", "Invariant IDs are unique")
+
     return checks
 
 
@@ -183,46 +222,93 @@ def validate(path: Path, kind: str | None = None) -> dict[str, Any]:
     checks = structural_checks(data, kind, schemas, registry)
     if not any(check["status"] == "FAIL" for check in checks):
         checks.extend(semantic_checks(data, kind))
-    result = "FAIL" if any(check["status"] == "FAIL" for check in checks) else ("WARN" if any(check["status"] == "WARN" for check in checks) else "PASS")
-    return {
-        "schema_version": "0.1",
-        "target": str(path),
-        "standard_version": current_version(),
-        "result": result,
-        "checks": checks,
-    }
+    return {"schema_version": "0.1", "target": str(path), "standard_version": current_version(), "result": result_from_checks(checks), "checks": checks}
+
+
+def duplicate_ids(items: list[dict[str, Any]]) -> list[str]:
+    ids = [str(item.get("id")) for item in items]
+    return sorted({item_id for item_id in ids if ids.count(item_id) > 1})
+
+
+def self_check() -> dict[str, Any]:
+    checks: list[dict[str, Any]] = []
+    schemas, _ = schema_registry()
+
+    for kind, schema in schemas.items():
+        try:
+            Draft202012Validator.check_schema(schema)
+            add_check(checks, "IS-SELF-001", "PASS", "INFO", f"Schema is valid: {kind}")
+        except Exception as exc:
+            add_check(checks, "IS-SELF-001", "FAIL", "CRITICAL", f"Invalid schema {kind}: {exc}")
+
+    catalog_specs = [
+        (ROOT / "packs" / "catalog.yaml", "packs"),
+        (ROOT / "workflows" / "catalog.yaml", "workflows"),
+        (ROOT / "bundles" / "catalog.yaml", "bundles"),
+        (ROOT / "adapters" / "catalog.yaml", "adapters"),
+    ]
+    for path, key in catalog_specs:
+        items = catalog_items(path, key)
+        duplicates = duplicate_ids(items)
+        if duplicates:
+            add_check(checks, "IS-SELF-002", "FAIL", "CRITICAL", f"Duplicate IDs in {path.relative_to(ROOT)}: {', '.join(duplicates)}")
+        else:
+            add_check(checks, "IS-SELF-002", "PASS", "INFO", f"Catalog IDs are unique: {path.relative_to(ROOT)}")
+        for item in items:
+            rel = item.get("path")
+            if rel is not None and not (ROOT / rel).exists():
+                add_check(checks, "IS-SELF-003", "FAIL", "HIGH", f"Catalog path does not exist: {rel}")
+
+    compatibility = load_yaml(ROOT / "COMPATIBILITY.yaml")
+    if compatibility.get("standard_version") != current_version():
+        add_check(checks, "IS-SELF-004", "FAIL", "HIGH", "COMPATIBILITY.yaml standard_version does not match VERSION")
+    else:
+        add_check(checks, "IS-SELF-004", "PASS", "INFO", "Compatibility matrix matches VERSION")
+
+    invariant_report = validate(ROOT / "INVARIANTS.yaml", "invariants")
+    add_check(checks, "IS-SELF-005", "PASS" if invariant_report["result"] != "FAIL" else "FAIL", "INFO" if invariant_report["result"] != "FAIL" else "CRITICAL", "Invariant registry is valid" if invariant_report["result"] != "FAIL" else "Invariant registry failed validation")
+
+    for item in catalog_items(ROOT / "bundles" / "catalog.yaml", "bundles"):
+        report = validate(ROOT / item["path"], "bundle")
+        add_check(checks, "IS-SELF-006", "PASS" if report["result"] != "FAIL" else "FAIL", "INFO" if report["result"] != "FAIL" else "HIGH", f"Bundle {'is valid' if report['result'] != 'FAIL' else 'failed validation'}: {item['id']}")
+
+    for item in catalog_items(ROOT / "workflows" / "catalog.yaml", "workflows"):
+        report = validate(ROOT / item["path"], "workflow")
+        add_check(checks, "IS-SELF-007", "PASS" if report["result"] != "FAIL" else "FAIL", "INFO" if report["result"] != "FAIL" else "HIGH", f"Workflow {'is valid' if report['result'] != 'FAIL' else 'failed validation'}: {item['id']}")
+
+    return {"schema_version": "0.1", "target": "SELF", "standard_version": current_version(), "result": result_from_checks(checks), "checks": checks}
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("path", type=Path)
+    parser.add_argument("path", nargs="?", type=Path)
     parser.add_argument("--kind", choices=sorted(SCHEMA_FILES))
     parser.add_argument("--json", action="store_true", dest="as_json")
+    parser.add_argument("--self-check", action="store_true")
     args = parser.parse_args()
+    if not args.self_check and args.path is None:
+        parser.error("path is required unless --self-check is used")
+
     try:
-        report = validate(args.path.resolve(), args.kind)
+        report = self_check() if args.self_check else validate(args.path.resolve(), args.kind)
+        exit_code = 1 if report["result"] == "FAIL" else 0
     except Exception as exc:
         report = {
             "schema_version": "0.1",
-            "target": str(args.path),
+            "target": str(args.path) if args.path is not None else "SELF",
             "standard_version": current_version(),
             "result": "FAIL",
-            "checks": [{
-                "code": "IS-SCHEMA-001",
-                "status": "FAIL",
-                "severity": "HIGH",
-                "message": str(exc),
-                "path": None,
-                "rationale": None,
-            }],
+            "checks": [{"code": "IS-CLI-001", "status": "FAIL", "severity": "HIGH", "message": str(exc), "path": None, "rationale": "Operational error; see CLI_CONTRACT.md"}],
         }
+        exit_code = 2
+
     if args.as_json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
         print(f"{report['result']}: {report['target']}")
         for check in report["checks"]:
             print(f"- {check['status']} {check['code']}: {check['message']}")
-    return 1 if report["result"] == "FAIL" else 0
+    return exit_code
 
 
 if __name__ == "__main__":
