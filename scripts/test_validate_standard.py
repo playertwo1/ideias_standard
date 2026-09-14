@@ -1,19 +1,24 @@
+import json
 import unittest
 
-from scripts.validate_standard import ROOT, validate
+import yaml
+
+from scripts.validate_standard import ROOT, self_check, validate
 
 
 class ValidateStandardTest(unittest.TestCase):
     def codes(self, report):
         return {(c["code"], c["status"]) for c in report["checks"]}
 
-    def test_positive_project_manifest_passes(self):
-        report = validate(ROOT / "examples/standard-android-ai/project-manifest.json")
-        self.assertEqual("PASS", report["result"])
-
-    def test_valid_lock_passes(self):
-        report = validate(ROOT / "fixtures/valid/basic.standard-lock.json", "standard-lock")
-        self.assertEqual("PASS", report["result"])
+    def test_fixture_manifest_expectations(self):
+        manifest = yaml.safe_load((ROOT / "fixtures/fixture-manifest.yaml").read_text(encoding="utf-8"))
+        for case in manifest["cases"]:
+            with self.subTest(case=case["id"]):
+                report = validate(ROOT / case["path"], case.get("kind"))
+                self.assertEqual(case["expected_result"], report["result"])
+                observed_fail_codes = {c["code"] for c in report["checks"] if c["status"] == "FAIL"}
+                for code in case.get("expected_codes", []):
+                    self.assertIn(code, observed_fail_codes)
 
     def test_valid_context_manifest_passes(self):
         report = validate(ROOT / "fixtures/valid/basic.context-manifest.json")
@@ -31,33 +36,38 @@ class ValidateStandardTest(unittest.TestCase):
         report = validate(ROOT / "workflows/default/workflow.yaml", "workflow")
         self.assertEqual("PASS", report["result"])
 
-    def test_unknown_pack_fails_semantically(self):
-        report = validate(ROOT / "fixtures/invalid/unknown-pack.project.json", "project-manifest")
-        self.assertIn(("IS-SEM-001", "FAIL"), self.codes(report))
+    def test_self_check_passes(self):
+        report = self_check()
+        self.assertEqual("PASS", report["result"], report)
 
-    def test_full_repo_scan_fails_structurally(self):
-        report = validate(ROOT / "fixtures/invalid/full-repo-scan.project.json", "project-manifest")
-        self.assertIn(("IS-SCHEMA-001", "FAIL"), self.codes(report))
+    def assert_golden(self, fixture, expected_path, kind="project-manifest"):
+        report = validate(ROOT / fixture, kind)
+        expected = json.loads((ROOT / expected_path).read_text(encoding="utf-8"))
+        normalized = {
+            "result": report["result"],
+            "checks": sorted(
+                [
+                    {"code": c["code"], "status": c["status"], "severity": c["severity"]}
+                    for c in report["checks"]
+                    if c["status"] in {"FAIL", "WARN"}
+                ],
+                key=lambda item: (item["code"], item["status"], item["severity"]),
+            ),
+        }
+        expected["checks"] = sorted(expected["checks"], key=lambda item: (item["code"], item["status"], item["severity"]))
+        self.assertEqual(expected, normalized)
 
-    def test_duplicate_pack_fails_structurally(self):
-        report = validate(ROOT / "fixtures/invalid/duplicate-pack.project.json", "project-manifest")
-        self.assertIn(("IS-SCHEMA-001", "FAIL"), self.codes(report))
+    def test_sensitive_data_golden(self):
+        self.assert_golden(
+            "fixtures/invalid/sensitive-data-no-human-gates.project.json",
+            "fixtures/golden/sensitive-data-no-human-gates.expected.json",
+        )
 
-    def test_duplicate_artifact_path_fails_semantically(self):
-        report = validate(ROOT / "fixtures/invalid/duplicate-artifact.standard-lock.json", "standard-lock")
-        self.assertIn(("IS-SEM-002", "FAIL"), self.codes(report))
-
-    def test_inactive_adapter_fails_semantically(self):
-        report = validate(ROOT / "fixtures/invalid/inactive-adapter.bundle.yaml", "bundle")
-        self.assertIn(("IS-SEM-005", "FAIL"), self.codes(report))
-
-    def test_unknown_workflow_fails_semantically(self):
-        report = validate(ROOT / "fixtures/invalid/unknown-workflow.bundle.yaml", "bundle")
-        self.assertIn(("IS-SEM-004", "FAIL"), self.codes(report))
-
-    def test_duplicate_workflow_step_fails_semantically(self):
-        report = validate(ROOT / "fixtures/invalid/duplicate-step.workflow.yaml", "workflow")
-        self.assertIn(("IS-SEM-007", "FAIL"), self.codes(report))
+    def test_multi_agent_role_separation_golden(self):
+        self.assert_golden(
+            "fixtures/invalid/multi-agent-same-builder-auditor.project.json",
+            "fixtures/golden/multi-agent-same-builder-auditor.expected.json",
+        )
 
 
 if __name__ == "__main__":
