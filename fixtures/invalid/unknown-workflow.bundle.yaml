@@ -1,0 +1,11 @@
+schema_version: '0.1'
+id: unknown-workflow
+version: '0.1'
+description: Bundle estruturalmente valido com workflow inexistente.
+profile: STANDARD
+packs:
+  - android
+adapters:
+  - generic
+workflow: does-not-exist
+constraints: []
