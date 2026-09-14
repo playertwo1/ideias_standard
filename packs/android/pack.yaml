@@ -1,0 +1,13 @@
+id: android
+version: 0.1
+applies_when:
+  - project.type == android
+adds_capabilities:
+  android_build_validation: true
+  device_matrix: true
+recommended_artifacts:
+  - docs/android/DEVICE_MATRIX.md
+  - docs/android/BUILD_COMMANDS.md
+rules:
+  - Nao alegar validacao fisica sem aparelho real.
+  - Build, lint e testes devem registrar comando e resultado quando aplicaveis.
