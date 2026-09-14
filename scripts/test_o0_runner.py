@@ -33,11 +33,61 @@ class O0RunnerTest(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def _run_runner_cli(self, config: Path):
+        return subprocess.run(
+            [sys.executable, "-m", "scripts.o0_runner", "--config", str(config)],
+            cwd=Path(__file__).resolve().parents[1],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
     def test_config_requires_actor_commands(self):
         path = self.root / "config.json"
         path.write_text("{}", encoding="utf-8")
         with self.assertRaises(HandoffError):
             load_config(path)
+
+    def test_malformed_config_is_rejected_deterministically(self):
+        config = self.root / "malformed-config.json"
+        config.write_text("{", encoding="utf-8")
+
+        attempts = [self._run_runner_cli(config) for _ in range(2)]
+
+        self.assertEqual([2, 2], [attempt.returncode for attempt in attempts])
+        self.assertEqual(attempts[0].stderr, attempts[1].stderr)
+        self.assertTrue(attempts[0].stderr.startswith("RUNNER ERROR:"))
+
+    def test_malformed_state_rejects_before_actor_without_mutation(self):
+        (self.root / "repo").mkdir()
+        (self.root / "builder").mkdir()
+        state = self.root / "state.json"
+        state.write_text("{", encoding="utf-8")
+        before = state.read_bytes()
+        marker = self.root / "actor-ran"
+        actor = [
+            sys.executable,
+            "-c",
+            f"from pathlib import Path; Path({str(marker)!r}).touch()",
+        ]
+        config = self.root / "runner.json"
+        config.write_text(json.dumps({
+            "repository": "repo",
+            "state_path": "state.json",
+            "reports_dir": "reports",
+            "builder_workspace": "builder",
+            "audit_workspaces": "audits",
+            "builder_command": actor,
+            "auditor_command": actor,
+        }), encoding="utf-8")
+
+        attempts = [self._run_runner_cli(config) for _ in range(2)]
+
+        self.assertEqual([2, 2], [attempt.returncode for attempt in attempts])
+        self.assertEqual(attempts[0].stderr, attempts[1].stderr)
+        self.assertTrue(attempts[0].stderr.startswith("RUNNER ERROR:"))
+        self.assertFalse(marker.exists())
+        self.assertEqual(before, state.read_bytes())
 
     def test_restart_recovers_persisted_state_without_process_memory(self):
         repository = self.root / "repo"
@@ -96,13 +146,7 @@ class O0RunnerTest(unittest.TestCase):
             "auditor_command": ["must-not-run"],
         }), encoding="utf-8")
 
-        restarted = subprocess.run(
-            [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_path)],
-            cwd=Path(__file__).resolve().parents[1],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        restarted = self._run_runner_cli(config_path)
 
         self.assertEqual(0, restarted.returncode, restarted.stderr)
         recovered = json.loads(restarted.stdout)
