@@ -1,0 +1,18 @@
+version: 0.1
+packs:
+  - id: android
+    path: packs/android/pack.yaml
+  - id: python
+    path: packs/python/pack.yaml
+  - id: backend
+    path: packs/backend/pack.yaml
+  - id: ai
+    path: packs/ai/pack.yaml
+  - id: sensitive-data
+    path: packs/sensitive-data/pack.yaml
+  - id: multi-agent
+    path: packs/multi-agent/pack.yaml
+rules:
+  - Pack IDs sao estaveis dentro de uma major version.
+  - Um pack deve declarar capacidades e regras adicionadas.
+  - Conflitos entre packs precisam ser detectados antes da geracao.
