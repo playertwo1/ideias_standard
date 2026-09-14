@@ -3,15 +3,16 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** transformar o núcleo validado em interface estável de conformance, conforme `ROADMAP.md`
-- **Última concluída:** Gate S0 registrado como PASS pela Product Authority após auditoria independente PASS
-- **Próxima:** implementar S1 (`check`/`doctor`) dentro do escopo definido no `ROADMAP.md`
+- **Objetivo atual:** avançar S1 — Conformance First com O0 — Operational Orchestrator como tooling transversal prioritário
+- **Última concluída:** primeiro bloco O0-C01–O0-C13 implementado e validado
+- **Próxima:** auditoria independente do bloco O0-C01–O0-C13; depois avançar O0-C14 sem iniciar S2
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
+- **O0:** PARTIAL — O0-C01–O0-C13 implementados; auditoria do bloco pendente
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
-- **Validação atual:** PASS no workflow `Conformance` run `34841166585`
+- **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
 
 ## Evidência atual
 

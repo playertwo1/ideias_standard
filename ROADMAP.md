@@ -158,19 +158,19 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 
 ### Checklist
 
-- [ ] O0-C01 Runner carrega estado atual.
-- [ ] O0-C02 Runner identifica `next_actor`.
-- [ ] O0-C03 Runner inicia Builder quando autorizado.
-- [ ] O0-C04 Runner inicia Auditor quando autorizado.
-- [ ] O0-C05 Builder e Auditor operam em ambientes separados.
-- [ ] O0-C06 Builder possui workspace de escrita controlada.
-- [ ] O0-C07 Auditor opera read-only sobre alvo auditado.
-- [ ] O0-C08 Builder produz `builder-report` válido.
-- [ ] O0-C09 Builder report registra `result_sha`.
-- [ ] O0-C10 `result_sha` vira `audit_target_sha`.
-- [ ] O0-C11 `audit_target_sha` permanece imutável durante auditoria.
-- [ ] O0-C12 Auditor produz `audit-report` válido.
-- [ ] O0-C13 Auditor verifica exclusivamente o SHA congelado.
+- [x] O0-C01 Runner carrega estado atual.
+- [x] O0-C02 Runner identifica `next_actor`.
+- [x] O0-C03 Runner inicia Builder quando autorizado.
+- [x] O0-C04 Runner inicia Auditor quando autorizado.
+- [x] O0-C05 Builder e Auditor operam em ambientes separados.
+- [x] O0-C06 Builder possui workspace de escrita controlada.
+- [x] O0-C07 Auditor opera read-only sobre alvo auditado.
+- [x] O0-C08 Builder produz `builder-report` válido.
+- [x] O0-C09 Builder report registra `result_sha`.
+- [x] O0-C10 `result_sha` vira `audit_target_sha`.
+- [x] O0-C11 `audit_target_sha` permanece imutável durante auditoria.
+- [x] O0-C12 Auditor produz `audit-report` válido.
+- [x] O0-C13 Auditor verifica exclusivamente o SHA congelado.
 - [ ] O0-C14 FAIL → FIX_REQUIRED.
 - [ ] O0-C15 Findings são encaminhados automaticamente ao Builder.
 - [ ] O0-C16 Correção produz novo SHA.
