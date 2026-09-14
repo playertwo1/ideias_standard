@@ -19,6 +19,8 @@ from scripts.orchestrate_handoffs import (
     load_json,
     next_actor,
     status,
+    validate_with_schema,
+    write_json,
 )
 
 REQUIRED_CONFIG = {
@@ -267,6 +269,38 @@ def verify_audit_after(
         raise HandoffError("Auditor modified or invalidated the frozen audit workspace")
 
 
+def prepare_builder_findings(
+    current: dict[str, Any],
+    reports_dir: Path,
+) -> Path | None:
+    if current["machine_state"] != "FIX_REQUIRED":
+        return None
+    if current.get("last_audit_result") != "FAIL" or current.get("audit_round", 0) < 1:
+        raise HandoffError("FIX_REQUIRED requires a recorded FAIL audit round")
+    report_ref = current.get("last_audit_report")
+    if not report_ref:
+        raise HandoffError("FIX_REQUIRED requires last_audit_report")
+    report = load_json(Path(report_ref))
+    validate_with_schema(report, "audit")
+    target = current.get("audit_target_sha")
+    if (
+        report["audit_result"] != "FAIL"
+        or report["audited_sha"] != target
+        or current.get("last_audited_sha") != target
+    ):
+        raise HandoffError("Audit findings do not match the current failed audit target")
+    handoff = reports_dir / "builder-findings.json"
+    write_json(
+        handoff,
+        {
+            "audit_target_sha": target,
+            "audit_round": current["audit_round"],
+            "findings": report["findings"],
+        },
+    )
+    return handoff
+
+
 def run_once(config_path: Path) -> dict[str, Any]:
     config_path = config_path.resolve()
     config = load_config(config_path)
@@ -290,11 +324,15 @@ def run_once(config_path: Path) -> dict[str, Any]:
         if not builder_workspace.is_dir() or not os.access(builder_workspace, os.W_OK):
             raise HandoffError("Builder workspace must exist and be writable")
         report = reports_dir / "builder-report.json"
+        builder_env = {**common_env, "IDEAS_STANDARD_STATE": str(state_path)}
+        findings_handoff = prepare_builder_findings(current, reports_dir)
+        if findings_handoff is not None:
+            builder_env["IDEAS_STANDARD_FINDINGS"] = str(findings_handoff)
         run_actor(
             config["builder_command"],
             builder_workspace,
             report,
-            {**common_env, "IDEAS_STANDARD_STATE": str(state_path)},
+            builder_env,
         )
         payload = load_json(report)
         verify_commit(repository, payload.get("result_sha", ""))
