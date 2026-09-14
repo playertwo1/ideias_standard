@@ -21,8 +21,8 @@ Objetivo: definir e provar o contrato antes da implementação da CLI.
 - [x] Self-check de schemas, catálogos, invariantes, bundles e workflows
 - [x] Testes automatizados data-driven
 - [x] GitHub Actions em Python 3.11/3.12/3.13 com artefatos de evidência
-- [ ] Executar suíte completa no GitHub Actions e registrar evidência verde
-- [ ] Corrigir findings da primeira execução, se houver
+- [x] Suíte completa executada com matriz verde e evidência registrada
+- [x] Finding inicial de CI corrigido e revalidado
 - [ ] Auditoria independente S0
 
 **Gate S0:** schemas válidos; self-check PASS; fixtures reproduzíveis; golden outputs estáveis; CI verde nas versões Python suportadas; invariantes críticos protegidos; zero ambiguidade material entre profile, pack, capability, authority, ownership, bundle, workflow e compatibilidade; auditoria independente sem finding bloqueante.
