@@ -1,0 +1,13 @@
+id: backend
+version: 0.1
+applies_when:
+  - project.type == backend
+adds_capabilities:
+  api_contract_validation: true
+  migration_safety: true
+recommended_artifacts:
+  - docs/backend/API_CONTRACT.md
+  - docs/backend/MIGRATION_POLICY.md
+rules:
+  - Alteracoes de schema e migrations exigem estrategia de preservacao de dados.
+  - Contratos externos devem ter compatibilidade e rollback explicitos quando aplicavel.
