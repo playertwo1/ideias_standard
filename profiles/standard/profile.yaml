@@ -1,0 +1,23 @@
+id: STANDARD
+version: 0.1
+purpose: Aplicativos e features normais com governanca proporcional, auditoria e contexto progressivo.
+required_artifacts:
+  - AGENTS.md
+  - PROJECT_STATE.md
+  - PHASE_CURRENT.md
+  - ROADMAP.md
+  - EXECUTION_PLAN.md
+  - AUDIT.md
+  - CHANGELOG.md
+  - context-manifest.json
+required_capabilities:
+  progressive_context: true
+  evidence_before_pass: true
+  human_authority: true
+  independent_audit: true
+  phase_contract: true
+optional_capabilities:
+  migration_safety: true
+  physical_device_validation: false
+notes:
+  - Perfil recomendado por padrao para projetos de produto comuns.
