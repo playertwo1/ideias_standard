@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "id": "CHG-001",
+  "kind": "FEATURE",
+  "status": "ACCEPTED",
+  "title": "Adicionar conformance check",
+  "rationale": "Permitir validar contrato antes de gerar projetos.",
+  "affected": {
+    "paths": ["scripts/validate_standard.py"],
+    "ids": []
+  },
+  "acceptance": ["Fixture valida passa", "Fixture invalida falha com codigo deterministico"],
+  "context_refs": ["VALIDATION_CONTRACT.md"],
+  "supersedes": null
+}
