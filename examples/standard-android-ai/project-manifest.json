@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "project": {
+    "name": "Example Android AI App",
+    "type": "android",
+    "description": "Exemplo de composicao STANDARD + android + ai"
+  },
+  "standard": {
+    "name": "Ideias Standard",
+    "version": "0.1.0-draft",
+    "profile": "STANDARD"
+  },
+  "packs": ["android", "ai"],
+  "capabilities": {
+    "independent_audit": true,
+    "context_compilation": false,
+    "human_gates": true
+  },
+  "governance": {
+    "product_authority": "USER",
+    "builder": "AI_AGENT",
+    "auditor": "INDEPENDENT_AI_AGENT"
+  },
+  "context": {
+    "strategy": "PROGRESSIVE",
+    "full_repo_scan_default": false
+  },
+  "project_rules": [
+    "Preservar requisitos e decisoes humanas como fonte especifica do projeto"
+  ]
+}
