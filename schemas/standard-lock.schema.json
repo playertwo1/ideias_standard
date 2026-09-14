@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ideias-standard.local/schemas/standard-lock.schema.json",
+  "title": "Ideias Standard Lock",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "standard_version", "profile", "packs", "template_fingerprint", "generated_at"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "0.1"},
+    "standard_version": {"type": "string", "minLength": 1},
+    "profile": {"enum": ["LIGHT", "STANDARD", "DEEP"]},
+    "packs": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "template_fingerprint": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "local_overrides": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "default": []
+    },
+    "source_revision": {"type": ["string", "null"]}
+  }
+}
