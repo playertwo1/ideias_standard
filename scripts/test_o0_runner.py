@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 from scripts.o0_runner import (
     HandoffError,
+    audit_handoff,
     builder_handoff,
     load_config,
     next_actor,
@@ -386,6 +387,7 @@ class O0RunnerTest(unittest.TestCase):
                     "audit_result": "ESCALATE",
                     "audited_sha": target,
                     "summary": "Material decision requires Product Authority.",
+                    "escalation_reason": "Canonical conflict requires a Product Authority decision.",
                     "findings": [],
                     "checks": [{
                         "id": "o0-c19",
@@ -410,15 +412,86 @@ class O0RunnerTest(unittest.TestCase):
             result = run_once(config)
 
         evidence = Path(result["last_audit_report"])
+        self.assertEqual(target, result["audit_target_sha"])
         self.assertEqual(target, result["last_audited_sha"])
         self.assertEqual("ESCALATE", result["last_audit_result"])
         self.assertEqual("BLOCKED", result["machine_state"])
         self.assertEqual("PRODUCT_AUTHORITY", next_actor(result))
         self.assertIn("escalated", result["message"].lower())
-        self.assertEqual("material decision unresolved", json.loads(evidence.read_text())["residual_risks"][0])
+        preserved_report = json.loads(evidence.read_text())
+        self.assertEqual("Canonical conflict requires a Product Authority decision.", preserved_report["escalation_reason"])
+        self.assertEqual("human decision required", preserved_report["checks"][0]["evidence"])
+        self.assertEqual("material decision unresolved", preserved_report["residual_risks"][0])
+        self.assertEqual(str(evidence), result["last_audit_report"])
         self.assertEqual("NONE", result["gate"])
         self.assertIsNone(result["approval"])
         self.assertEqual("O0", result["phase"])
+
+    def test_audit_escalate_rejects_missing_or_blank_reason_without_state_change(self):
+        target = "c" * 40
+        base_state = {
+            "schema_version": "0.1",
+            "project_id": "sample",
+            "phase": "O0",
+            "gate": "NONE",
+            "machine_state": "READY_FOR_AUDIT",
+            "builder_branch": "work",
+            "builder_executor_id": "builder-executor",
+            "auditor_executor_id": None,
+            "product_authority_id": "owner",
+            "builder_head_sha": target,
+            "audit_target_sha": target,
+            "last_audited_sha": None,
+            "audit_round": 0,
+            "max_audit_rounds": 3,
+            "last_builder_report": None,
+            "last_audit_report": None,
+            "last_audit_result": None,
+            "human_gate_required": True,
+            "approval": None,
+            "updated_at": "now",
+            "message": "",
+        }
+        base_report = {
+            "schema_version": "0.1",
+            "executor_id": "auditor-executor",
+            "role": "AUDITOR",
+            "authority": "INDEPENDENT_AUDIT",
+            "audit_result": "ESCALATE",
+            "audited_sha": target,
+            "summary": "Generic summary is insufficient.",
+            "findings": [],
+            "checks": [{
+                "id": "o0-c19",
+                "status": "NOT_APPLICABLE",
+                "evidence": "escalation validation",
+            }],
+            "residual_risks": [],
+            "gate_registration": "NOT_AUTHORIZED",
+        }
+
+        for label, reason in (("missing", None), ("empty", ""), ("spaces", "   ")):
+            with self.subTest(reason=label):
+                state = self.root / f"invalid-escalate-{label}-state.json"
+                report = self.root / f"invalid-escalate-{label}-report.json"
+                state.write_text(json.dumps(base_state), encoding="utf-8")
+                payload = dict(base_report)
+                if reason is not None:
+                    payload["escalation_reason"] = reason
+                report.write_text(json.dumps(payload), encoding="utf-8")
+                before = state.read_bytes()
+
+                with self.assertRaisesRegex(HandoffError, "audit schema validation failed"):
+                    audit_handoff(state, report)
+
+                self.assertEqual(before, state.read_bytes())
+                self.assertTrue(report.is_file())
+                unchanged = json.loads(state.read_text())
+                self.assertEqual(target, unchanged["audit_target_sha"])
+                self.assertEqual("READY_FOR_AUDIT", unchanged["machine_state"])
+                self.assertEqual("NONE", unchanged["gate"])
+                self.assertIsNone(unchanged["approval"])
+                self.assertEqual("O0", unchanged["phase"])
 
     def _fix_required_state(self, target: str, report: Path, round_number: int = 1):
         return {
