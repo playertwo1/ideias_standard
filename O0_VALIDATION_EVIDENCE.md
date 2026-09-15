@@ -18,4 +18,14 @@
 
 ## Boundary
 
-No real provider adapter or full FAIL → fix → PASS cycle was executed in this block. Those remain in later O0 criteria, including `O0-C38`.
+No real provider adapter or full FAIL → fix → PASS cycle was executed in this first block. The later O0-C38 evidence is recorded below.
+
+## O0-C38 — controlled real E2E cycle
+
+- Command: `python3 scripts/o0_e2e.py --work-root <empty-directory> --output <evidence-file>`
+- Evidence: `O0_C38_E2E_EVIDENCE.json`
+- Flow: `READY_FOR_AUDIT → FIX_REQUIRED → READY_FOR_AUDIT → WAITING_PRODUCT_AUTHORITY`
+- Audit rounds: `0 → 1 → 1 → 2`
+- Initial SHA: `77ead7d1a0b587a45c028654c900906df4244c7d`
+- Corrected SHA: `082bdd575665bcd70ee8e260842a2ed9b90a5328`
+- Boundary: local provider-neutral subprocess actors; no external provider adapter or product gate.
