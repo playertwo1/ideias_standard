@@ -6,6 +6,7 @@
   "gate": "G01",
   "machine_state": "WAITING_PRODUCT_AUTHORITY",
   "next_actor": "PRODUCT_AUTHORITY",
+  "blocked_reason": null,
   "builder_branch": "work/sample-f01",
   "builder_executor_id": "builder-executor",
   "auditor_executor_id": "auditor-executor",

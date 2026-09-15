@@ -199,7 +199,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C31 Estado persistido inclui rodada atual.
 - [x] O0-C32 Estado persistido inclui SHAs relevantes.
 - [x] O0-C33 Estado persistido inclui `next_actor`.
-- [ ] O0-C34 Estado persistido inclui motivo de BLOCKED.
+- [x] O0-C34 Estado persistido inclui motivo de BLOCKED.
 - [ ] O0-C35 Reauditoria usa delta/contexto mínimo quando suficiente.
 - [ ] O0-C36 Histórico não é retransmitido integralmente sem necessidade.
 - [ ] O0-C37 Evidência válida é referenciada por SHA/ID.

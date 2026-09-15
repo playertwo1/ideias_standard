@@ -302,7 +302,11 @@ class OrchestrateHandoffsTest(unittest.TestCase):
             ("FIX_REQUIRED", {"builder_head_sha": SHA_A, "audit_target_sha": SHA_A}, "requires last_audited_sha"),
             ("WAITING_PRODUCT_AUTHORITY", {"builder_head_sha": SHA_A, "audit_target_sha": SHA_A}, "requires last_audited_sha"),
             ("GATE_APPROVED", {"builder_head_sha": SHA_A, "audit_target_sha": SHA_A}, "requires last_audited_sha"),
-            ("BLOCKED", {}, "requires builder_head_sha"),
+            (
+                "BLOCKED",
+                {"blocked_reason": {"code": "BUILDER_BLOCKED", "source": "BUILDER", "evidence_ref": "last_builder_report"}},
+                "requires builder_head_sha",
+            ),
         )
 
         for machine_state, changes, expected_error in cases:
@@ -409,6 +413,39 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         self.assertEqual(str(disputed_path), state["last_builder_report"])
         self.assertIsNone(state["approval"])
         self.assertIn("DISPUTED", state["message"])
+        self.assertEqual(
+            {"code": "BUILDER_DISPUTED", "source": "BUILDER", "evidence_ref": "last_builder_report"},
+            state.get("blocked_reason"),
+        )
+        self.assertEqual(state["blocked_reason"], status(self.state_path)["blocked_reason"])
+
+    def test_blocked_builder_report_persists_structured_reason(self):
+        report_path = self.root / "builder-blocked.json"
+        dump(report_path, builder_report(result="BLOCKED"))
+
+        state = builder_handoff(self.state_path, report_path, SHA_A)
+
+        self.assertEqual(
+            {"code": "BUILDER_BLOCKED", "source": "BUILDER", "evidence_ref": "last_builder_report"},
+            state.get("blocked_reason"),
+        )
+
+    def test_audit_escalation_persists_safe_structured_reason(self):
+        builder_path = self.root / "builder-escalate.json"
+        audit_path = self.root / "audit-escalate.json"
+        dump(builder_path, builder_report())
+        report = audit_report(SHA_A, result="ESCALATE")
+        report["escalation_reason"] = "secret-token-must-not-be-copied"
+        dump(audit_path, report)
+        builder_handoff(self.state_path, builder_path, SHA_A)
+
+        state = audit_handoff(self.state_path, audit_path)
+
+        self.assertEqual(
+            {"code": "AUDITOR_ESCALATED", "source": "AUDITOR", "evidence_ref": "last_audit_report"},
+            state.get("blocked_reason"),
+        )
+        self.assertNotIn("secret-token-must-not-be-copied", self.state_path.read_text(encoding="utf-8"))
 
     def test_pass_with_blocking_finding_is_rejected(self):
         builder_path = self.root / "builder.json"
@@ -518,6 +555,40 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         self.assertEqual("BLOCKED", state["machine_state"])
         self.assertEqual("PRODUCT_AUTHORITY", next_actor(state))
         self.assertIsNone(state["approval"])
+        self.assertEqual(
+            {"code": "AUDIT_ROUND_LIMIT_REACHED", "source": "ORCHESTRATOR", "evidence_ref": "orchestrator_state"},
+            state.get("blocked_reason"),
+        )
+
+    def test_blocked_without_reason_is_rejected_without_mutation(self):
+        report_path = self.root / "builder-blocked-without-reason.json"
+        dump(report_path, builder_report(result="BLOCKED"))
+        blocked = builder_handoff(self.state_path, report_path, SHA_A)
+        blocked["blocked_reason"] = None
+        dump(self.state_path, blocked)
+        before = self.state_path.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "BLOCKED requires blocked_reason"):
+            status(self.state_path)
+
+        self.assertEqual(before, self.state_path.read_bytes())
+
+    def test_blocked_with_reason_inconsistent_with_transition_is_rejected(self):
+        report_path = self.root / "builder-blocked-wrong-reason.json"
+        dump(report_path, builder_report(result="BLOCKED"))
+        blocked = builder_handoff(self.state_path, report_path, SHA_A)
+        blocked["blocked_reason"] = {
+            "code": "AUDITOR_ESCALATED",
+            "source": "AUDITOR",
+            "evidence_ref": "last_audit_report",
+        }
+        dump(self.state_path, blocked)
+        before = self.state_path.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "AUDITOR_ESCALATED requires audit escalation"):
+            status(self.state_path)
+
+        self.assertEqual(before, self.state_path.read_bytes())
 
 
 if __name__ == "__main__":

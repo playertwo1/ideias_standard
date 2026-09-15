@@ -35,6 +35,13 @@ NEXT_ACTOR_BY_STATE = {
     "BLOCKED": "PRODUCT_AUTHORITY",
 }
 
+BLOCKED_REASONS = {
+    "AUDITOR_ESCALATED": {"code": "AUDITOR_ESCALATED", "source": "AUDITOR", "evidence_ref": "last_audit_report"},
+    "BUILDER_DISPUTED": {"code": "BUILDER_DISPUTED", "source": "BUILDER", "evidence_ref": "last_builder_report"},
+    "AUDIT_ROUND_LIMIT_REACHED": {"code": "AUDIT_ROUND_LIMIT_REACHED", "source": "ORCHESTRATOR", "evidence_ref": "orchestrator_state"},
+    "BUILDER_BLOCKED": {"code": "BUILDER_BLOCKED", "source": "BUILDER", "evidence_ref": "last_builder_report"},
+}
+
 
 class HandoffError(RuntimeError):
     pass
@@ -78,6 +85,26 @@ def validate_state(state: dict[str, Any]) -> None:
     expected_actor = NEXT_ACTOR_BY_STATE[machine_state]
     if state["next_actor"] != expected_actor:
         raise HandoffError(f"next_actor must be {expected_actor} for {machine_state}")
+    blocked_reason = state["blocked_reason"]
+    if machine_state == "BLOCKED":
+        if blocked_reason is None:
+            raise HandoffError("BLOCKED requires blocked_reason")
+        code = blocked_reason["code"]
+        if blocked_reason != BLOCKED_REASONS[code]:
+            raise HandoffError("blocked_reason fields are inconsistent")
+        if state["last_audit_result"] == "ESCALATE" and code != "AUDITOR_ESCALATED":
+            raise HandoffError("blocked_reason is inconsistent with audit escalation")
+        if state["last_audit_result"] == "FAIL" and state["audit_round"] >= state["max_audit_rounds"] and code != "AUDIT_ROUND_LIMIT_REACHED":
+            raise HandoffError("blocked_reason is inconsistent with audit round limit")
+        if code == "AUDITOR_ESCALATED" and state["last_audit_result"] != "ESCALATE":
+            raise HandoffError("AUDITOR_ESCALATED requires audit escalation")
+        if code == "AUDIT_ROUND_LIMIT_REACHED" and not (
+            state["last_audit_result"] == "FAIL"
+            and state["audit_round"] >= state["max_audit_rounds"]
+        ):
+            raise HandoffError("AUDIT_ROUND_LIMIT_REACHED requires exhausted audit rounds")
+    elif blocked_reason is not None:
+        raise HandoffError(f"{machine_state} requires blocked_reason to be null")
     builder_sha = state["builder_head_sha"]
     target_sha = state["audit_target_sha"]
     audited_sha = state["last_audited_sha"]
@@ -106,9 +133,10 @@ def validate_state(state: dict[str, Any]) -> None:
         raise HandoffError(f"{machine_state} requires last_audited_sha")
 
 
-def set_machine_state(state: dict[str, Any], machine_state: str) -> None:
+def set_machine_state(state: dict[str, Any], machine_state: str, blocked_reason: str | None = None) -> None:
     state["machine_state"] = machine_state
     state["next_actor"] = NEXT_ACTOR_BY_STATE[machine_state]
+    state["blocked_reason"] = None if blocked_reason is None else dict(BLOCKED_REASONS[blocked_reason])
 
 
 def blocking_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -153,6 +181,7 @@ def init_state(
         "gate": gate,
         "machine_state": "READY_FOR_BUILD",
         "next_actor": "BUILDER",
+        "blocked_reason": None,
         "builder_branch": builder_branch,
         "builder_executor_id": None,
         "auditor_executor_id": None,
@@ -206,7 +235,8 @@ def builder_handoff(
         set_machine_state(state, "READY_FOR_AUDIT")
         state["message"] = f"Audit target frozen at {commit_sha}."
     else:
-        set_machine_state(state, "BLOCKED")
+        reason = "BUILDER_DISPUTED" if report["result"] == "DISPUTED" else "BUILDER_BLOCKED"
+        set_machine_state(state, "BLOCKED", reason)
         state["message"] = (
             f"Builder returned {report['result']}; Product Authority or explicit conflict resolution is required."
         )
@@ -259,10 +289,10 @@ def audit_handoff(
             "Independent audit passed for the frozen SHA. Automation must stop until explicit Product Authority gate registration."
         )
     elif report["audit_result"] == "ESCALATE":
-        set_machine_state(state, "BLOCKED")
+        set_machine_state(state, "BLOCKED", "AUDITOR_ESCALATED")
         state["message"] = "Auditor escalated a decision, risk, or canonical conflict."
     elif state["audit_round"] >= state["max_audit_rounds"]:
-        set_machine_state(state, "BLOCKED")
+        set_machine_state(state, "BLOCKED", "AUDIT_ROUND_LIMIT_REACHED")
         state["message"] = "Maximum audit/correction rounds reached."
     else:
         set_machine_state(state, "FIX_REQUIRED")
