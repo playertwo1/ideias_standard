@@ -805,24 +805,28 @@ Versão atual:
 Fase atual:
 
 ```text
-S0 — Fundação do padrão
+S1 — Conformance First
 ```
 
 Estado operacional:
 
 ```text
-AUDIT_READY
+O0 — Operational Orchestrator: PARTIAL
+Gate S1 = NOT_RUN
+S2 = NOT_STARTED
 ```
 
-Já existe evidência técnica verde para a fundação em Python 3.11, 3.12 e 3.13, incluindo fixtures adversariais, self-check e projeto positivo de referência.
+As funções O0 implementadas e aprovadas por auditoria independente até O0-C27 são:
 
-O Gate S0, porém, **ainda não está fechado**:
+- carregar o estado, identificar e iniciar o próximo Builder ou Auditor autorizado (O0-C01–C04);
+- separar workspaces e restringir escrita do Auditor sobre o alvo (O0-C05–C07);
+- validar relatórios, propagar e congelar o SHA exato para auditoria independente (O0-C08–C13);
+- exigir novo SHA e nova auditoria após correção, parando após PASS para a Product Authority (O0-C16–C18);
+- bloquear resultados `ESCALATE` ou `DISPUTED` (O0-C19–C20);
+- limitar auditorias a três rodadas e persistir estado entre reinícios/interrupções (O0-C21–C23);
+- rejeitar JSON inválido, SHA inválido/inexistente, divergência de SHA e PASS com finding bloqueante (O0-C24–C27).
 
-```text
-Gate S0 = NOT_RUN
-```
-
-Motivo: a validação técnica passou, mas a auditoria independente S0 ainda precisa emitir resultado formal.
+O0 **não está concluído**. Critérios não listados acima permanecem pendentes conforme o `ROADMAP.md`. A auditoria mais recente cobre O0-C27 no SHA `0e53f0e49154688bb07ff74169402b0e33bd82fb`; isso não registra gate humano nem PASS de produto.
 
 Fonte de verdade operacional: `PROJECT_STATE.md`.
 
@@ -1017,20 +1021,12 @@ O Ideias Standard foi desenhado em torno de algumas ideias simples:
 
 ## 28. Próxima ação oficial
 
-A próxima ação não é implementar S1 ainda.
-
-O projeto está em `S0 — AUDIT_READY`.
-
-O passo correto é:
+A próxima ação autorizável em O0 é:
 
 ```text
-Auditor independente
-    ↓
-S0_AUDIT_PACKET.md
-    ↓
-AUDIT RESULT: PASS | FAIL
+O0-C28 — Nenhum gate humano é registrado automaticamente
 ```
 
-Somente depois de `AUDIT RESULT: PASS` e do registro adequado do gate deve começar a fase S1 (`check` / `doctor`).
+O0 não deve ser declarado concluído, O0-C29 não deve iniciar automaticamente e S2 permanece não iniciada.
 
 Para estado atualizado, consulte sempre `PROJECT_STATE.md`.
