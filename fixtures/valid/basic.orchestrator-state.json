@@ -5,6 +5,7 @@
   "phase": "F01",
   "gate": "G01",
   "machine_state": "READY_FOR_BUILD",
+  "next_actor": "BUILDER",
   "builder_branch": "work/sample-f01",
   "builder_executor_id": null,
   "auditor_executor_id": null,

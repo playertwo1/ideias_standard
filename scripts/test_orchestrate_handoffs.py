@@ -137,6 +137,45 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         self.assertEqual(expected, persisted.get("run_id"))
         self.assertEqual(expected, repeated.get("run_id"))
 
+    def test_init_persists_builder_as_next_actor(self):
+        persisted = json.loads(self.state_path.read_text(encoding="utf-8"))
+
+        self.assertEqual("BUILDER", persisted.get("next_actor"))
+
+    def test_inconsistent_next_actor_is_rejected_without_mutation(self):
+        state = json.loads(self.state_path.read_text(encoding="utf-8"))
+        state["next_actor"] = "AUDITOR"
+        dump(self.state_path, state)
+        before = self.state_path.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "next_actor must be BUILDER for READY_FOR_BUILD"):
+            status(self.state_path)
+
+        self.assertEqual(before, self.state_path.read_bytes())
+
+    def test_next_actor_is_persisted_across_handoffs_and_reload(self):
+        builder_one = self.root / "builder-next-actor-one.json"
+        audit_one = self.root / "audit-next-actor-one.json"
+        builder_two = self.root / "builder-next-actor-two.json"
+        audit_two = self.root / "audit-next-actor-two.json"
+        dump(builder_one, builder_report(sha=SHA_A))
+        dump(audit_one, audit_report(SHA_A, result="FAIL", blocking=True))
+        dump(builder_two, builder_report(sha=SHA_B))
+        dump(audit_two, audit_report(SHA_B))
+
+        built_one = builder_handoff(self.state_path, builder_one, SHA_A)
+        audited_one = audit_handoff(self.state_path, audit_one)
+        built_two = builder_handoff(self.state_path, builder_two, SHA_B)
+        audited_two = audit_handoff(self.state_path, audit_two)
+        restarted = status(self.state_path)
+
+        self.assertEqual("AUDITOR", built_one.get("next_actor"))
+        self.assertEqual("BUILDER", audited_one.get("next_actor"))
+        self.assertEqual("AUDITOR", built_two.get("next_actor"))
+        self.assertEqual("PRODUCT_AUTHORITY", audited_two.get("next_actor"))
+        self.assertEqual("PRODUCT_AUTHORITY", restarted.get("next_actor"))
+        self.assertNotIn(restarted.get("next_actor"), {"BUILDER", "AUDITOR"})
+
     def test_run_id_is_preserved_across_handoffs_and_reload(self):
         initial = json.loads(self.state_path.read_text(encoding="utf-8"))
         run_id = initial.get("run_id")
@@ -208,6 +247,7 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         builder_handoff(self.state_path, builder_path, SHA_A)
         state = json.loads(self.state_path.read_text(encoding="utf-8"))
         state["machine_state"] = "READY_FOR_AUDIT"
+        state["next_actor"] = "AUDITOR"
         state["audit_round"] = 3
         state["max_audit_rounds"] = 3
         dump(self.state_path, state)
@@ -224,6 +264,7 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         dump(audit_path, audit_report(SHA_B))
         state = json.loads(self.state_path.read_text(encoding="utf-8"))
         state["machine_state"] = "READY_FOR_AUDIT"
+        state["next_actor"] = "AUDITOR"
         state["builder_head_sha"] = SHA_A
         state["audit_target_sha"] = SHA_B
         dump(self.state_path, state)
@@ -238,6 +279,7 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         state = json.loads(self.state_path.read_text(encoding="utf-8"))
         state.update(
             machine_state="FIX_REQUIRED",
+            next_actor="BUILDER",
             builder_head_sha=SHA_A,
             audit_target_sha=SHA_A,
             last_audited_sha=SHA_B,
@@ -267,6 +309,15 @@ class OrchestrateHandoffsTest(unittest.TestCase):
             with self.subTest(machine_state=machine_state):
                 state = json.loads(initial)
                 state.update(machine_state=machine_state, **changes)
+                state["next_actor"] = {
+                    "READY_FOR_BUILD": "BUILDER",
+                    "READY_FOR_AUDIT": "AUDITOR",
+                    "AUDITING": "AUDITOR",
+                    "FIX_REQUIRED": "BUILDER",
+                    "WAITING_PRODUCT_AUTHORITY": "PRODUCT_AUTHORITY",
+                    "GATE_APPROVED": "STOP",
+                    "BLOCKED": "PRODUCT_AUTHORITY",
+                }[machine_state]
                 dump(self.state_path, state)
                 before = self.state_path.read_bytes()
 

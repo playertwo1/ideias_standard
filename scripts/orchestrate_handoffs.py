@@ -25,6 +25,16 @@ SCHEMAS = {
     "audit": ROOT / "schemas" / "audit-report.schema.json",
 }
 
+NEXT_ACTOR_BY_STATE = {
+    "READY_FOR_BUILD": "BUILDER",
+    "FIX_REQUIRED": "BUILDER",
+    "READY_FOR_AUDIT": "AUDITOR",
+    "AUDITING": "AUDITOR",
+    "WAITING_PRODUCT_AUTHORITY": "PRODUCT_AUTHORITY",
+    "GATE_APPROVED": "STOP",
+    "BLOCKED": "PRODUCT_AUTHORITY",
+}
+
 
 class HandoffError(RuntimeError):
     pass
@@ -65,6 +75,9 @@ def validate_with_schema(data: dict[str, Any], schema_name: str) -> None:
 def validate_state(state: dict[str, Any]) -> None:
     validate_with_schema(state, "state")
     machine_state = state["machine_state"]
+    expected_actor = NEXT_ACTOR_BY_STATE[machine_state]
+    if state["next_actor"] != expected_actor:
+        raise HandoffError(f"next_actor must be {expected_actor} for {machine_state}")
     builder_sha = state["builder_head_sha"]
     target_sha = state["audit_target_sha"]
     audited_sha = state["last_audited_sha"]
@@ -91,6 +104,11 @@ def validate_state(state: dict[str, Any]) -> None:
             raise HandoffError("last_audited_sha must equal audit_target_sha")
     if machine_state in {"FIX_REQUIRED", "WAITING_PRODUCT_AUTHORITY", "GATE_APPROVED"} and audited_sha is None:
         raise HandoffError(f"{machine_state} requires last_audited_sha")
+
+
+def set_machine_state(state: dict[str, Any], machine_state: str) -> None:
+    state["machine_state"] = machine_state
+    state["next_actor"] = NEXT_ACTOR_BY_STATE[machine_state]
 
 
 def blocking_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
@@ -134,6 +152,7 @@ def init_state(
         "phase": phase,
         "gate": gate,
         "machine_state": "READY_FOR_BUILD",
+        "next_actor": "BUILDER",
         "builder_branch": builder_branch,
         "builder_executor_id": None,
         "auditor_executor_id": None,
@@ -184,10 +203,10 @@ def builder_handoff(
             state["last_audited_sha"] = None
             state["last_audit_result"] = None
         state["audit_target_sha"] = commit_sha
-        state["machine_state"] = "READY_FOR_AUDIT"
+        set_machine_state(state, "READY_FOR_AUDIT")
         state["message"] = f"Audit target frozen at {commit_sha}."
     else:
-        state["machine_state"] = "BLOCKED"
+        set_machine_state(state, "BLOCKED")
         state["message"] = (
             f"Builder returned {report['result']}; Product Authority or explicit conflict resolution is required."
         )
@@ -235,18 +254,18 @@ def audit_handoff(
     state["last_audit_result"] = report["audit_result"]
 
     if report["audit_result"] == "PASS":
-        state["machine_state"] = "WAITING_PRODUCT_AUTHORITY"
+        set_machine_state(state, "WAITING_PRODUCT_AUTHORITY")
         state["message"] = (
             "Independent audit passed for the frozen SHA. Automation must stop until explicit Product Authority gate registration."
         )
     elif report["audit_result"] == "ESCALATE":
-        state["machine_state"] = "BLOCKED"
+        set_machine_state(state, "BLOCKED")
         state["message"] = "Auditor escalated a decision, risk, or canonical conflict."
     elif state["audit_round"] >= state["max_audit_rounds"]:
-        state["machine_state"] = "BLOCKED"
+        set_machine_state(state, "BLOCKED")
         state["message"] = "Maximum audit/correction rounds reached."
     else:
-        state["machine_state"] = "FIX_REQUIRED"
+        set_machine_state(state, "FIX_REQUIRED")
         state["message"] = "Audit failed; findings are ready for Builder correction."
 
     state["updated_at"] = now()
@@ -288,7 +307,7 @@ def approve_gate(
         "audited_sha": audited_sha,
         "approved_at": now(),
     }
-    state["machine_state"] = "GATE_APPROVED"
+    set_machine_state(state, "GATE_APPROVED")
     state["message"] = (
         "Gate registration recorded from explicit Product Authority action. The next phase is not started automatically."
     )
@@ -305,22 +324,11 @@ def status(state_path: Path) -> dict[str, Any]:
 
 
 def next_actor(state: dict[str, Any]) -> str:
-    mapping = {
-        "READY_FOR_BUILD": "BUILDER",
-        "FIX_REQUIRED": "BUILDER",
-        "READY_FOR_AUDIT": "AUDITOR",
-        "AUDITING": "AUDITOR",
-        "WAITING_PRODUCT_AUTHORITY": "PRODUCT_AUTHORITY",
-        "GATE_APPROVED": "STOP",
-        "BLOCKED": "PRODUCT_AUTHORITY",
-    }
-    return mapping[state["machine_state"]]
+    return state["next_actor"]
 
 
 def print_state(state: dict[str, Any]) -> None:
-    payload = dict(state)
-    payload["next_actor"] = next_actor(state)
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    print(json.dumps(state, ensure_ascii=False, indent=2))
 
 
 def main() -> int:
