@@ -239,6 +239,93 @@ class O0RunnerTest(unittest.TestCase):
         }), encoding="utf-8")
         return state, config, marker
 
+    def _pass_audit_report(self, audited_sha: str):
+        return {
+            "schema_version": "0.1",
+            "executor_id": "auditor-executor",
+            "role": "AUDITOR",
+            "authority": "INDEPENDENT_AUDIT",
+            "audit_result": "PASS",
+            "audited_sha": audited_sha,
+            "summary": "Audit completed.",
+            "findings": [],
+            "checks": [{"id": "o0-c26", "status": "PASS", "evidence": "SHA matched"}],
+            "residual_risks": [],
+            "gate_registration": "NOT_AUTHORIZED",
+        }
+
+    def test_runner_rejects_checkout_divergent_from_frozen_sha_before_auditor(self):
+        repository, wrong_sha, target = self._repository()
+        state, config, marker = self._audit_runner_inputs(target, target)
+        workspace = self.root / "audits" / target
+        workspace.parent.mkdir()
+        subprocess.run(
+            ["git", "worktree", "add", "--detach", str(workspace), wrong_sha],
+            cwd=repository,
+            check=True,
+            capture_output=True,
+        )
+        before = state.read_bytes()
+
+        result = self._run_runner_cli(config)
+
+        self.assertEqual(2, result.returncode)
+        self.assertIn("does not match audit_target_sha", result.stderr)
+        self.assertFalse(marker.exists())
+        self.assertEqual(before, state.read_bytes())
+
+    def test_runner_rejects_checkout_changed_during_audit_without_state_advance(self):
+        repository, wrong_sha, target = self._repository()
+        state, config, _ = self._audit_runner_inputs(target, target)
+        before = state.read_bytes()
+
+        def change_checkout(command, workspace, report, env, *, write_sandbox=False):
+            subprocess.run(
+                ["git", "checkout", "--detach", wrong_sha],
+                cwd=workspace,
+                check=True,
+                capture_output=True,
+            )
+            report.parent.mkdir(parents=True, exist_ok=True)
+            report.write_text(json.dumps(self._pass_audit_report(target)), encoding="utf-8")
+
+        with (
+            patch("scripts.o0_runner.prepare_audit_workspace", return_value=repository),
+            patch("scripts.o0_runner.run_actor", side_effect=change_checkout),
+        ):
+            with self.assertRaisesRegex(HandoffError, "HEAD changed"):
+                run_once(config)
+
+        self.assertEqual(before, state.read_bytes())
+        unchanged = json.loads(state.read_text(encoding="utf-8"))
+        self.assertEqual("READY_FOR_AUDIT", unchanged["machine_state"])
+        self.assertEqual("O0", unchanged["phase"])
+        self.assertEqual("NONE", unchanged["gate"])
+        self.assertIsNone(unchanged["approval"])
+
+    def test_runner_rejects_report_sha_divergent_from_frozen_sha_without_state_advance(self):
+        repository, wrong_sha, target = self._repository()
+        state, config, _ = self._audit_runner_inputs(target, target)
+        before = state.read_bytes()
+
+        def write_divergent_report(command, workspace, report, env, *, write_sandbox=False):
+            report.parent.mkdir(parents=True, exist_ok=True)
+            report.write_text(json.dumps(self._pass_audit_report(wrong_sha)), encoding="utf-8")
+
+        with (
+            patch("scripts.o0_runner.prepare_audit_workspace", return_value=repository),
+            patch("scripts.o0_runner.run_actor", side_effect=write_divergent_report),
+        ):
+            with self.assertRaisesRegex(HandoffError, "Audit SHA mismatch"):
+                run_once(config)
+
+        self.assertEqual(before, state.read_bytes())
+        unchanged = json.loads(state.read_text(encoding="utf-8"))
+        self.assertEqual("READY_FOR_AUDIT", unchanged["machine_state"])
+        self.assertEqual("O0", unchanged["phase"])
+        self.assertEqual("NONE", unchanged["gate"])
+        self.assertIsNone(unchanged["approval"])
+
     def test_runner_rejects_malformed_audit_sha_before_agent_or_state_mutation(self):
         _, _, head = self._repository()
         state, config, marker = self._audit_runner_inputs("not-a-sha", head)
