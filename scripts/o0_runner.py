@@ -392,6 +392,17 @@ def validate_reaudit_handoff(current: dict[str, Any], handoff: Path, repository:
     validate_with_schema(payload, "reaudit")
     audit_payload = load_json(Path(current["last_audit_report"]))
     validate_with_schema(audit_payload, "audit")
+    builder_report_ref = current.get("last_builder_report")
+    if not builder_report_ref:
+        raise HandoffError("Reaudit requires the canonical Builder report")
+    builder_payload = load_json(Path(builder_report_ref))
+    validate_with_schema(builder_payload, "builder")
+    canonical_declared_paths = sorted(builder_payload["changed_paths"])
+    if (
+        builder_payload["result_sha"] != current["audit_target_sha"]
+        or payload["declared_changed_paths"] != canonical_declared_paths
+    ):
+        raise HandoffError("Reaudit handoff differs from the canonical Builder report")
     reusable_evidence = [
         {"check_id": check["id"], "status": check["status"], "evidence": check["evidence"]}
         for check in audit_payload["checks"]
@@ -403,7 +414,7 @@ def validate_reaudit_handoff(current: dict[str, Any], handoff: Path, repository:
         audit_payload["findings"],
         audit_payload["checks"],
         changed_paths,
-        payload["declared_changed_paths"],
+        canonical_declared_paths,
         audit_payload["residual_risks"],
     )
     if (

@@ -1216,6 +1216,40 @@ class O0RunnerTest(unittest.TestCase):
 
         self.assertEqual(before, state.read_bytes())
 
+    def test_reaudit_cannot_replace_builder_paths_to_downgrade_out_of_scope_change(self):
+        repository, _, corrected, current, findings_handoff, _ = self._correction_inputs()
+        audit_report = Path(current["last_audit_report"])
+        audit_payload = json.loads(audit_report.read_text(encoding="utf-8"))
+        audit_payload["findings"][0]["severity"] = "MEDIUM"
+        audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
+        findings_payload = json.loads(findings_handoff.read_text(encoding="utf-8"))
+        findings_payload["findings"] = audit_payload["findings"]
+        findings_handoff.write_text(json.dumps(findings_payload), encoding="utf-8")
+        builder_payload = self._builder_report(corrected)
+        builder_payload["changed_paths"] = ["undeclared.txt"]
+        reports = self.root / "tampered-paths-reaudit-reports"
+        handoff = runner_module.prepare_reaudit_handoff(
+            current, builder_payload, repository, findings_handoff, reports
+        )
+        self.assertEqual("FULL", json.loads(handoff.read_text(encoding="utf-8"))["context_mode"])
+
+        state = self.root / "tampered-paths-reaudit-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        builder_report_path = self.root / "canonical-builder-report.json"
+        builder_report_path.write_text(json.dumps(builder_payload), encoding="utf-8")
+        transitioned = builder_handoff(state, builder_report_path)
+        tampered = json.loads(handoff.read_text(encoding="utf-8"))
+        tampered["declared_changed_paths"] = ["file.txt"]
+        tampered["context_mode"] = "DELTA"
+        tampered["full_context_reasons"] = []
+        handoff.write_text(json.dumps(tampered), encoding="utf-8")
+        before = state.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "canonical Builder report"):
+            runner_module.validate_reaudit_handoff(transitioned, handoff, repository)
+
+        self.assertEqual(before, state.read_bytes())
+
     def test_fix_required_rejects_missing_result_sha(self):
         repository, _, corrected, current, handoff, before = self._correction_inputs()
         report = self._builder_report(corrected)
