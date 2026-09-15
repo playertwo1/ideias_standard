@@ -326,6 +326,43 @@ class O0RunnerTest(unittest.TestCase):
         self.assertEqual("NONE", unchanged["gate"])
         self.assertIsNone(unchanged["approval"])
 
+    def test_runner_rejects_pass_with_blocking_finding_without_state_advance(self):
+        repository, _, target = self._repository()
+        state, config, _ = self._audit_runner_inputs(target, target)
+        before = state.read_bytes()
+
+        def write_invalid_pass(command, workspace, report, env, *, write_sandbox=False):
+            payload = self._pass_audit_report(target)
+            payload["findings"] = [{
+                "id": "O0-C27-001",
+                "severity": "HIGH",
+                "blocking": True,
+                "files": ["scripts/o0_runner.py"],
+                "evidence": "Blocking finding conflicts with PASS.",
+                "problem": "PASS cannot accept a blocking finding.",
+                "violated_criterion": "O0-C27",
+                "resolution_condition": "Reject the audit result.",
+            }]
+            report.parent.mkdir(parents=True, exist_ok=True)
+            report.write_text(json.dumps(payload), encoding="utf-8")
+
+        with (
+            patch("scripts.o0_runner.prepare_audit_workspace", return_value=repository),
+            patch("scripts.o0_runner.run_actor", side_effect=write_invalid_pass),
+        ):
+            with self.assertRaisesRegex(HandoffError, "PASS cannot contain blocking findings"):
+                run_once(config)
+
+        self.assertEqual(before, state.read_bytes())
+        unchanged = json.loads(state.read_text(encoding="utf-8"))
+        self.assertEqual("READY_FOR_AUDIT", unchanged["machine_state"])
+        self.assertEqual(0, unchanged["audit_round"])
+        self.assertIsNone(unchanged["last_audit_result"])
+        self.assertIsNone(unchanged["last_audited_sha"])
+        self.assertEqual("O0", unchanged["phase"])
+        self.assertEqual("NONE", unchanged["gate"])
+        self.assertIsNone(unchanged["approval"])
+
     def test_runner_rejects_malformed_audit_sha_before_agent_or_state_mutation(self):
         _, _, head = self._repository()
         state, config, marker = self._audit_runner_inputs("not-a-sha", head)
