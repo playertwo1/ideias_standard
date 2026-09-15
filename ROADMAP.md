@@ -187,7 +187,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C27 PASS com finding blocking é rejeitado.
 - [x] O0-C28 Nenhum gate humano é registrado automaticamente.
 - [x] O0-C29 Próxima fase não inicia automaticamente.
-- [ ] O0-C30 Estado persistido inclui `run_id`.
+- [x] O0-C30 Estado persistido inclui `run_id`.
 - [ ] O0-C31 Estado persistido inclui rodada atual.
 - [ ] O0-C32 Estado persistido inclui SHAs relevantes.
 - [ ] O0-C33 Estado persistido inclui `next_actor`.

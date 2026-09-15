@@ -8,6 +8,7 @@ or start the next phase.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from datetime import datetime, timezone
@@ -65,6 +66,18 @@ def blocking_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
     return [finding for finding in report.get("findings", []) if finding.get("blocking") is True]
 
 
+def make_run_id(
+    policy_id: str,
+    project_id: str,
+    phase: str,
+    gate: str,
+    builder_branch: str,
+) -> str:
+    seed = [policy_id, project_id, phase, gate, builder_branch]
+    canonical = json.dumps(seed, ensure_ascii=False, separators=(",", ":"))
+    return "run-" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def init_state(
     policy_path: Path,
     state_path: Path,
@@ -83,6 +96,9 @@ def init_state(
 
     state = {
         "schema_version": "0.1",
+        "run_id": make_run_id(
+            policy["id"], project_id, phase, gate, builder_branch
+        ),
         "project_id": project_id,
         "phase": phase,
         "gate": gate,

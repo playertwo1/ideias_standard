@@ -4,9 +4,10 @@
   "title": "Ideias Standard Orchestrator State",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "project_id", "phase", "gate", "machine_state", "builder_branch", "builder_executor_id", "auditor_executor_id", "product_authority_id", "builder_head_sha", "audit_target_sha", "last_audited_sha", "audit_round", "max_audit_rounds", "last_builder_report", "last_audit_report", "last_audit_result", "human_gate_required", "approval", "updated_at", "message"],
+  "required": ["schema_version", "run_id", "project_id", "phase", "gate", "machine_state", "builder_branch", "builder_executor_id", "auditor_executor_id", "product_authority_id", "builder_head_sha", "audit_target_sha", "last_audited_sha", "audit_round", "max_audit_rounds", "last_builder_report", "last_audit_report", "last_audit_result", "human_gate_required", "approval", "updated_at", "message"],
   "properties": {
     "schema_version": {"type": "string", "const": "0.1"},
+    "run_id": {"type": "string", "pattern": "^run-[0-9a-f]{64}$"},
     "project_id": {"type": "string", "minLength": 1},
     "phase": {"type": "string", "minLength": 1},
     "gate": {"type": "string", "minLength": 1},

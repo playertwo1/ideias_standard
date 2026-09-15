@@ -136,6 +136,8 @@ class O0RunnerTest(unittest.TestCase):
         }), encoding="utf-8")
         builder_handoff(state_path, report_path)
         persisted = state_path.read_bytes()
+        run_id = json.loads(persisted).get("run_id")
+        self.assertIsNotNone(run_id)
         config_path.write_text(json.dumps({
             "repository": "repo",
             "state_path": "state.json",
@@ -152,6 +154,7 @@ class O0RunnerTest(unittest.TestCase):
         recovered = json.loads(restarted.stdout)
         self.assertEqual("BLOCKED", recovered["machine_state"])
         self.assertEqual("PRODUCT_AUTHORITY", recovered["next_actor"])
+        self.assertEqual(run_id, recovered["run_id"])
         self.assertEqual(persisted, state_path.read_bytes())
 
     def test_builder_and_auditor_workspaces_must_be_separate(self):
@@ -199,6 +202,7 @@ class O0RunnerTest(unittest.TestCase):
         state = self.root / "state.json"
         state.write_text(json.dumps({
             "schema_version": "0.1",
+            "run_id": "run-" + "0" * 64,
             "project_id": "sample",
             "phase": "O0",
             "gate": "NONE",
@@ -520,6 +524,7 @@ class O0RunnerTest(unittest.TestCase):
         state.write_text(
             json.dumps({
                 "schema_version": "0.1",
+                "run_id": "run-" + "0" * 64,
                 "project_id": "sample",
                 "phase": "O0",
                 "gate": "NONE",
@@ -552,6 +557,7 @@ class O0RunnerTest(unittest.TestCase):
         state.write_text(
             json.dumps({
                 "schema_version": "0.1",
+                "run_id": "run-" + "0" * 64,
                 "project_id": "sample",
                 "phase": "O0",
                 "gate": "NONE",
@@ -639,6 +645,7 @@ class O0RunnerTest(unittest.TestCase):
         state.write_text(
             json.dumps({
                 "schema_version": "0.1",
+                "run_id": "run-" + "0" * 64,
                 "project_id": "sample",
                 "phase": "O0",
                 "gate": "NONE",
@@ -721,6 +728,7 @@ class O0RunnerTest(unittest.TestCase):
         state.write_text(
             json.dumps({
                 "schema_version": "0.1",
+                "run_id": "run-" + "0" * 64,
                 "project_id": "sample",
                 "phase": "O0",
                 "gate": "NONE",
@@ -814,6 +822,7 @@ class O0RunnerTest(unittest.TestCase):
         target = "c" * 40
         base_state = {
             "schema_version": "0.1",
+            "run_id": "run-" + "0" * 64,
             "project_id": "sample",
             "phase": "O0",
             "gate": "NONE",
@@ -879,6 +888,7 @@ class O0RunnerTest(unittest.TestCase):
     def _fix_required_state(self, target: str, report: Path, round_number: int = 1):
         return {
             "schema_version": "0.1",
+            "run_id": "run-" + "0" * 64,
             "project_id": "sample",
             "phase": "O0",
             "gate": "NONE",

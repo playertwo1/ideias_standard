@@ -119,6 +119,40 @@ class OrchestrateHandoffsTest(unittest.TestCase):
 
         self.assertEqual(3, state["max_audit_rounds"])
 
+    def test_init_generates_deterministic_unambiguous_run_id(self):
+        expected = "run-220fd788b3617af25bd6f932e3329ab82cade4a5f600f21fa385a52c4baaf790"
+        second_state = self.root / "same-logical-run.json"
+
+        repeated = init_state(
+            self.policy_path,
+            second_state,
+            project_id="sample",
+            phase="F01",
+            gate="G01",
+            builder_branch="work/sample-f01",
+        )
+
+        persisted = json.loads(self.state_path.read_text(encoding="utf-8"))
+        self.assertEqual(expected, persisted.get("run_id"))
+        self.assertEqual(expected, repeated.get("run_id"))
+
+    def test_run_id_is_preserved_across_handoffs_and_reload(self):
+        initial = json.loads(self.state_path.read_text(encoding="utf-8"))
+        run_id = initial.get("run_id")
+        self.assertIsNotNone(run_id)
+        builder_path = self.root / "builder-run-id.json"
+        audit_path = self.root / "audit-run-id.json"
+        dump(builder_path, builder_report())
+        dump(audit_path, audit_report(SHA_A))
+
+        built = builder_handoff(self.state_path, builder_path, SHA_A)
+        audited = audit_handoff(self.state_path, audit_path)
+        reloaded = json.loads(self.state_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(run_id, built["run_id"])
+        self.assertEqual(run_id, audited["run_id"])
+        self.assertEqual(run_id, reloaded["run_id"])
+
     def test_fail_fix_pass_human_gate_flow(self):
         builder_one = self.root / "builder-1.json"
         dump(builder_one, builder_report())

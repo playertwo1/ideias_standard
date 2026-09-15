@@ -130,6 +130,8 @@ Recomendação para execução local:
 
 A implementação de referência persiste `orchestrator-state.json` e os relatórios estruturados. Um adapter externo pode publicar esses artefatos em GitHub, CI ou outro sistema de evidência, desde que preserve provenance e o vínculo ao SHA.
 
+Cada estado possui `run_id` imutável no formato `run-<sha256>`. Ele é gerado no `init` pelo SHA-256 do array JSON canônico `[policy.id, project_id, phase, gate, builder_branch]` e preservado, sem recálculo, durante handoffs e reinícios.
+
 A existência de um relatório não prova execução. Checks declarados como `NOT_RUN` continuam `NOT_RUN`.
 
 ## Estados
