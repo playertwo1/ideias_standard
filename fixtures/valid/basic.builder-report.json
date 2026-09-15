@@ -7,7 +7,7 @@
   "result": "READY_FOR_AUDIT",
   "summary": "Mudança concluída dentro do escopo autorizado.",
   "changed_paths": ["src/example.txt"],
-  "checks": [{"id": "unit", "status": "PASS", "evidence": "suite green"}],
+  "checks": [{"id": "unit", "status": "PASS", "evidence": {"evidence_id": "builder-unit", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}],
   "limitations": [],
   "disputed_findings": [],
   "escalation": null

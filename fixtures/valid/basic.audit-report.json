@@ -7,7 +7,7 @@
   "audited_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "summary": "Independent review complete.",
   "findings": [],
-  "checks": [{"id": "scope", "status": "PASS", "evidence": "reviewed"}],
+  "checks": [{"id": "scope", "status": "PASS", "evidence": {"evidence_id": "audit-scope", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}}],
   "residual_risks": [],
   "gate_registration": "NOT_AUTHORIZED"
 }

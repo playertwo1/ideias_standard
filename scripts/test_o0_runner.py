@@ -827,7 +827,14 @@ class O0RunnerTest(unittest.TestCase):
         self.assertIn("escalated", result["message"].lower())
         preserved_report = json.loads(evidence.read_text())
         self.assertEqual("Canonical conflict requires a Product Authority decision.", preserved_report["escalation_reason"])
-        self.assertEqual("human decision required", preserved_report["checks"][0]["evidence"])
+        self.assertEqual(
+            "human decision required",
+            runner_module.resolve_evidence(
+                evidence.parent / "evidence",
+                preserved_report["checks"][0]["evidence"],
+                result,
+            )["content"],
+        )
         self.assertEqual("material decision unresolved", preserved_report["residual_risks"][0])
         self.assertEqual(str(evidence), result["last_audit_report"])
         self.assertEqual("NONE", result["gate"])
@@ -1070,6 +1077,13 @@ class O0RunnerTest(unittest.TestCase):
             "escalation": None,
         }
 
+    def _canonicalize_builder_report(self, current, report_path):
+        payload = json.loads(report_path.read_text(encoding="utf-8"))
+        context = {**current, "audit_target_sha": payload["result_sha"]}
+        return runner_module.canonicalize_report_evidence(
+            report_path, "builder", context, report_path.parent / "evidence"
+        )
+
     def _correction_inputs(self):
         repository, previous, corrected = self._repository()
         reports = self.root / "correction-reports"
@@ -1211,6 +1225,7 @@ class O0RunnerTest(unittest.TestCase):
         state.write_text(json.dumps(current), encoding="utf-8")
         builder_report_path = self.root / "tampered-builder-report.json"
         builder_report_path.write_text(json.dumps(builder_payload), encoding="utf-8")
+        self._canonicalize_builder_report(current, builder_report_path)
         transitioned = builder_handoff(state, builder_report_path)
         tampered = json.loads(handoff.read_text(encoding="utf-8"))
         tampered["context_mode"] = "DELTA"
@@ -1242,6 +1257,7 @@ class O0RunnerTest(unittest.TestCase):
         state.write_text(json.dumps(current), encoding="utf-8")
         builder_report_path = self.root / "canonical-builder-report.json"
         builder_report_path.write_text(json.dumps(builder_payload), encoding="utf-8")
+        self._canonicalize_builder_report(current, builder_report_path)
         transitioned = builder_handoff(state, builder_report_path)
         tampered = json.loads(handoff.read_text(encoding="utf-8"))
         tampered["declared_changed_paths"] = ["file.txt"]
@@ -1416,6 +1432,7 @@ class O0RunnerTest(unittest.TestCase):
         state.write_text(json.dumps(current), encoding="utf-8")
         builder_report = reports / "builder-report.json"
         builder_report.write_text(json.dumps(builder_payload), encoding="utf-8")
+        self._canonicalize_builder_report(current, builder_report)
         builder_handoff(state, builder_report)
         payload = json.loads(handoff.read_text(encoding="utf-8"))
         evidence_path = reports / "evidence" / f"{payload['reusable_evidence'][0]['evidence']['evidence_id']}.json"
@@ -1443,6 +1460,58 @@ class O0RunnerTest(unittest.TestCase):
 
         self.assertFalse(actor_started)
         self.assertEqual(before, state.read_bytes())
+
+    def test_raw_report_evidence_is_canonicalized_to_references(self):
+        repository, previous, corrected = self._repository()
+        reports = self.root / "canonical-reports"
+        reports.mkdir()
+        audit_path = reports / "audit-report.json"
+        audit_path.write_text(json.dumps(self._fail_report(previous)), encoding="utf-8")
+        audit_state = self._fix_required_state(previous, audit_path, round_number=2)
+        builder_path = reports / "builder-report.json"
+        builder_path.write_text(json.dumps(self._builder_report(corrected)), encoding="utf-8")
+        canonicalize = getattr(runner_module, "canonicalize_report_evidence", None)
+        self.assertIsNotNone(canonicalize)
+
+        canonicalize(builder_path, "builder", {**audit_state, "audit_target_sha": corrected}, reports / "evidence")
+        canonicalize(audit_path, "audit", audit_state, reports / "evidence")
+        builder = json.loads(builder_path.read_text(encoding="utf-8"))
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+
+        self.assertEqual({"evidence_id", "sha256"}, set(builder["checks"][0]["evidence"]))
+        self.assertEqual({"evidence_id", "sha256"}, set(audit["checks"][0]["evidence"]))
+        self.assertEqual({"evidence_id", "sha256"}, set(audit["findings"][0]["evidence"]))
+        self.assertNotIn('"evidence": "', builder_path.read_text(encoding="utf-8"))
+        self.assertNotIn('"evidence": "', audit_path.read_text(encoding="utf-8"))
+
+    def test_builder_transition_rejects_inline_missing_tampered_or_wrong_binding_evidence(self):
+        _, _, corrected, source_current, _, _ = self._correction_inputs()
+        with self.assertRaises(HandoffError):
+            runner_module.validate_with_schema(self._builder_report(corrected), "builder")
+        for mode in ("missing", "tampered", "wrong_binding"):
+            with self.subTest(mode=mode):
+                current = json.loads(json.dumps(source_current))
+                case_root = self.root / f"canonical-{mode}"
+                case_root.mkdir()
+                state = case_root / "state.json"
+                report = case_root / "builder-report.json"
+                report.write_text(json.dumps(self._builder_report(corrected)), encoding="utf-8")
+                self._canonicalize_builder_report(current, report)
+                canonical = json.loads(report.read_text(encoding="utf-8"))
+                evidence_path = case_root / "evidence" / f"{canonical['checks'][0]['evidence']['evidence_id']}.json"
+                if mode == "missing":
+                    evidence_path.unlink()
+                elif mode == "tampered":
+                    evidence_path.write_bytes(evidence_path.read_bytes().replace(b"green", b"red"))
+                else:
+                    current = {**current, "run_id": "run-" + "f" * 64}
+                state.write_text(json.dumps(current), encoding="utf-8")
+                before = state.read_bytes()
+
+                with self.assertRaises(HandoffError):
+                    builder_handoff(state, report)
+
+                self.assertEqual(before, state.read_bytes())
 
     def test_fix_required_rejects_missing_result_sha(self):
         repository, _, corrected, current, handoff, before = self._correction_inputs()
@@ -1479,6 +1548,7 @@ class O0RunnerTest(unittest.TestCase):
         state.write_text(json.dumps(current), encoding="utf-8")
         report = self.root / "correction-builder.json"
         report.write_text(json.dumps(self._builder_report(corrected)), encoding="utf-8")
+        self._canonicalize_builder_report(current, report)
 
         result = builder_handoff(state, report)
 
@@ -1496,6 +1566,7 @@ class O0RunnerTest(unittest.TestCase):
         state.write_text(json.dumps(current), encoding="utf-8")
         report = self.root / "stale-pass-builder.json"
         report.write_text(json.dumps(self._builder_report(corrected)), encoding="utf-8")
+        self._canonicalize_builder_report(current, report)
 
         result = builder_handoff(state, report)
 

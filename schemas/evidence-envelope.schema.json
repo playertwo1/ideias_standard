@@ -9,7 +9,7 @@
     "schema_version": {"const": "0.1"},
     "evidence_id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"},
     "run_id": {"type": "string", "pattern": "^run-[0-9a-f]{64}$"},
-    "audit_round": {"type": "integer", "minimum": 1},
+    "audit_round": {"type": "integer", "minimum": 0},
     "audit_target_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "content": {"type": "string"}
   }

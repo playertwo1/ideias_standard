@@ -82,6 +82,82 @@ def validate_with_schema(data: dict[str, Any], schema_name: str) -> None:
         raise HandoffError(f"{schema_name} schema validation failed: {details}")
 
 
+def validate_report_evidence(
+    state: dict[str, Any], report_path: Path, report: dict[str, Any], report_kind: str
+) -> None:
+    expected_round = state["audit_round"] + (1 if report_kind == "audit" else 0)
+    expected_target = state["audit_target_sha"] if report_kind == "audit" else report["result_sha"]
+    items = list(report["checks"])
+    if report_kind == "audit":
+        items.extend(report["findings"])
+    for item in items:
+        reference = item["evidence"]
+        evidence_path = report_path.parent / "evidence" / f"{reference['evidence_id']}.json"
+        if not evidence_path.is_file():
+            raise HandoffError(f"Referenced evidence does not exist: {reference['evidence_id']}")
+        raw = evidence_path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != reference["sha256"]:
+            raise HandoffError(f"Referenced evidence digest mismatch: {reference['evidence_id']}")
+        envelope = load_json(evidence_path)
+        validate_with_schema(envelope, "evidence")
+        canonical = json.dumps(
+            envelope, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        if raw != canonical:
+            raise HandoffError(f"Referenced evidence is not canonical: {reference['evidence_id']}")
+        if (
+            envelope["evidence_id"] != reference["evidence_id"]
+            or envelope["run_id"] != state["run_id"]
+            or envelope["audit_round"] != expected_round
+            or envelope["audit_target_sha"] != expected_target
+        ):
+            raise HandoffError(f"Referenced evidence has an invalid audit binding: {reference['evidence_id']}")
+
+
+def canonicalize_report_evidence(
+    state: dict[str, Any], report_path: Path, report: dict[str, Any], report_kind: str
+) -> dict[str, Any]:
+    expected_round = state["audit_round"] + (1 if report_kind == "audit" else 0)
+    expected_target = state["audit_target_sha"] if report_kind == "audit" else report.get("result_sha")
+    items = list(report.get("checks", []))
+    if report_kind == "audit":
+        items.extend(report.get("findings", []))
+    changed = False
+    for item in items:
+        content = item.get("evidence")
+        if not isinstance(content, str):
+            continue
+        identity = f"{state['run_id']}:{expected_round}:{expected_target}:{report_kind}:{item.get('id')}:{content}"
+        evidence_id = f"r{expected_round}-{report_kind}-{hashlib.sha256(identity.encode('utf-8')).hexdigest()[:16]}"
+        envelope = {
+            "schema_version": "0.1",
+            "evidence_id": evidence_id,
+            "run_id": state["run_id"],
+            "audit_round": expected_round,
+            "audit_target_sha": expected_target,
+            "content": content,
+        }
+        validate_with_schema(envelope, "evidence")
+        raw = json.dumps(
+            envelope, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        ).encode("utf-8")
+        evidence_root = report_path.parent / "evidence"
+        evidence_root.mkdir(parents=True, exist_ok=True)
+        evidence_path = evidence_root / f"{evidence_id}.json"
+        if evidence_path.exists() and evidence_path.read_bytes() != raw:
+            raise HandoffError(f"Evidence ID already exists: {evidence_id}")
+        if not evidence_path.exists():
+            evidence_path.write_bytes(raw)
+        item["evidence"] = {
+            "evidence_id": evidence_id,
+            "sha256": hashlib.sha256(raw).hexdigest(),
+        }
+        changed = True
+    if changed:
+        write_json(report_path, report)
+    return report
+
+
 def validate_state(state: dict[str, Any]) -> None:
     validate_with_schema(state, "state")
     machine_state = state["machine_state"]
@@ -229,10 +305,12 @@ def builder_handoff(
     state = load_json(state_path)
     report = load_json(report_path)
     validate_state(state)
-    validate_with_schema(report, "builder")
-
     if state["machine_state"] not in {"READY_FOR_BUILD", "FIX_REQUIRED"}:
         raise HandoffError(f"Builder handoff not allowed from {state['machine_state']}")
+    report = canonicalize_report_evidence(state, report_path, report, "builder")
+    validate_with_schema(report, "builder")
+    validate_report_evidence(state, report_path, report, "builder")
+
     result_sha = report["result_sha"]
     if commit_sha is not None and commit_sha != result_sha:
         raise HandoffError("Builder report result_sha does not match commit_sha")
@@ -271,12 +349,14 @@ def audit_handoff(
     state = load_json(state_path)
     report = load_json(report_path)
     validate_state(state)
-    validate_with_schema(report, "audit")
-
     if state["machine_state"] not in {"READY_FOR_AUDIT", "AUDITING"}:
         raise HandoffError(f"Audit handoff not allowed from {state['machine_state']}")
     if state["audit_round"] >= state["max_audit_rounds"]:
         raise HandoffError("Maximum audit rounds already reached")
+    report = canonicalize_report_evidence(state, report_path, report, "audit")
+    validate_with_schema(report, "audit")
+    validate_report_evidence(state, report_path, report, "audit")
+
     target = state.get("audit_target_sha")
     if report["audited_sha"] != target:
         raise HandoffError(

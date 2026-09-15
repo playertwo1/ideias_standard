@@ -11,7 +11,7 @@
     "severity": "HIGH",
     "blocking": true,
     "files": ["src/example.txt"],
-    "evidence": "blocking evidence",
+    "evidence": {"evidence_id": "audit-blocker", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
     "problem": "Blocking problem remains.",
     "violated_criterion": "No blocking finding on PASS.",
     "resolution_condition": "Resolve blocker and re-audit."
