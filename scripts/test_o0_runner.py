@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from scripts import o0_runner as runner_module
 from scripts.orchestrate_handoffs import init_state
 from scripts.o0_runner import (
     HandoffError,
@@ -1086,6 +1087,134 @@ class O0RunnerTest(unittest.TestCase):
         self.assertNotEqual(previous, corrected)
         self.assertEqual(previous, payload["audit_target_sha"])
         self.assertEqual(2, payload["audit_round"])
+
+    def test_reaudit_handoff_uses_delta_when_context_is_sufficient(self):
+        repository, previous, corrected, current, findings_handoff, _ = self._correction_inputs()
+        audit_report = Path(current["last_audit_report"])
+        audit_payload = json.loads(audit_report.read_text(encoding="utf-8"))
+        audit_payload["findings"][0]["severity"] = "MEDIUM"
+        audit_payload["checks"][0]["status"] = "PASS"
+        audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
+        findings_payload = json.loads(findings_handoff.read_text(encoding="utf-8"))
+        findings_payload["findings"] = audit_payload["findings"]
+        findings_handoff.write_text(json.dumps(findings_payload), encoding="utf-8")
+        builder_payload = self._builder_report(corrected)
+        reports = self.root / "reaudit-reports"
+
+        creator = getattr(runner_module, "prepare_reaudit_handoff", None)
+        self.assertIsNotNone(creator)
+        handoff = creator(current, builder_payload, repository, findings_handoff, reports)
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+
+        self.assertEqual(previous, payload["previous_audited_sha"])
+        self.assertEqual(corrected, payload["new_audit_target_sha"])
+        self.assertEqual(2, payload["audit_round"])
+        self.assertEqual("DELTA", payload["context_mode"])
+        self.assertEqual([], payload["full_context_reasons"])
+        self.assertEqual(["file.txt"], payload["changed_paths"])
+        self.assertEqual(audit_payload["findings"], payload["findings"])
+        self.assertEqual(
+            [{"check_id": "o0-c15", "status": "PASS", "evidence": "finding"}],
+            payload["reusable_evidence"],
+        )
+
+    def test_reaudit_handoff_requires_full_context_for_each_risk_condition(self):
+        repository, _, corrected, current, findings_handoff, _ = self._correction_inputs()
+        audit_report = Path(current["last_audit_report"])
+        reports = self.root / "full-reaudit-reports"
+        cases = (
+            ("OUT_OF_SCOPE_CHANGE", "MEDIUM", "finding", ["undeclared.txt"]),
+            ("MISSING_EVIDENCE", "MEDIUM", "", ["file.txt"]),
+            ("MATERIAL_RISK", "HIGH", "finding", ["file.txt"]),
+        )
+
+        for reason, severity, check_evidence, declared_paths in cases:
+            with self.subTest(reason=reason):
+                audit_payload = self._fail_report(current["audit_target_sha"])
+                audit_payload["findings"][0]["severity"] = severity
+                audit_payload["checks"][0]["evidence"] = check_evidence
+                audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
+                findings_payload = json.loads(findings_handoff.read_text(encoding="utf-8"))
+                findings_payload["findings"] = audit_payload["findings"]
+                findings_handoff.write_text(json.dumps(findings_payload), encoding="utf-8")
+                builder_payload = self._builder_report(corrected)
+                builder_payload["changed_paths"] = declared_paths
+
+                handoff = runner_module.prepare_reaudit_handoff(
+                    current, builder_payload, repository, findings_handoff, reports
+                )
+                payload = json.loads(handoff.read_text(encoding="utf-8"))
+
+                self.assertEqual("FULL", payload["context_mode"])
+                self.assertEqual([reason], payload["full_context_reasons"])
+                self.assertEqual(audit_payload["findings"], payload["findings"])
+                self.assertEqual(1, len(payload["reusable_evidence"]))
+
+    def test_runner_creates_and_supplies_reaudit_handoff(self):
+        repository, _, corrected, current, _, _ = self._correction_inputs()
+        state = self.root / "reaudit-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        reports = self.root / "correction-reports"
+        config = self.root / "reaudit-runner.json"
+        config.write_text(json.dumps({
+            "repository": "repo",
+            "state_path": "reaudit-state.json",
+            "reports_dir": "correction-reports",
+            "builder_workspace": "repo",
+            "audit_workspaces": "reaudit-workspaces",
+            "builder_command": ["builder"],
+            "auditor_command": ["auditor"],
+        }), encoding="utf-8")
+
+        def write_builder_report(command, workspace, report, env, *, write_sandbox=False):
+            report.parent.mkdir(parents=True, exist_ok=True)
+            report.write_text(json.dumps(self._builder_report(corrected)), encoding="utf-8")
+
+        with patch("scripts.o0_runner.run_actor", side_effect=write_builder_report):
+            run_once(config)
+
+        handoff = reports / "reaudit-handoff.json"
+        self.assertTrue(handoff.is_file())
+        captured = {}
+        audit_workspace = self.root / "reaudit-workspace"
+        audit_workspace.mkdir()
+
+        def capture_auditor(command, workspace, report, env, *, write_sandbox=False):
+            captured.update(env)
+            raise HandoffError("captured reaudit context")
+
+        with (
+            patch("scripts.o0_runner.prepare_audit_workspace", return_value=audit_workspace),
+            patch("scripts.o0_runner.write_state_snapshot", return_value=self.root / "snapshot.json"),
+            patch("scripts.o0_runner.run_actor", side_effect=capture_auditor),
+        ):
+            with self.assertRaisesRegex(HandoffError, "captured reaudit context"):
+                run_once(config)
+
+        self.assertEqual(str(handoff), captured.get("IDEAS_STANDARD_REAUDIT_HANDOFF"))
+
+    def test_reaudit_cannot_downgrade_material_risk_to_delta(self):
+        repository, _, corrected, current, findings_handoff, _ = self._correction_inputs()
+        builder_payload = self._builder_report(corrected)
+        reports = self.root / "tampered-reaudit-reports"
+        handoff = runner_module.prepare_reaudit_handoff(
+            current, builder_payload, repository, findings_handoff, reports
+        )
+        state = self.root / "tampered-reaudit-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        builder_report_path = self.root / "tampered-builder-report.json"
+        builder_report_path.write_text(json.dumps(builder_payload), encoding="utf-8")
+        transitioned = builder_handoff(state, builder_report_path)
+        tampered = json.loads(handoff.read_text(encoding="utf-8"))
+        tampered["context_mode"] = "DELTA"
+        tampered["full_context_reasons"] = []
+        handoff.write_text(json.dumps(tampered), encoding="utf-8")
+        before = state.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "Reaudit context decision is inconsistent"):
+            runner_module.validate_reaudit_handoff(transitioned, handoff, repository)
+
+        self.assertEqual(before, state.read_bytes())
 
     def test_fix_required_rejects_missing_result_sha(self):
         repository, _, corrected, current, handoff, before = self._correction_inputs()

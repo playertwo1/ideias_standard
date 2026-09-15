@@ -301,6 +301,124 @@ def prepare_builder_findings(
     return handoff
 
 
+def prepare_reaudit_handoff(
+    current: dict[str, Any],
+    builder_report: dict[str, Any],
+    repository: Path,
+    findings_handoff: Path,
+    reports_dir: Path,
+) -> Path:
+    previous_sha = current["last_audited_sha"]
+    new_sha = builder_report["result_sha"]
+    findings_payload = load_json(findings_handoff)
+    audit_payload = load_json(Path(current["last_audit_report"]))
+    validate_with_schema(audit_payload, "audit")
+    if (
+        findings_payload.get("audit_target_sha") != previous_sha
+        or findings_payload.get("audit_round") != current["audit_round"]
+        or findings_payload.get("findings") != audit_payload["findings"]
+    ):
+        raise HandoffError("Reaudit findings are not linked to the corrected audit")
+
+    changed_paths = reaudit_changed_paths(repository, previous_sha, new_sha)
+    declared_paths = sorted(builder_report["changed_paths"])
+    findings = audit_payload["findings"]
+    checks = audit_payload["checks"]
+    reasons = reaudit_context_reasons(
+        findings,
+        checks,
+        changed_paths,
+        declared_paths,
+        audit_payload["residual_risks"],
+    )
+
+    payload = {
+        "schema_version": "0.1",
+        "previous_audited_sha": previous_sha,
+        "new_audit_target_sha": new_sha,
+        "audit_round": current["audit_round"],
+        "context_mode": "FULL" if reasons else "DELTA",
+        "full_context_reasons": reasons,
+        "findings": findings,
+        "changed_paths": changed_paths,
+        "declared_changed_paths": declared_paths,
+        "reusable_evidence": [
+            {"check_id": check["id"], "status": check["status"], "evidence": check["evidence"]}
+            for check in checks
+        ],
+    }
+    validate_with_schema(payload, "reaudit")
+    handoff = reports_dir / "reaudit-handoff.json"
+    write_json(handoff, payload)
+    return handoff
+
+
+def reaudit_changed_paths(repository: Path, previous_sha: str, new_sha: str) -> list[str]:
+    diff = subprocess.run(
+        ["git", "-C", str(repository), "diff", "--name-only", f"{previous_sha}..{new_sha}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if diff.returncode != 0:
+        raise HandoffError("Cannot resolve reaudit delta")
+    return sorted(path for path in diff.stdout.splitlines() if path)
+
+
+def reaudit_context_reasons(
+    findings: list[dict[str, Any]],
+    checks: list[dict[str, Any]],
+    changed_paths: list[str],
+    declared_paths: list[str],
+    residual_risks: list[Any],
+) -> list[str]:
+    reasons = []
+    if changed_paths != declared_paths:
+        reasons.append("OUT_OF_SCOPE_CHANGE")
+    if (
+        not findings
+        or any(not finding.get("evidence") for finding in findings)
+        or not checks
+        or any(not check.get("evidence") for check in checks)
+    ):
+        reasons.append("MISSING_EVIDENCE")
+    if any(finding["severity"] in {"HIGH", "CRITICAL"} for finding in findings) or residual_risks:
+        reasons.append("MATERIAL_RISK")
+    return reasons
+
+
+def validate_reaudit_handoff(current: dict[str, Any], handoff: Path, repository: Path) -> None:
+    payload = load_json(handoff)
+    validate_with_schema(payload, "reaudit")
+    audit_payload = load_json(Path(current["last_audit_report"]))
+    validate_with_schema(audit_payload, "audit")
+    reusable_evidence = [
+        {"check_id": check["id"], "status": check["status"], "evidence": check["evidence"]}
+        for check in audit_payload["checks"]
+    ]
+    changed_paths = reaudit_changed_paths(
+        repository, payload["previous_audited_sha"], payload["new_audit_target_sha"]
+    )
+    reasons = reaudit_context_reasons(
+        audit_payload["findings"],
+        audit_payload["checks"],
+        changed_paths,
+        payload["declared_changed_paths"],
+        audit_payload["residual_risks"],
+    )
+    if (
+        payload["new_audit_target_sha"] != current["audit_target_sha"]
+        or payload["previous_audited_sha"] != audit_payload["audited_sha"]
+        or payload["audit_round"] != current["audit_round"]
+        or payload["findings"] != audit_payload["findings"]
+        or payload["reusable_evidence"] != reusable_evidence
+        or payload["changed_paths"] != changed_paths
+    ):
+        raise HandoffError("Reaudit handoff is inconsistent with canonical evidence")
+    if payload["full_context_reasons"] != reasons or payload["context_mode"] != ("FULL" if reasons else "DELTA"):
+        raise HandoffError("Reaudit context decision is inconsistent")
+
+
 
 def validate_builder_result(
     current: dict[str, Any],
@@ -378,25 +496,40 @@ def run_once(config_path: Path) -> dict[str, Any]:
             findings_before,
             builder_workspace,
         )
+        if current["machine_state"] == "FIX_REQUIRED":
+            prepare_reaudit_handoff(
+                current,
+                payload,
+                repository,
+                findings_handoff,
+                reports_dir,
+            )
         return builder_handoff(state_path, report)
 
     if actor == "AUDITOR":
         target = current.get("audit_target_sha")
         if not target:
             raise HandoffError("Auditor requires audit_target_sha")
+        auditor_env = {
+            **common_env,
+            "IDEAS_STANDARD_AUDIT_TARGET_SHA": target,
+        }
+        if current["audit_round"] > 0:
+            reaudit_handoff = reports_dir / "reaudit-handoff.json"
+            if not reaudit_handoff.is_file():
+                raise HandoffError("Reaudit requires reaudit-handoff.json")
+            validate_reaudit_handoff(current, reaudit_handoff, repository)
+            auditor_env["IDEAS_STANDARD_REAUDIT_HANDOFF"] = str(reaudit_handoff)
         workspace = prepare_audit_workspace(repository, audit_root, target)
         snapshot = write_state_snapshot(state_path, audit_root, target)
         state_before = state_path.read_bytes()
         report = reports_dir / "audit-report.json"
+        auditor_env["IDEAS_STANDARD_STATE_SNAPSHOT"] = str(snapshot)
         run_actor(
             config["auditor_command"],
             workspace,
             report,
-            {
-                **common_env,
-                "IDEAS_STANDARD_STATE_SNAPSHOT": str(snapshot),
-                "IDEAS_STANDARD_AUDIT_TARGET_SHA": target,
-            },
+            auditor_env,
             write_sandbox=True,
         )
         verify_audit_after(workspace, state_path, target, state_before)

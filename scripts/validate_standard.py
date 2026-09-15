@@ -29,6 +29,7 @@ SCHEMA_FILES = {
     "audit-report": "audit-report.schema.json",
     "orchestration-policy": "orchestration-policy.schema.json",
     "orchestrator-state": "orchestrator-state.schema.json",
+    "reaudit-handoff": "reaudit-handoff.schema.json",
 }
 
 

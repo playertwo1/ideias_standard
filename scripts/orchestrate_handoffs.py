@@ -23,6 +23,7 @@ SCHEMAS = {
     "state": ROOT / "schemas" / "orchestrator-state.schema.json",
     "builder": ROOT / "schemas" / "builder-report.schema.json",
     "audit": ROOT / "schemas" / "audit-report.schema.json",
+    "reaudit": ROOT / "schemas" / "reaudit-handoff.schema.json",
 }
 
 NEXT_ACTOR_BY_STATE = {
