@@ -200,6 +200,25 @@ class OrchestrateHandoffsTest(unittest.TestCase):
 
         self.assertEqual(before, self.state_path.read_bytes())
 
+    def test_audit_at_max_round_is_rejected_without_state_change(self):
+        builder_path = self.root / "builder-at-max-round.json"
+        audit_path = self.root / "audit-at-max-round.json"
+        dump(builder_path, builder_report(sha=SHA_A))
+        dump(audit_path, audit_report(SHA_A))
+        builder_handoff(self.state_path, builder_path, SHA_A)
+        state = json.loads(self.state_path.read_text(encoding="utf-8"))
+        state["machine_state"] = "READY_FOR_AUDIT"
+        state["audit_round"] = 3
+        state["max_audit_rounds"] = 3
+        dump(self.state_path, state)
+        before = self.state_path.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "Maximum audit rounds already reached"):
+            audit_handoff(self.state_path, audit_path)
+
+        self.assertEqual(before, self.state_path.read_bytes())
+        self.assertEqual(3, status(self.state_path)["audit_round"])
+
     def test_fail_fix_pass_human_gate_flow(self):
         builder_one = self.root / "builder-1.json"
         dump(builder_one, builder_report())

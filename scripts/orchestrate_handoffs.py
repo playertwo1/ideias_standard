@@ -178,6 +178,8 @@ def audit_handoff(
 
     if state["machine_state"] not in {"READY_FOR_AUDIT", "AUDITING"}:
         raise HandoffError(f"Audit handoff not allowed from {state['machine_state']}")
+    if state["audit_round"] >= state["max_audit_rounds"]:
+        raise HandoffError("Maximum audit rounds already reached")
     target = state.get("audit_target_sha")
     if report["audited_sha"] != target:
         raise HandoffError(
