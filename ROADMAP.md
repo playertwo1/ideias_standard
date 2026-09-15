@@ -185,7 +185,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C25 Runner rejeita SHA inexistente/incorreto.
 - [x] O0-C26 Runner detecta tentativa de auditar SHA divergente.
 - [x] O0-C27 PASS com finding blocking é rejeitado.
-- [ ] O0-C28 Nenhum gate humano é registrado automaticamente.
+- [x] O0-C28 Nenhum gate humano é registrado automaticamente.
 - [ ] O0-C29 Próxima fase não inicia automaticamente.
 - [ ] O0-C30 Estado persistido inclui `run_id`.
 - [ ] O0-C31 Estado persistido inclui rodada atual.

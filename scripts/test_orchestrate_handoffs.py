@@ -142,6 +142,8 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         state = audit_handoff(self.state_path, audit_two)
         self.assertEqual("WAITING_PRODUCT_AUTHORITY", state["machine_state"])
         self.assertIsNone(state["approval"])
+        self.assertEqual("G01", state["gate"])
+        self.assertEqual("PRODUCT_AUTHORITY", next_actor(state))
 
         state = approve_gate(self.state_path, executor_id="human-owner", role="PRODUCT_AUTHORITY", gate="G01", audited_sha=SHA_B)
         self.assertEqual("GATE_APPROVED", state["machine_state"])
@@ -250,6 +252,25 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         audit_handoff(self.state_path, audit_path)
         with self.assertRaises(HandoffError):
             approve_gate(self.state_path, executor_id="runner", role="PRODUCT_AUTHORITY", gate="G01", audited_sha=SHA_A)
+
+    def test_auditor_gate_registration_attempt_is_rejected_without_state_change(self):
+        builder_path = self.root / "builder-gate-attempt.json"
+        audit_path = self.root / "audit-gate-attempt.json"
+        dump(builder_path, builder_report())
+        builder_handoff(self.state_path, builder_path, SHA_A)
+        report = audit_report(SHA_A)
+        report["gate_registration"] = "G01"
+        dump(audit_path, report)
+        before = self.state_path.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "audit schema validation failed"):
+            audit_handoff(self.state_path, audit_path)
+
+        self.assertEqual(before, self.state_path.read_bytes())
+        unchanged = json.loads(self.state_path.read_text(encoding="utf-8"))
+        self.assertEqual("READY_FOR_AUDIT", unchanged["machine_state"])
+        self.assertIsNone(unchanged["approval"])
+        self.assertEqual("G01", unchanged["gate"])
 
     def test_third_failed_audit_blocks_default_three_round_loop(self):
         for round_number, sha in enumerate((SHA_A, SHA_B, SHA_C), start=1):
