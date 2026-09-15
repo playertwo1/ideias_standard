@@ -29,3 +29,10 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Initial SHA: `77ead7d1a0b587a45c028654c900906df4244c7d`
 - Corrected SHA: `082bdd575665bcd70ee8e260842a2ed9b90a5328`
 - Boundary: local provider-neutral subprocess actors; no external provider adapter or product gate.
+
+## O0-C39 — process concurrency
+
+- Commands: `python -m unittest scripts.test_o0_concurrency` and `wsl python3 -m unittest scripts.test_o0_concurrency`
+- Result: one actor and one transition under contention; the concurrent runner exits deterministically.
+- Stale handling: kernel ownership releases the lock after forced process termination; a leftover lock file does not block recovery.
+- Failure handling: actor failure preserves canonical state bytes and releases the lock.

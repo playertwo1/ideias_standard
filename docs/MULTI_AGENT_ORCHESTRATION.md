@@ -134,6 +134,10 @@ Cada estado possui `run_id` imutável no formato `run-<sha256>`. Ele é gerado n
 
 A existência de um relatório não prova execução. Checks declarados como `NOT_RUN` continuam `NOT_RUN`.
 
+## Exclusão mútua do runner
+
+O runner adquire um lock de processo em `<state>.lock` antes de ler o estado e o mantém durante validação, execução do ator e persistência. `lock_timeout_seconds` define a espera máxima e usa `0` por padrão, rejeitando concorrência imediatamente. O lock pertence ao kernel: o arquivo pode permanecer após encerramento, mas não concede autoridade e um processo morto libera a exclusão automaticamente.
+
 ## Estados
 
 - `READY_FOR_BUILD`: Builder pode agir.

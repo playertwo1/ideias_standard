@@ -49,6 +49,23 @@ class O0RunnerTest(unittest.TestCase):
         with self.assertRaises(HandoffError):
             load_config(path)
 
+    def test_config_rejects_non_finite_lock_timeout(self):
+        path = self.root / "config.json"
+        payload = {
+            "repository": "repo",
+            "state_path": "state.json",
+            "reports_dir": "reports",
+            "builder_workspace": "builder",
+            "audit_workspaces": "audits",
+            "builder_command": ["builder"],
+            "auditor_command": ["auditor"],
+        }
+        for timeout in (float("nan"), float("inf")):
+            payload["lock_timeout_seconds"] = timeout
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            with self.assertRaisesRegex(HandoffError, "non-negative finite"):
+                load_config(path)
+
     def test_malformed_config_is_rejected_deterministically(self):
         config = self.root / "malformed-config.json"
         config.write_text("{", encoding="utf-8")

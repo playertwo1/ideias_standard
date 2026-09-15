@@ -4,12 +4,12 @@
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
 - **Objetivo atual:** avançar S1 — Conformance First com O0 — Operational Orchestrator como tooling transversal prioritário
-- **Última implementada:** O0-C38 — ciclo E2E real básico executado; sem declaração de PASS
-- **Próxima:** auditoria independente de O0-C38; O0-C39 permanece não iniciado
+- **Última implementada:** O0-C39 — concorrência sobre o mesmo estado protegida; sem declaração de PASS
+- **Próxima:** auditoria independente de O0-C39; O0-C40 permanece não iniciado
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL — O0-C01–O0-C38 implementados; O0-C38 aguarda auditoria independente
+- **O0:** PARTIAL — O0-C01–O0-C39 implementados; O0-C39 aguarda auditoria independente
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
@@ -39,6 +39,8 @@
 - Auditoria independente de O0-C36: PASS no SHA `8a98790b241247baf271559b7a9a42609e82109b`
 - Correção de O0-C37 publicada no SHA `8f54a67286fa953dbdbde601ba94cedae3d5cd88`; PASS independente não registrado neste estado
 - O0-C38: ciclo real Builder → Auditor FAIL → Builder corrige → Auditor PASS → WAITING_PRODUCT_AUTHORITY executado; evidência em `O0_C38_E2E_EVIDENCE.json`
+- Auditoria independente de O0-C38: PASS no SHA `7792e35681911bbb15b328d854068f4d8375375a`
+- O0-C39: testes com processos reais comprovam exclusão mútua, rejeição concorrente, recuperação de lock obsoleto e preservação do estado após falha
 - SHA funcional validado: `2ab2d3881693393e53e2ba324cc947a6eb6821e8`
 - Python 3.11: PASS
 - Python 3.12: PASS

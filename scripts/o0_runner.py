@@ -6,11 +6,13 @@ import argparse
 import ctypes
 import hashlib
 import json
+import math
 import os
 import re
 import stat
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -80,7 +82,73 @@ def load_config(path: Path) -> dict[str, Any]:
             isinstance(item, str) and item for item in data[key]
         ):
             raise HandoffError(f"{key} must be a non-empty string array")
+    timeout = data.get("lock_timeout_seconds", 0)
+    if (
+        isinstance(timeout, bool)
+        or not isinstance(timeout, (int, float))
+        or not math.isfinite(timeout)
+        or timeout < 0
+    ):
+        raise HandoffError("lock_timeout_seconds must be a non-negative finite number")
     return data
+
+
+class StateLock:
+    """Kernel-owned process lock; a leftover lock file has no authority."""
+
+    def __init__(self, state_path: Path, timeout: float):
+        self.path = state_path.with_name(state_path.name + ".lock")
+        self.timeout = timeout
+        self.stream = None
+
+    def __enter__(self):
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.stream = self.path.open("a+b")
+        deadline = time.monotonic() + self.timeout
+        while True:
+            try:
+                self._lock()
+                break
+            except (BlockingIOError, OSError):
+                if time.monotonic() >= deadline:
+                    self.stream.close()
+                    self.stream = None
+                    raise HandoffError("Runner state lock is busy")
+                time.sleep(min(0.05, max(0, deadline - time.monotonic())))
+        self.stream.seek(0)
+        self.stream.truncate()
+        self.stream.write(f"pid={os.getpid()}\n".encode("ascii"))
+        self.stream.flush()
+        return self
+
+    def _lock(self) -> None:
+        if os.name == "nt":
+            import msvcrt
+
+            self.stream.seek(0, os.SEEK_END)
+            if self.stream.tell() == 0:
+                self.stream.write(b"\0")
+                self.stream.flush()
+            self.stream.seek(0)
+            msvcrt.locking(self.stream.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(self.stream.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.stream is None:
+            return
+        if os.name == "nt":
+            import msvcrt
+
+            self.stream.seek(0)
+            msvcrt.locking(self.stream.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(self.stream.fileno(), fcntl.LOCK_UN)
+        self.stream.close()
 
 
 def canonical_json_bytes(payload: dict[str, Any]) -> bytes:
@@ -664,6 +732,12 @@ def validate_builder_result(
 def run_once(config_path: Path) -> dict[str, Any]:
     config_path = config_path.resolve()
     config = load_config(config_path)
+    state_path = resolve_path(config_path, config["state_path"])
+    with StateLock(state_path, float(config.get("lock_timeout_seconds", 0))):
+        return _run_once_locked(config_path, config)
+
+
+def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any]:
     repository = resolve_path(config_path, config["repository"])
     state_path = resolve_path(config_path, config["state_path"])
     reports_dir = resolve_path(config_path, config["reports_dir"])
