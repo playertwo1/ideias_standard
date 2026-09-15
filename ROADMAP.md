@@ -52,7 +52,7 @@ Estas regras valem para O0 e S0–S8.
 ## 3. ESTADO ATUAL
 
 - S0 = PASS / CLOSED
-- O0 = PRIORITY_TOOLING
+- O0 = PARTIAL / PRIORITY_TOOLING
 - S1 = ACTIVE
 - S2 = NOT_STARTED
 - S3 = NOT_STARTED
@@ -76,13 +76,15 @@ S0 auditado no SHA:
 - S3 → Gate S2 PASS
 - S4 → Gate S3 PASS
 - S5 → Gate S4 PASS
-- S6 → Gate S5 PASS + O0 OPERATIONALLY_READY
+- S6 → Gate S5 PASS + O0 OPERATIONALLY_READY + D-C03 PASS
 - S7 → Gate S6 PASS
 - S8 → Gate S7 PASS
 
 O0 é tooling transversal.
 
 O0 não substitui S1 e não possui gate de produto.
+
+S1 pode avançar em paralelo enquanto O0 é endurecido. O0 passa a operar no próprio repositório no dogfooding D-C01; depois disso, D-C02 permite usá-lo no restante de S1 quando seguro. S6 só inicia com O0 `OPERATIONALLY_READY`.
 
 ---
 
@@ -97,6 +99,12 @@ Cada fase usa:
 - Gate
 
 Não repetir regras globais dentro das fases.
+
+Semântica dos checkboxes:
+
+- `[x]` indica implementação registrada no estado canônico;
+- auditoria e integração são estados separados, registrados em `PROJECT_STATE.md` por SHA;
+- implementação não implica `AUDIT_PASS`, integração, gate humano ou PASS de produto.
 
 ---
 
@@ -146,7 +154,7 @@ Registrado pela Product Authority.
 ## O0 — OPERATIONAL ORCHESTRATOR
 
 **Tipo:** TOOLING OPERACIONAL  
-**Status:** PRIORITY
+**Status:** PARTIAL / PRIORITY
 
 ### Objective
 
@@ -195,7 +203,16 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [ ] O0-C35 Reauditoria usa delta/contexto mínimo quando suficiente.
 - [ ] O0-C36 Histórico não é retransmitido integralmente sem necessidade.
 - [ ] O0-C37 Evidência válida é referenciada por SHA/ID.
-- [ ] O0-C38 Ciclo E2E real executado.
+- [ ] O0-C38 Ciclo E2E real básico executado.
+- [ ] O0-C39 Execuções concorrentes sobre o mesmo estado são serializadas ou rejeitadas com segurança.
+- [ ] O0-C40 Transições possuem identidade idempotente e repetição não duplica handoff ou resultado.
+- [ ] O0-C41 Interrupção entre execução, relatório e persistência é retomada sem executar o ator indevidamente duas vezes.
+- [ ] O0-C42 Timeout e cancelamento produzem estado explícito, retomável e sem avanço parcial.
+- [ ] O0-C43 Falha do runner persiste evidência estruturada e exit code sem expor secrets.
+- [ ] O0-C44 Retry é limitado e não aceita duas vezes o mesmo relatório/operação.
+- [ ] O0-C45 Ciclo E2E adversarial cobre concorrência, interrupção, timeout e retry.
+
+Todos os critérios O0-C01–O0-C45 são obrigatórios. Exceção exige `NOT_APPLICABLE` justificado e aceito explicitamente pela Product Authority; omissão não equivale a PASS.
 
 ### Validation
 
@@ -211,10 +228,18 @@ Também validar:
 - ESCALATE
 - DISPUTED
 - max rounds
+- concorrência sobre o mesmo estado
+- repetição idempotente
+- interrupção entre ator, relatório e persistência
+- timeout/cancelamento
+- retry sem execução ou aceitação duplicada
+- redaction de secrets na evidência de falha
 
 ### Done
 
-Todos os O0-Cxx obrigatórios PASS.
+Todos os O0-C01–O0-C45 possuem implementação validada e auditoria independente PASS no SHA exato.
+
+O ciclo real básico e o adversarial passaram, e D-C01 comprovou o Orchestrator no próprio `ideias_standard` em execução controlada.
 
 Estado:
 
@@ -525,8 +550,8 @@ Gate S8 = PASS.
 
 ## 6. DOGFOODING
 
-- [ ] D-C01 O0 usado no próprio `ideias_standard`.
-- [ ] D-C02 S1 desenvolvido usando O0 quando seguro.
+- [ ] D-C01 O0 usado no próprio `ideias_standard` após O0-C45, antes de declarar `OPERATIONALLY_READY`.
+- [ ] D-C02 S1 desenvolvido usando O0 após D-C01, quando seguro e sem ampliar autoridade.
 - [ ] D-C03 O0 testado em pelo menos outro projeto antes de S6.
 - [ ] D-C04 S5 passa a gerar contexto do próprio Standard.
 - [ ] D-C05 S8 passa a controlar novas mudanças do próprio Standard.
@@ -592,7 +617,16 @@ O0 usa:
 - [ ] IMPLEMENTATION_COMPLETE
 - [ ] VALIDATION_PASS
 - [ ] E2E_PASS
+- [ ] DOGFOOD_PASS
+- [ ] AUDIT_PASS
 - [ ] OPERATIONALLY_READY
+
+Para cada entrega auditável, distinguir:
+
+- `IMPLEMENTED` — commit produzido;
+- `AUDIT_PASS` — auditoria independente aprovou o SHA exato;
+- `INTEGRATED` — SHA auditado foi incorporado à referência canônica;
+- `GATE_PASS` — somente quando a Product Authority registra um gate aplicável.
 
 ---
 
