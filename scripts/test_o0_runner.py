@@ -1250,6 +1250,51 @@ class O0RunnerTest(unittest.TestCase):
 
         self.assertEqual(before, state.read_bytes())
 
+    def test_builder_findings_handoff_rejects_history_fields(self):
+        _, _, _, current, handoff, _ = self._correction_inputs()
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+        payload["transcript"] = ["entire prior conversation"]
+        handoff.write_text(json.dumps(payload), encoding="utf-8")
+
+        validator = getattr(runner_module, "validate_builder_findings_handoff", None)
+        self.assertIsNotNone(validator, "Builder findings needs a closed minimal-context contract")
+        with self.assertRaises(HandoffError):
+            validator(current, handoff)
+
+    def test_reaudit_handoff_size_ignores_irrelevant_report_history(self):
+        repository, _, corrected, current, findings_handoff, _ = self._correction_inputs()
+        audit_report = Path(current["last_audit_report"])
+        audit_payload = json.loads(audit_report.read_text(encoding="utf-8"))
+        audit_payload["findings"][0]["severity"] = "MEDIUM"
+        audit_payload["summary"] = "historical narrative " * 5000
+        audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
+        findings_payload = json.loads(findings_handoff.read_text(encoding="utf-8"))
+        findings_payload["findings"] = audit_payload["findings"]
+        findings_handoff.write_text(json.dumps(findings_payload), encoding="utf-8")
+        builder_payload = self._builder_report(corrected)
+        builder_payload["summary"] = "superseded builder narrative " * 5000
+
+        handoff = runner_module.prepare_reaudit_handoff(
+            current,
+            builder_payload,
+            repository,
+            findings_handoff,
+            self.root / "bounded-reaudit-reports",
+        )
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            {
+                "schema_version", "previous_audited_sha", "new_audit_target_sha",
+                "audit_round", "context_mode", "full_context_reasons", "findings",
+                "changed_paths", "declared_changed_paths", "reusable_evidence",
+            },
+            set(payload),
+        )
+        self.assertNotIn("historical narrative", handoff.read_text(encoding="utf-8"))
+        self.assertNotIn("superseded builder narrative", handoff.read_text(encoding="utf-8"))
+        self.assertLess(handoff.stat().st_size, 4096)
+
     def test_fix_required_rejects_missing_result_sha(self):
         repository, _, corrected, current, handoff, before = self._correction_inputs()
         report = self._builder_report(corrected)

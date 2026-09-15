@@ -23,6 +23,7 @@ SCHEMAS = {
     "state": ROOT / "schemas" / "orchestrator-state.schema.json",
     "builder": ROOT / "schemas" / "builder-report.schema.json",
     "audit": ROOT / "schemas" / "audit-report.schema.json",
+    "builder-findings": ROOT / "schemas" / "builder-findings.schema.json",
     "reaudit": ROOT / "schemas" / "reaudit-handoff.schema.json",
 }
 

@@ -201,7 +201,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C33 Estado persistido inclui `next_actor`.
 - [x] O0-C34 Estado persistido inclui motivo de BLOCKED.
 - [x] O0-C35 Reauditoria usa delta/contexto mínimo quando suficiente.
-- [ ] O0-C36 Histórico não é retransmitido integralmente sem necessidade.
+- [x] O0-C36 Histórico não é retransmitido integralmente sem necessidade.
 - [ ] O0-C37 Evidência válida é referenciada por SHA/ID.
 - [ ] O0-C38 Ciclo E2E real básico executado.
 - [ ] O0-C39 Execuções concorrentes sobre o mesmo estado são serializadas ou rejeitadas com segurança.

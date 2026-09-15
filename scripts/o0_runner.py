@@ -298,7 +298,18 @@ def prepare_builder_findings(
             "findings": report["findings"],
         },
     )
+    validate_builder_findings_handoff(current, handoff)
     return handoff
+
+
+def validate_builder_findings_handoff(current: dict[str, Any], handoff: Path) -> None:
+    payload = load_json(handoff)
+    validate_with_schema(payload, "builder-findings")
+    if (
+        payload["audit_target_sha"] != current.get("audit_target_sha")
+        or payload["audit_round"] != current.get("audit_round")
+    ):
+        raise HandoffError("Builder findings are not linked to the current audit round")
 
 
 def prepare_reaudit_handoff(

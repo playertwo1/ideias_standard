@@ -27,6 +27,7 @@ SCHEMA_FILES = {
     "invariants": "invariants.schema.json",
     "builder-report": "builder-report.schema.json",
     "audit-report": "audit-report.schema.json",
+    "builder-findings": "builder-findings.schema.json",
     "orchestration-policy": "orchestration-policy.schema.json",
     "orchestrator-state": "orchestrator-state.schema.json",
     "reaudit-handoff": "reaudit-handoff.schema.json",
