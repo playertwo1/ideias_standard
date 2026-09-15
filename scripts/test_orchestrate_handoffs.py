@@ -10,6 +10,7 @@ from scripts.orchestrate_handoffs import (
     builder_handoff,
     init_state,
     next_actor,
+    status,
 )
 
 
@@ -152,6 +153,52 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         self.assertEqual(run_id, built["run_id"])
         self.assertEqual(run_id, audited["run_id"])
         self.assertEqual(run_id, reloaded["run_id"])
+
+    def test_audit_round_is_persisted_and_increments_once_per_accepted_audit(self):
+        builder_one = self.root / "builder-round-one.json"
+        audit_one = self.root / "audit-round-one.json"
+        builder_two = self.root / "builder-round-two.json"
+        rejected_audit = self.root / "audit-wrong-sha.json"
+        audit_two = self.root / "audit-round-two.json"
+        dump(builder_one, builder_report(sha=SHA_A))
+        dump(audit_one, audit_report(SHA_A, result="FAIL", blocking=True))
+        dump(builder_two, builder_report(sha=SHA_B))
+        dump(rejected_audit, audit_report(SHA_A))
+        dump(audit_two, audit_report(SHA_B))
+
+        built_one = builder_handoff(self.state_path, builder_one, SHA_A)
+        audited_one = audit_handoff(self.state_path, audit_one)
+        restarted = status(self.state_path)
+        built_two = builder_handoff(self.state_path, builder_two, SHA_B)
+
+        self.assertEqual(0, built_one["audit_round"])
+        self.assertEqual(1, audited_one["audit_round"])
+        self.assertEqual(1, restarted["audit_round"])
+        self.assertEqual(1, built_two["audit_round"])
+
+        before_rejection = self.state_path.read_bytes()
+        with self.assertRaisesRegex(HandoffError, "Audit SHA mismatch"):
+            audit_handoff(self.state_path, rejected_audit)
+        self.assertEqual(before_rejection, self.state_path.read_bytes())
+
+        audited_two = audit_handoff(self.state_path, audit_two)
+        self.assertEqual(2, audited_two["audit_round"])
+        before_replay = self.state_path.read_bytes()
+        with self.assertRaisesRegex(HandoffError, "Audit handoff not allowed"):
+            audit_handoff(self.state_path, audit_two)
+        self.assertEqual(before_replay, self.state_path.read_bytes())
+        self.assertEqual(2, status(self.state_path)["audit_round"])
+
+    def test_persisted_state_requires_audit_round(self):
+        state = json.loads(self.state_path.read_text(encoding="utf-8"))
+        del state["audit_round"]
+        dump(self.state_path, state)
+        before = self.state_path.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "state schema validation failed"):
+            status(self.state_path)
+
+        self.assertEqual(before, self.state_path.read_bytes())
 
     def test_fail_fix_pass_human_gate_flow(self):
         builder_one = self.root / "builder-1.json"
@@ -314,6 +361,8 @@ class OrchestrateHandoffsTest(unittest.TestCase):
             dump(audit_path, audit_report(sha, result="FAIL", blocking=True))
             builder_handoff(self.state_path, builder_path, sha)
             state = audit_handoff(self.state_path, audit_path)
+
+            self.assertLessEqual(state["audit_round"], state["max_audit_rounds"])
 
             if round_number < 3:
                 self.assertEqual("FIX_REQUIRED", state["machine_state"])
