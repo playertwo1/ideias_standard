@@ -226,7 +226,14 @@ Workflows descrevem **sequências operacionais**, artefatos e gates para classes
 Exemplos materializados:
 
 - `default`;
-- `migration-first`.
+- `migration-first`;
+- `builder-auditor-loop`.
+
+O `builder-auditor-loop` sustenta o Operational Orchestrator: ele elimina a Product Authority como mensageiro manual no fluxo normal, transportando estado, relatórios, findings e SHAs entre Builder e Auditor. A Product Authority volta ao fluxo somente quando uma decisão, bloqueio ou gate humano exige sua autoridade.
+
+```text
+Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Authority
+```
 
 Um workflow organiza execução, mas não cria autoridade nova.
 
@@ -345,6 +352,15 @@ Schema: `schemas/change.schema.json`.
 Estrutura saída determinística de validação.
 
 Schema: `schemas/conformance-report.schema.json`.
+
+### Contratos de orquestração
+
+- `orchestration-policy`: papéis, limites e autoridade do loop;
+- `orchestrator-state`: estado persistido, rodada, SHAs e `run_id`;
+- `builder-report`: resultado e evidência produzidos pelo Builder;
+- `audit-report`: resultado, checks e findings produzidos pelo Auditor.
+
+Schemas: `schemas/orchestration-policy.schema.json`, `schemas/orchestrator-state.schema.json`, `schemas/builder-report.schema.json` e `schemas/audit-report.schema.json`.
 
 Outros schemas cobrem invariants, artifact policies, bundles e workflows.
 
@@ -718,7 +734,11 @@ ideias_standard/
 │   ├── workflow.schema.json
 │   ├── change.schema.json
 │   ├── conformance-report.schema.json
-│   └── invariants.schema.json
+│   ├── invariants.schema.json
+│   ├── orchestration-policy.schema.json
+│   ├── orchestrator-state.schema.json
+│   ├── builder-report.schema.json
+│   └── audit-report.schema.json
 │
 ├── profiles/
 │   ├── light/
@@ -738,7 +758,13 @@ ideias_standard/
 │   └── ...
 │
 ├── workflows/
-│   └── ...
+│   ├── default/
+│   ├── migration-first/
+│   └── builder-auditor-loop/
+│
+├── orchestration/
+│   ├── builder-auditor-policy.json
+│   └── o0-runner.example.json
 │
 ├── adapters/
 │   └── catalog.yaml
@@ -755,14 +781,20 @@ ideias_standard/
 │
 ├── scripts/
 │   ├── validate_standard.py
-│   └── test_validate_standard.py
+│   ├── test_validate_standard.py
+│   ├── orchestrate_handoffs.py
+│   ├── o0_runner.py
+│   ├── test_orchestrate_handoffs.py
+│   └── test_o0_runner.py
 │
 ├── docs/
 │   ├── LIFECYCLE_MODEL.md
-│   └── OWNERSHIP_AND_UPGRADE.md
+│   ├── OWNERSHIP_AND_UPGRADE.md
+│   └── MULTI_AGENT_ORCHESTRATION.md
 │
 ├── S0_VALIDATION_EVIDENCE.md
 ├── S0_AUDIT_PACKET.md
+├── O0_VALIDATION_EVIDENCE.md
 └── .github/workflows/conformance.yml
 ```
 
@@ -789,6 +821,9 @@ Para evitar duplicação e drift:
 | Quais referências externas inspiraram decisões? | `REFERENCE_MATRIX.md` |
 | Qual evidência existe para S0? | `S0_VALIDATION_EVIDENCE.md` |
 | Como auditar S0? | `S0_AUDIT_PACKET.md` |
+| Como funciona o Orchestrator? | `docs/MULTI_AGENT_ORCHESTRATION.md` |
+| Quais são a policy e configuração do runner? | `orchestration/` |
+| Qual evidência existe para O0? | `O0_VALIDATION_EVIDENCE.md` e `PROJECT_STATE.md` |
 
 Este README explica e roteia. Ele não deve substituir essas fontes canônicas.
 
@@ -816,7 +851,9 @@ Gate S1 = NOT_RUN
 S2 = NOT_STARTED
 ```
 
-As funções O0 implementadas e aprovadas por auditoria independente até O0-C27 são:
+O Operational Orchestrator coordena o loop e atua como mensageiro operacional entre os papéis. Builder e Auditor não são implementações presas a fornecedor: são comandos externos configuráveis, iniciados pelo runner dentro das fronteiras e contratos do Standard.
+
+As funções O0 implementadas e aprovadas por auditoria independente até O0-C29 são:
 
 - carregar o estado, identificar e iniciar o próximo Builder ou Auditor autorizado (O0-C01–C04);
 - separar workspaces e restringir escrita do Auditor sobre o alvo (O0-C05–C07);
@@ -824,9 +861,10 @@ As funções O0 implementadas e aprovadas por auditoria independente até O0-C27
 - exigir novo SHA e nova auditoria após correção, parando após PASS para a Product Authority (O0-C16–C18);
 - bloquear resultados `ESCALATE` ou `DISPUTED` (O0-C19–C20);
 - limitar auditorias a três rodadas e persistir estado entre reinícios/interrupções (O0-C21–C23);
-- rejeitar JSON inválido, SHA inválido/inexistente, divergência de SHA e PASS com finding bloqueante (O0-C24–C27).
+- rejeitar JSON inválido, SHA inválido/inexistente, divergência de SHA e PASS com finding bloqueante (O0-C24–C27);
+- impedir registro automático de gate humano e avanço automático de fase (O0-C28–C29).
 
-O0 **não está concluído**. Critérios não listados acima permanecem pendentes conforme o `ROADMAP.md`. A auditoria mais recente cobre O0-C27 no SHA `0e53f0e49154688bb07ff74169402b0e33bd82fb`; isso não registra gate humano nem PASS de produto.
+O0-C30, que adiciona `run_id` persistido, está implementado e aguarda auditoria independente. O0 **não está concluído**. Critérios não listados acima permanecem pendentes conforme o `ROADMAP.md`; nenhuma dessas auditorias registra Gate S1 ou PASS de produto.
 
 Fonte de verdade operacional: `PROJECT_STATE.md`.
 
@@ -838,11 +876,19 @@ Fonte de verdade operacional: `PROJECT_STATE.md`.
 
 Contrato, schemas, profiles, packs, bundles, workflows, invariants, conformance, fixtures, validador e CI.
 
-**Status atual:** audit-ready; auditoria independente pendente.
+**Status atual:** fechado com auditoria independente e gate registrados.
+
+### O0 — Operational Orchestrator
+
+Runner provider-neutral para coordenar Builder, Auditor, estado, handoffs, findings, SHAs, limites e paradas humanas.
+
+**Status atual:** parcial e prioritário; O0-C30 implementado, aguardando auditoria independente.
 
 ### S1 — Conformance first
 
 Transformar a fundação em interface estável de `check` e `doctor`.
+
+**Status atual:** ativo; Gate S1 = `NOT_RUN`.
 
 ### S2 — Init / compiler
 
@@ -899,6 +945,11 @@ Detalhes, critérios e gates: `ROADMAP.md`.
 - CI multi-Python;
 - evidência S0;
 - pacote de auditoria S0.
+- workflow, policy e configuração de exemplo do Operational Orchestrator;
+- máquina de estados e runner provider-neutral;
+- contratos estruturados de policy, estado, Builder e Auditor;
+- testes de handoff, isolamento, persistência, limites e rejeições adversariais;
+- evidência operacional O0.
 
 ### Ainda não implementado como produto completo
 
@@ -923,14 +974,12 @@ Se você é um agente de IA entrando no projeto pela primeira vez, **não faça 
 Comece nesta ordem:
 
 ```text
-1. README.md
+1. AGENTS.md
 2. PROJECT_STATE.md
-3. STANDARD.md
-4. AGENTS.md
-5. pedido atual da Product Authority
+3. pedido atual da Product Authority
 ```
 
-Depois expanda somente o contexto necessário.
+Depois expanda somente o contexto necessário. Use `README.md` para visão geral e `STANDARD.md` quando o contrato canônico for necessário à tarefa.
 
 ### Se a tarefa for validação/conformance
 
@@ -953,6 +1002,21 @@ Leia:
 ROADMAP.md
 PROJECT_STATE.md
 contratos específicos daquela fase
+```
+
+### Se a tarefa envolver o Operational Orchestrator
+
+Leia somente o subconjunto necessário de:
+
+```text
+docs/MULTI_AGENT_ORCHESTRATION.md
+orchestration/
+schemas/orchestration-policy.schema.json
+schemas/orchestrator-state.schema.json
+schemas/builder-report.schema.json
+schemas/audit-report.schema.json
+scripts/orchestrate_handoffs.py
+scripts/o0_runner.py
 ```
 
 ### Se a tarefa envolver ownership/upgrade/adoption
@@ -1024,9 +1088,9 @@ O Ideias Standard foi desenhado em torno de algumas ideias simples:
 A próxima ação autorizável em O0 é:
 
 ```text
-O0-C28 — Nenhum gate humano é registrado automaticamente
+Auditoria independente de O0-C30 — Estado persistido inclui run_id
 ```
 
-O0 não deve ser declarado concluído, O0-C29 não deve iniciar automaticamente e S2 permanece não iniciada.
+O0 não deve ser declarado concluído, O0-C31 não deve iniciar sem autorização e S2 permanece não iniciada.
 
 Para estado atualizado, consulte sempre `PROJECT_STATE.md`.
