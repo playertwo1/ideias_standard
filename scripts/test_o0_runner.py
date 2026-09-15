@@ -971,7 +971,12 @@ class O0RunnerTest(unittest.TestCase):
 
         self.assertEqual(target, payload["audit_target_sha"])
         self.assertEqual(2, payload["audit_round"])
-        self.assertEqual(source["findings"], payload["findings"])
+        self.assertEqual(source["findings"][0]["id"], payload["findings"][0]["id"])
+        reference = payload["findings"][0]["evidence"]
+        self.assertEqual(
+            source["findings"][0]["evidence"],
+            runner_module.resolve_evidence(reports / "evidence", reference, self._fix_required_state(target, audit_report, round_number=2))["content"],
+        )
 
     def test_runner_passes_failed_audit_findings_to_builder(self):
         target = "a" * 40
@@ -1013,7 +1018,8 @@ class O0RunnerTest(unittest.TestCase):
         payload = json.loads(handoff.read_text(encoding="utf-8"))
         self.assertEqual(target, payload["audit_target_sha"])
         self.assertEqual(1, payload["audit_round"])
-        self.assertEqual(source["findings"], payload["findings"])
+        self.assertEqual(source["findings"][0]["id"], payload["findings"][0]["id"])
+        self.assertEqual({"evidence_id", "sha256"}, set(payload["findings"][0]["evidence"]))
 
     def test_invalid_pass_with_not_run_is_not_forwarded(self):
         target = "a" * 40
@@ -1095,9 +1101,7 @@ class O0RunnerTest(unittest.TestCase):
         audit_payload["findings"][0]["severity"] = "MEDIUM"
         audit_payload["checks"][0]["status"] = "PASS"
         audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
-        findings_payload = json.loads(findings_handoff.read_text(encoding="utf-8"))
-        findings_payload["findings"] = audit_payload["findings"]
-        findings_handoff.write_text(json.dumps(findings_payload), encoding="utf-8")
+        findings_handoff = prepare_builder_findings(current, findings_handoff.parent)
         builder_payload = self._builder_report(corrected)
         reports = self.root / "reaudit-reports"
 
@@ -1112,11 +1116,15 @@ class O0RunnerTest(unittest.TestCase):
         self.assertEqual("DELTA", payload["context_mode"])
         self.assertEqual([], payload["full_context_reasons"])
         self.assertEqual(["file.txt"], payload["changed_paths"])
-        self.assertEqual(audit_payload["findings"], payload["findings"])
+        self.assertEqual(audit_payload["findings"][0]["id"], payload["findings"][0]["id"])
         self.assertEqual(
-            [{"check_id": "o0-c15", "status": "PASS", "evidence": "finding"}],
-            payload["reusable_evidence"],
+            "forwarding evidence",
+            runner_module.resolve_evidence(
+                reports / "evidence", payload["findings"][0]["evidence"], current
+            )["content"],
         )
+        self.assertEqual("o0-c15", payload["reusable_evidence"][0]["check_id"])
+        self.assertEqual("PASS", payload["reusable_evidence"][0]["status"])
 
     def test_reaudit_handoff_requires_full_context_for_each_risk_condition(self):
         repository, _, corrected, current, findings_handoff, _ = self._correction_inputs()
@@ -1134,20 +1142,19 @@ class O0RunnerTest(unittest.TestCase):
                 audit_payload["findings"][0]["severity"] = severity
                 audit_payload["checks"][0]["evidence"] = check_evidence
                 audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
-                findings_payload = json.loads(findings_handoff.read_text(encoding="utf-8"))
-                findings_payload["findings"] = audit_payload["findings"]
-                findings_handoff.write_text(json.dumps(findings_payload), encoding="utf-8")
+                findings_handoff = prepare_builder_findings(current, findings_handoff.parent)
                 builder_payload = self._builder_report(corrected)
                 builder_payload["changed_paths"] = declared_paths
+                case_reports = reports / reason.lower()
 
                 handoff = runner_module.prepare_reaudit_handoff(
-                    current, builder_payload, repository, findings_handoff, reports
+                    current, builder_payload, repository, findings_handoff, case_reports
                 )
                 payload = json.loads(handoff.read_text(encoding="utf-8"))
 
                 self.assertEqual("FULL", payload["context_mode"])
                 self.assertEqual([reason], payload["full_context_reasons"])
-                self.assertEqual(audit_payload["findings"], payload["findings"])
+                self.assertEqual(audit_payload["findings"][0]["id"], payload["findings"][0]["id"])
                 self.assertEqual(1, len(payload["reusable_evidence"]))
 
     def test_runner_creates_and_supplies_reaudit_handoff(self):
@@ -1222,9 +1229,7 @@ class O0RunnerTest(unittest.TestCase):
         audit_payload = json.loads(audit_report.read_text(encoding="utf-8"))
         audit_payload["findings"][0]["severity"] = "MEDIUM"
         audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
-        findings_payload = json.loads(findings_handoff.read_text(encoding="utf-8"))
-        findings_payload["findings"] = audit_payload["findings"]
-        findings_handoff.write_text(json.dumps(findings_payload), encoding="utf-8")
+        findings_handoff = prepare_builder_findings(current, findings_handoff.parent)
         builder_payload = self._builder_report(corrected)
         builder_payload["changed_paths"] = ["undeclared.txt"]
         reports = self.root / "tampered-paths-reaudit-reports"
@@ -1268,9 +1273,7 @@ class O0RunnerTest(unittest.TestCase):
         audit_payload["findings"][0]["severity"] = "MEDIUM"
         audit_payload["summary"] = "historical narrative " * 5000
         audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
-        findings_payload = json.loads(findings_handoff.read_text(encoding="utf-8"))
-        findings_payload["findings"] = audit_payload["findings"]
-        findings_handoff.write_text(json.dumps(findings_payload), encoding="utf-8")
+        findings_handoff = prepare_builder_findings(current, findings_handoff.parent)
         builder_payload = self._builder_report(corrected)
         builder_payload["summary"] = "superseded builder narrative " * 5000
 
@@ -1294,6 +1297,152 @@ class O0RunnerTest(unittest.TestCase):
         self.assertNotIn("historical narrative", handoff.read_text(encoding="utf-8"))
         self.assertNotIn("superseded builder narrative", handoff.read_text(encoding="utf-8"))
         self.assertLess(handoff.stat().st_size, 4096)
+
+    def test_evidence_reference_is_stable_and_verifiable(self):
+        _, previous, _, current, _, _ = self._correction_inputs()
+        evidence_root = self.root / "evidence"
+        store = getattr(runner_module, "store_evidence", None)
+        resolve = getattr(runner_module, "resolve_evidence", None)
+        self.assertIsNotNone(store)
+        self.assertIsNotNone(resolve)
+
+        reference = store(
+            evidence_root,
+            evidence_id="finding-O0-015-001",
+            content="reproducible proof",
+            current=current,
+        )
+
+        self.assertEqual({"evidence_id", "sha256"}, set(reference))
+        self.assertEqual(64, len(reference["sha256"]))
+        envelope = resolve(evidence_root, reference, current)
+        self.assertEqual("reproducible proof", envelope["content"])
+        self.assertEqual(current["run_id"], envelope["run_id"])
+        self.assertEqual(2, envelope["audit_round"])
+        self.assertEqual(previous, envelope["audit_target_sha"])
+        self.assertEqual(
+            reference,
+            store(
+                evidence_root,
+                evidence_id="finding-O0-015-001",
+                content="reproducible proof",
+                current=current,
+            ),
+        )
+
+    def test_evidence_reference_rejects_missing_tampered_or_cross_run_content(self):
+        _, _, _, current, _, _ = self._correction_inputs()
+        evidence_root = self.root / "adversarial-evidence"
+        store = getattr(runner_module, "store_evidence", None)
+        resolve = getattr(runner_module, "resolve_evidence", None)
+        self.assertIsNotNone(store)
+        self.assertIsNotNone(resolve)
+        reference = store(
+            evidence_root,
+            evidence_id="check-o0-c37",
+            content="original",
+            current=current,
+        )
+
+        with self.assertRaises(HandoffError):
+            resolve(evidence_root, {**reference, "evidence_id": "missing"}, current)
+        path = evidence_root / "check-o0-c37.json"
+        original = path.read_bytes()
+        path.write_bytes(original.replace(b"original", b"replaced"))
+        with self.assertRaises(HandoffError):
+            resolve(evidence_root, reference, current)
+        path.write_bytes(original)
+        with self.assertRaises(HandoffError):
+            resolve(evidence_root, reference, {**current, "run_id": "run-" + "f" * 64})
+        with self.assertRaises(HandoffError):
+            resolve(evidence_root, reference, {**current, "audit_round": current["audit_round"] + 1})
+        with self.assertRaises(HandoffError):
+            resolve(evidence_root, reference, {**current, "audit_target_sha": "f" * 40})
+        with self.assertRaises(HandoffError):
+            resolve(evidence_root, {**reference, "sha256": "f" * 64}, current)
+        with self.assertRaises(HandoffError):
+            store(evidence_root, evidence_id="../escape", content="x", current=current)
+        with self.assertRaises(HandoffError):
+            store(evidence_root, evidence_id="check-o0-c37", content="replacement", current=current)
+
+    def test_builder_handoff_references_evidence_without_retransmitting_content(self):
+        _, _, _, current, handoff, _ = self._correction_inputs()
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+        reference = payload["findings"][0]["evidence"]
+
+        self.assertEqual({"evidence_id", "sha256"}, set(reference))
+        self.assertNotIn("forwarding evidence", handoff.read_text(encoding="utf-8"))
+        envelope = runner_module.resolve_evidence(handoff.parent / "evidence", reference, current)
+        self.assertEqual("forwarding evidence", envelope["content"])
+
+    def test_reaudit_handoff_reuses_verifiable_references_without_content(self):
+        repository, _, corrected, current, findings_handoff, _ = self._correction_inputs()
+        builder_payload = self._builder_report(corrected)
+        reports = self.root / "reference-reaudit-reports"
+        reports.mkdir()
+        target_findings = reports / "builder-findings.json"
+        target_findings.write_bytes(findings_handoff.read_bytes())
+        source_evidence = findings_handoff.parent / "evidence"
+        target_evidence = reports / "evidence"
+        target_evidence.mkdir()
+        for source in source_evidence.iterdir():
+            (target_evidence / source.name).write_bytes(source.read_bytes())
+
+        handoff = runner_module.prepare_reaudit_handoff(
+            current, builder_payload, repository, target_findings, reports
+        )
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+
+        finding_reference = payload["findings"][0]["evidence"]
+        check_reference = payload["reusable_evidence"][0]["evidence"]
+        self.assertEqual({"evidence_id", "sha256"}, set(finding_reference))
+        self.assertEqual({"evidence_id", "sha256"}, set(check_reference))
+        serialized = handoff.read_text(encoding="utf-8")
+        self.assertNotIn("forwarding evidence", serialized)
+        self.assertNotIn('"evidence": "finding"', serialized)
+        self.assertEqual(
+            "finding",
+            runner_module.resolve_evidence(target_evidence, check_reference, current)["content"],
+        )
+
+    def test_tampered_evidence_is_rejected_before_auditor_without_state_mutation(self):
+        repository, _, corrected, current, findings_handoff, _ = self._correction_inputs()
+        reports = findings_handoff.parent
+        builder_payload = self._builder_report(corrected)
+        handoff = runner_module.prepare_reaudit_handoff(
+            current, builder_payload, repository, findings_handoff, reports
+        )
+        state = self.root / "evidence-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        builder_report = reports / "builder-report.json"
+        builder_report.write_text(json.dumps(builder_payload), encoding="utf-8")
+        builder_handoff(state, builder_report)
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+        evidence_path = reports / "evidence" / f"{payload['reusable_evidence'][0]['evidence']['evidence_id']}.json"
+        evidence_path.write_bytes(evidence_path.read_bytes().replace(b"finding", b"changed"))
+        config = self.root / "evidence-runner.json"
+        config.write_text(json.dumps({
+            "repository": "repo",
+            "state_path": "evidence-state.json",
+            "reports_dir": "correction-reports",
+            "builder_workspace": "repo",
+            "audit_workspaces": "evidence-audits",
+            "builder_command": ["builder"],
+            "auditor_command": ["auditor"],
+        }), encoding="utf-8")
+        before = state.read_bytes()
+        actor_started = False
+
+        def unexpected_actor(*args, **kwargs):
+            nonlocal actor_started
+            actor_started = True
+
+        with patch("scripts.o0_runner.run_actor", side_effect=unexpected_actor):
+            with self.assertRaisesRegex(HandoffError, "digest mismatch"):
+                run_once(config)
+
+        self.assertFalse(actor_started)
+        self.assertEqual(before, state.read_bytes())
 
     def test_fix_required_rejects_missing_result_sha(self):
         repository, _, corrected, current, handoff, before = self._correction_inputs()

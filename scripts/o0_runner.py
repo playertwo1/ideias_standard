@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+import hashlib
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -52,6 +54,8 @@ _MAKE_BLOCK = 1 << 11
 _MAKE_SYM = 1 << 12
 _REFER = 1 << 13
 _TRUNCATE = 1 << 14
+_EVIDENCE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 class _RulesetAttr(ctypes.Structure):
@@ -77,6 +81,79 @@ def load_config(path: Path) -> dict[str, Any]:
         ):
             raise HandoffError(f"{key} must be a non-empty string array")
     return data
+
+
+def canonical_json_bytes(payload: dict[str, Any]) -> bytes:
+    return json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+
+
+def store_evidence(
+    root: Path,
+    *,
+    evidence_id: str,
+    content: str,
+    current: dict[str, Any],
+) -> dict[str, str]:
+    if not _EVIDENCE_ID.fullmatch(evidence_id):
+        raise HandoffError("Unsafe evidence_id")
+    envelope = {
+        "schema_version": "0.1",
+        "evidence_id": evidence_id,
+        "run_id": current["run_id"],
+        "audit_round": current["audit_round"],
+        "audit_target_sha": current["audit_target_sha"],
+        "content": content,
+    }
+    validate_with_schema(envelope, "evidence")
+    canonical = canonical_json_bytes(envelope)
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / f"{evidence_id}.json"
+    digest = hashlib.sha256(canonical).hexdigest()
+    try:
+        with path.open("xb") as stream:
+            stream.write(canonical)
+    except FileExistsError as exc:
+        if path.read_bytes() != canonical:
+            raise HandoffError(f"Evidence ID already exists: {evidence_id}") from exc
+    return {"evidence_id": evidence_id, "sha256": digest}
+
+
+def evidence_id(kind: str, source_id: str, current: dict[str, Any]) -> str:
+    identity = f"{current['run_id']}:{current['audit_round']}:{current['audit_target_sha']}:{kind}:{source_id}"
+    return f"r{current['audit_round']}-{kind}-{hashlib.sha256(identity.encode('utf-8')).hexdigest()[:16]}"
+
+
+def resolve_evidence(
+    root: Path,
+    reference: dict[str, str],
+    current: dict[str, Any],
+) -> dict[str, Any]:
+    evidence_id = reference.get("evidence_id")
+    digest = reference.get("sha256")
+    if not isinstance(evidence_id, str) or not _EVIDENCE_ID.fullmatch(evidence_id):
+        raise HandoffError("Invalid evidence reference ID")
+    if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
+        raise HandoffError("Invalid evidence reference digest")
+    path = root / f"{evidence_id}.json"
+    if not path.is_file():
+        raise HandoffError(f"Evidence does not exist: {evidence_id}")
+    raw = path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != digest:
+        raise HandoffError(f"Evidence digest mismatch: {evidence_id}")
+    envelope = load_json(path)
+    validate_with_schema(envelope, "evidence")
+    if raw != canonical_json_bytes(envelope):
+        raise HandoffError(f"Evidence is not canonically encoded: {evidence_id}")
+    if (
+        envelope["evidence_id"] != evidence_id
+        or envelope["run_id"] != current.get("run_id")
+        or envelope["audit_round"] != current.get("audit_round")
+        or envelope["audit_target_sha"] != current.get("audit_target_sha")
+    ):
+        raise HandoffError(f"Evidence is linked to another audit: {evidence_id}")
+    return envelope
 
 
 def resolve_path(config_path: Path, value: str) -> Path:
@@ -289,13 +366,23 @@ def prepare_builder_findings(
         or current.get("last_audited_sha") != target
     ):
         raise HandoffError("Audit findings do not match the current failed audit target")
+    findings = []
+    for finding in report["findings"]:
+        forwarded = dict(finding)
+        forwarded["evidence"] = store_evidence(
+            reports_dir / "evidence",
+            evidence_id=evidence_id("finding", finding["id"], current),
+            content=finding["evidence"],
+            current=current,
+        )
+        findings.append(forwarded)
     handoff = reports_dir / "builder-findings.json"
     write_json(
         handoff,
         {
             "audit_target_sha": target,
             "audit_round": current["audit_round"],
-            "findings": report["findings"],
+            "findings": findings,
         },
     )
     validate_builder_findings_handoff(current, handoff)
@@ -310,6 +397,8 @@ def validate_builder_findings_handoff(current: dict[str, Any], handoff: Path) ->
         or payload["audit_round"] != current.get("audit_round")
     ):
         raise HandoffError("Builder findings are not linked to the current audit round")
+    for finding in payload["findings"]:
+        resolve_evidence(handoff.parent / "evidence", finding["evidence"], current)
 
 
 def prepare_reaudit_handoff(
@@ -324,10 +413,29 @@ def prepare_reaudit_handoff(
     findings_payload = load_json(findings_handoff)
     audit_payload = load_json(Path(current["last_audit_report"]))
     validate_with_schema(audit_payload, "audit")
+    validate_builder_findings_handoff(current, findings_handoff)
+    forwarded_findings = findings_payload["findings"]
+    if len(forwarded_findings) != len(audit_payload["findings"]):
+        raise HandoffError("Reaudit findings are not linked to the corrected audit")
+    evidence_root = reports_dir / "evidence"
+    reaudit_findings = []
+    for forwarded, source in zip(forwarded_findings, audit_payload["findings"]):
+        forwarded_without_evidence = {key: value for key, value in forwarded.items() if key != "evidence"}
+        source_without_evidence = {key: value for key, value in source.items() if key != "evidence"}
+        resolved = resolve_evidence(findings_handoff.parent / "evidence", forwarded["evidence"], current)
+        if forwarded_without_evidence != source_without_evidence or resolved["content"] != source["evidence"]:
+            raise HandoffError("Reaudit findings are not linked to the corrected audit")
+        reaudit_finding = dict(forwarded)
+        reaudit_finding["evidence"] = store_evidence(
+            evidence_root,
+            evidence_id=forwarded["evidence"]["evidence_id"],
+            content=resolved["content"],
+            current=current,
+        )
+        reaudit_findings.append(reaudit_finding)
     if (
         findings_payload.get("audit_target_sha") != previous_sha
         or findings_payload.get("audit_round") != current["audit_round"]
-        or findings_payload.get("findings") != audit_payload["findings"]
     ):
         raise HandoffError("Reaudit findings are not linked to the corrected audit")
 
@@ -350,11 +458,20 @@ def prepare_reaudit_handoff(
         "audit_round": current["audit_round"],
         "context_mode": "FULL" if reasons else "DELTA",
         "full_context_reasons": reasons,
-        "findings": findings,
+        "findings": reaudit_findings,
         "changed_paths": changed_paths,
         "declared_changed_paths": declared_paths,
         "reusable_evidence": [
-            {"check_id": check["id"], "status": check["status"], "evidence": check["evidence"]}
+            {
+                "check_id": check["id"],
+                "status": check["status"],
+                "evidence": store_evidence(
+                    evidence_root,
+                    evidence_id=evidence_id("check", check["id"], current),
+                    content=check["evidence"],
+                    current=current,
+                ),
+            }
             for check in checks
         ],
     }
@@ -414,10 +531,26 @@ def validate_reaudit_handoff(current: dict[str, Any], handoff: Path, repository:
         or payload["declared_changed_paths"] != canonical_declared_paths
     ):
         raise HandoffError("Reaudit handoff differs from the canonical Builder report")
-    reusable_evidence = [
-        {"check_id": check["id"], "status": check["status"], "evidence": check["evidence"]}
-        for check in audit_payload["checks"]
-    ]
+    evidence_context = {**current, "audit_target_sha": payload["previous_audited_sha"]}
+    if len(payload["findings"]) != len(audit_payload["findings"]):
+        raise HandoffError("Reaudit handoff is inconsistent with canonical evidence")
+    for forwarded, source in zip(payload["findings"], audit_payload["findings"]):
+        forwarded_without_evidence = {key: value for key, value in forwarded.items() if key != "evidence"}
+        source_without_evidence = {key: value for key, value in source.items() if key != "evidence"}
+        resolved = resolve_evidence(handoff.parent / "evidence", forwarded["evidence"], evidence_context)
+        if forwarded_without_evidence != source_without_evidence or resolved["content"] != source["evidence"]:
+            raise HandoffError("Reaudit handoff is inconsistent with canonical evidence")
+    reusable_evidence = payload["reusable_evidence"]
+    if len(reusable_evidence) != len(audit_payload["checks"]):
+        raise HandoffError("Reaudit handoff is inconsistent with canonical evidence")
+    for forwarded, source in zip(reusable_evidence, audit_payload["checks"]):
+        resolved = resolve_evidence(handoff.parent / "evidence", forwarded["evidence"], evidence_context)
+        if (
+            forwarded["check_id"] != source["id"]
+            or forwarded["status"] != source["status"]
+            or resolved["content"] != source["evidence"]
+        ):
+            raise HandoffError("Reaudit handoff is inconsistent with canonical evidence")
     changed_paths = reaudit_changed_paths(
         repository, payload["previous_audited_sha"], payload["new_audit_target_sha"]
     )
@@ -432,8 +565,6 @@ def validate_reaudit_handoff(current: dict[str, Any], handoff: Path, repository:
         payload["new_audit_target_sha"] != current["audit_target_sha"]
         or payload["previous_audited_sha"] != audit_payload["audited_sha"]
         or payload["audit_round"] != current["audit_round"]
-        or payload["findings"] != audit_payload["findings"]
-        or payload["reusable_evidence"] != reusable_evidence
         or payload["changed_paths"] != changed_paths
     ):
         raise HandoffError("Reaudit handoff is inconsistent with canonical evidence")

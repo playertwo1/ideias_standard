@@ -24,6 +24,7 @@ SCHEMAS = {
     "builder": ROOT / "schemas" / "builder-report.schema.json",
     "audit": ROOT / "schemas" / "audit-report.schema.json",
     "builder-findings": ROOT / "schemas" / "builder-findings.schema.json",
+    "evidence": ROOT / "schemas" / "evidence-envelope.schema.json",
     "reaudit": ROOT / "schemas" / "reaudit-handoff.schema.json",
 }
 
