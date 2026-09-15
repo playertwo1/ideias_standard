@@ -738,7 +738,10 @@ ideias_standard/
 │   ├── orchestration-policy.schema.json
 │   ├── orchestrator-state.schema.json
 │   ├── builder-report.schema.json
-│   └── audit-report.schema.json
+│   ├── audit-report.schema.json
+│   ├── builder-findings.schema.json
+│   ├── evidence-envelope.schema.json
+│   └── reaudit-handoff.schema.json
 │
 ├── profiles/
 │   ├── light/
@@ -784,8 +787,12 @@ ideias_standard/
 │   ├── test_validate_standard.py
 │   ├── orchestrate_handoffs.py
 │   ├── o0_runner.py
+│   ├── o0_e2e.py
+│   ├── o0_e2e_actor.py
 │   ├── test_orchestrate_handoffs.py
-│   └── test_o0_runner.py
+│   ├── test_o0_runner.py
+│   ├── test_o0_e2e.py
+│   └── test_o0_concurrency.py
 │
 ├── docs/
 │   ├── LIFECYCLE_MODEL.md
@@ -795,6 +802,7 @@ ideias_standard/
 ├── S0_VALIDATION_EVIDENCE.md
 ├── S0_AUDIT_PACKET.md
 ├── O0_VALIDATION_EVIDENCE.md
+├── O0_C38_E2E_EVIDENCE.json
 └── .github/workflows/conformance.yml
 ```
 
@@ -853,7 +861,7 @@ S2 = NOT_STARTED
 
 O Operational Orchestrator coordena o loop e atua como mensageiro operacional entre os papéis. Builder e Auditor não são implementações presas a fornecedor: são comandos externos configuráveis, iniciados pelo runner dentro das fronteiras e contratos do Standard.
 
-As funções O0 implementadas e aprovadas por auditoria independente até O0-C29 são:
+As funções implementadas no bloco O0 incluem:
 
 - carregar o estado, identificar e iniciar o próximo Builder ou Auditor autorizado (O0-C01–C04);
 - separar workspaces e restringir escrita do Auditor sobre o alvo (O0-C05–C07);
@@ -862,9 +870,18 @@ As funções O0 implementadas e aprovadas por auditoria independente até O0-C29
 - bloquear resultados `ESCALATE` ou `DISPUTED` (O0-C19–C20);
 - limitar auditorias a três rodadas e persistir estado entre reinícios/interrupções (O0-C21–C23);
 - rejeitar JSON inválido, SHA inválido/inexistente, divergência de SHA e PASS com finding bloqueante (O0-C24–C27);
-- impedir registro automático de gate humano e avanço automático de fase (O0-C28–C29).
+- impedir registro automático de gate humano e avanço automático de fase (O0-C28–C29);
+- persistir `run_id`, rodada, SHAs relevantes, `next_actor` e motivo estruturado de bloqueio (O0-C30–C34);
+- usar delta/contexto mínimo e evitar retransmissão desnecessária de histórico (O0-C35–C36);
+- persistir e consumir evidências por `evidence_id` e SHA-256 verificável (O0-C37);
+- executar o ciclo real Builder → Auditor FAIL → Builder corrige → Auditor PASS → `WAITING_PRODUCT_AUTHORITY` (O0-C38);
+- impedir duas execuções concorrentes sobre o mesmo estado por lock de processo com timeout explícito e recuperação segura após término do detentor (O0-C39).
 
-O0-C30, que adiciona `run_id` persistido, está implementado e aguarda auditoria independente. O0 **não está concluído**. Critérios não listados acima permanecem pendentes conforme o `ROADMAP.md`; nenhuma dessas auditorias registra Gate S1 ou PASS de produto.
+O checklist canônico do `ROADMAP.md` ainda mantém O0-C14 e O0-C15 sem marcação; este README não os declara concluídos.
+
+O estado canônico registra auditoria independente PASS de O0-C38 no SHA `7792e35681911bbb15b328d854068f4d8375375a`. A correção de O0-C37 está publicada, mas seu PASS independente não está registrado no estado atual. O0-C39 está implementado no SHA `d1f325c4bdcbb8f671bcfe13ef2cf26156c25b65` e aguarda auditoria independente.
+
+O0 **não está concluído**. O0-C40 e os critérios posteriores permanecem pendentes; nenhuma dessas auditorias registra Gate S1 ou PASS de produto.
 
 Fonte de verdade operacional: `PROJECT_STATE.md`.
 
@@ -882,7 +899,7 @@ Contrato, schemas, profiles, packs, bundles, workflows, invariants, conformance,
 
 Runner provider-neutral para coordenar Builder, Auditor, estado, handoffs, findings, SHAs, limites e paradas humanas.
 
-**Status atual:** parcial e prioritário; O0-C30 implementado, aguardando auditoria independente.
+**Status atual:** parcial e prioritário; O0-C39 implementado, aguardando auditoria independente. O0-C40 não foi iniciado.
 
 ### S1 — Conformance first
 
@@ -1088,9 +1105,9 @@ O Ideias Standard foi desenhado em torno de algumas ideias simples:
 A próxima ação autorizável em O0 é:
 
 ```text
-Auditoria independente de O0-C30 — Estado persistido inclui run_id
+Auditoria independente de O0-C39 — concorrência segura sobre o mesmo estado
 ```
 
-O0 não deve ser declarado concluído, O0-C31 não deve iniciar sem autorização e S2 permanece não iniciada.
+O0 não deve ser declarado concluído, O0-C40 não deve iniciar sem autorização, Gate S1 permanece NOT_RUN e S2 permanece não iniciada.
 
 Para estado atualizado, consulte sempre `PROJECT_STATE.md`.
