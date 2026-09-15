@@ -62,6 +62,37 @@ def validate_with_schema(data: dict[str, Any], schema_name: str) -> None:
         raise HandoffError(f"{schema_name} schema validation failed: {details}")
 
 
+def validate_state(state: dict[str, Any]) -> None:
+    validate_with_schema(state, "state")
+    machine_state = state["machine_state"]
+    builder_sha = state["builder_head_sha"]
+    target_sha = state["audit_target_sha"]
+    audited_sha = state["last_audited_sha"]
+
+    if machine_state == "READY_FOR_BUILD":
+        if any(sha is not None for sha in (builder_sha, target_sha, audited_sha)):
+            raise HandoffError("READY_FOR_BUILD requires all relevant SHAs to be null")
+    else:
+        if builder_sha is None:
+            raise HandoffError(f"{machine_state} requires builder_head_sha")
+
+    if machine_state in {"READY_FOR_AUDIT", "AUDITING", "FIX_REQUIRED", "WAITING_PRODUCT_AUTHORITY", "GATE_APPROVED"}:
+        if target_sha is None:
+            raise HandoffError(f"{machine_state} requires audit_target_sha")
+        if builder_sha != target_sha:
+            raise HandoffError("builder_head_sha must equal audit_target_sha")
+
+    if (audited_sha is None) != (state["last_audit_result"] is None):
+        raise HandoffError("last_audited_sha and last_audit_result must be set together")
+    if audited_sha is not None:
+        if target_sha is None:
+            raise HandoffError("last_audited_sha requires audit_target_sha")
+        if audited_sha != target_sha:
+            raise HandoffError("last_audited_sha must equal audit_target_sha")
+    if machine_state in {"FIX_REQUIRED", "WAITING_PRODUCT_AUTHORITY", "GATE_APPROVED"} and audited_sha is None:
+        raise HandoffError(f"{machine_state} requires last_audited_sha")
+
+
 def blocking_findings(report: dict[str, Any]) -> list[dict[str, Any]]:
     return [finding for finding in report.get("findings", []) if finding.get("blocking") is True]
 
@@ -120,7 +151,7 @@ def init_state(
         "updated_at": now(),
         "message": "Ready for Builder.",
     }
-    validate_with_schema(state, "state")
+    validate_state(state)
     write_json(state_path, state)
     return state
 
@@ -132,7 +163,7 @@ def builder_handoff(
 ) -> dict[str, Any]:
     state = load_json(state_path)
     report = load_json(report_path)
-    validate_with_schema(state, "state")
+    validate_state(state)
     validate_with_schema(report, "builder")
 
     if state["machine_state"] not in {"READY_FOR_BUILD", "FIX_REQUIRED"}:
@@ -162,7 +193,7 @@ def builder_handoff(
         )
 
     state["updated_at"] = now()
-    validate_with_schema(state, "state")
+    validate_state(state)
     write_json(state_path, state)
     return state
 
@@ -173,7 +204,7 @@ def audit_handoff(
 ) -> dict[str, Any]:
     state = load_json(state_path)
     report = load_json(report_path)
-    validate_with_schema(state, "state")
+    validate_state(state)
     validate_with_schema(report, "audit")
 
     if state["machine_state"] not in {"READY_FOR_AUDIT", "AUDITING"}:
@@ -219,7 +250,7 @@ def audit_handoff(
         state["message"] = "Audit failed; findings are ready for Builder correction."
 
     state["updated_at"] = now()
-    validate_with_schema(state, "state")
+    validate_state(state)
     write_json(state_path, state)
     return state
 
@@ -233,7 +264,7 @@ def approve_gate(
     audited_sha: str,
 ) -> dict[str, Any]:
     state = load_json(state_path)
-    validate_with_schema(state, "state")
+    validate_state(state)
     if state["machine_state"] != "WAITING_PRODUCT_AUTHORITY":
         raise HandoffError(
             f"Gate registration requires WAITING_PRODUCT_AUTHORITY, not {state['machine_state']}"
@@ -262,14 +293,14 @@ def approve_gate(
         "Gate registration recorded from explicit Product Authority action. The next phase is not started automatically."
     )
     state["updated_at"] = now()
-    validate_with_schema(state, "state")
+    validate_state(state)
     write_json(state_path, state)
     return state
 
 
 def status(state_path: Path) -> dict[str, Any]:
     state = load_json(state_path)
-    validate_with_schema(state, "state")
+    validate_state(state)
     return state
 
 

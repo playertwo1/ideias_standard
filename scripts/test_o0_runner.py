@@ -436,8 +436,8 @@ class O0RunnerTest(unittest.TestCase):
         self.assertEqual(before, state.read_bytes())
 
     def test_runner_rejects_nonexistent_audit_sha_before_agent_or_state_mutation(self):
-        _, _, head = self._repository()
-        state, config, marker = self._audit_runner_inputs("f" * 40, head)
+        self._repository()
+        state, config, marker = self._audit_runner_inputs("f" * 40, "f" * 40)
         before = state.read_bytes()
 
         result = self._run_runner_cli(config)
@@ -448,7 +448,7 @@ class O0RunnerTest(unittest.TestCase):
         self.assertEqual(before, state.read_bytes())
 
     def test_runner_rejects_non_commit_audit_sha_before_agent_or_state_mutation(self):
-        repository, _, head = self._repository()
+        repository, _, _ = self._repository()
         blob = subprocess.run(
             ["git", "rev-parse", "HEAD:file.txt"],
             cwd=repository,
@@ -456,7 +456,7 @@ class O0RunnerTest(unittest.TestCase):
             capture_output=True,
             text=True,
         ).stdout.strip()
-        state, config, marker = self._audit_runner_inputs(blob, head)
+        state, config, marker = self._audit_runner_inputs(blob, blob)
         before = state.read_bytes()
 
         result = self._run_runner_cli(config)

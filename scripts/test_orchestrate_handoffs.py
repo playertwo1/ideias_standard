@@ -219,6 +219,83 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         self.assertEqual(before, self.state_path.read_bytes())
         self.assertEqual(3, status(self.state_path)["audit_round"])
 
+    def test_inconsistent_frozen_sha_state_is_rejected_without_mutation(self):
+        audit_path = self.root / "audit-inconsistent-state.json"
+        dump(audit_path, audit_report(SHA_B))
+        state = json.loads(self.state_path.read_text(encoding="utf-8"))
+        state["machine_state"] = "READY_FOR_AUDIT"
+        state["builder_head_sha"] = SHA_A
+        state["audit_target_sha"] = SHA_B
+        dump(self.state_path, state)
+        before = self.state_path.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "builder_head_sha must equal audit_target_sha"):
+            audit_handoff(self.state_path, audit_path)
+
+        self.assertEqual(before, self.state_path.read_bytes())
+
+    def test_audited_states_require_consistent_relevant_shas(self):
+        state = json.loads(self.state_path.read_text(encoding="utf-8"))
+        state.update(
+            machine_state="FIX_REQUIRED",
+            builder_head_sha=SHA_A,
+            audit_target_sha=SHA_A,
+            last_audited_sha=SHA_B,
+            last_audit_result="FAIL",
+        )
+        dump(self.state_path, state)
+        before = self.state_path.read_bytes()
+
+        with self.assertRaisesRegex(HandoffError, "last_audited_sha must equal audit_target_sha"):
+            status(self.state_path)
+
+        self.assertEqual(before, self.state_path.read_bytes())
+
+    def test_machine_states_require_their_relevant_shas(self):
+        initial = self.state_path.read_bytes()
+        cases = (
+            ("READY_FOR_BUILD", {"builder_head_sha": SHA_A}, "all relevant SHAs to be null"),
+            ("READY_FOR_AUDIT", {}, "requires builder_head_sha"),
+            ("AUDITING", {}, "requires builder_head_sha"),
+            ("FIX_REQUIRED", {"builder_head_sha": SHA_A, "audit_target_sha": SHA_A}, "requires last_audited_sha"),
+            ("WAITING_PRODUCT_AUTHORITY", {"builder_head_sha": SHA_A, "audit_target_sha": SHA_A}, "requires last_audited_sha"),
+            ("GATE_APPROVED", {"builder_head_sha": SHA_A, "audit_target_sha": SHA_A}, "requires last_audited_sha"),
+            ("BLOCKED", {}, "requires builder_head_sha"),
+        )
+
+        for machine_state, changes, expected_error in cases:
+            with self.subTest(machine_state=machine_state):
+                state = json.loads(initial)
+                state.update(machine_state=machine_state, **changes)
+                dump(self.state_path, state)
+                before = self.state_path.read_bytes()
+
+                with self.assertRaisesRegex(HandoffError, expected_error):
+                    status(self.state_path)
+
+                self.assertEqual(before, self.state_path.read_bytes())
+                self.state_path.write_bytes(initial)
+
+    def test_relevant_shas_survive_handoffs_and_reload(self):
+        builder_path = self.root / "builder-shas.json"
+        audit_path = self.root / "audit-shas.json"
+        dump(builder_path, builder_report(sha=SHA_A))
+        dump(audit_path, audit_report(SHA_A, result="FAIL", blocking=True))
+
+        built = builder_handoff(self.state_path, builder_path, SHA_A)
+        audited = audit_handoff(self.state_path, audit_path)
+        restarted = status(self.state_path)
+
+        self.assertEqual((SHA_A, SHA_A, None), (
+            built["builder_head_sha"], built["audit_target_sha"], built["last_audited_sha"]
+        ))
+        self.assertEqual((SHA_A, SHA_A, SHA_A), (
+            audited["builder_head_sha"], audited["audit_target_sha"], audited["last_audited_sha"]
+        ))
+        self.assertEqual((SHA_A, SHA_A, SHA_A), (
+            restarted["builder_head_sha"], restarted["audit_target_sha"], restarted["last_audited_sha"]
+        ))
+
     def test_fail_fix_pass_human_gate_flow(self):
         builder_one = self.root / "builder-1.json"
         dump(builder_one, builder_report())
