@@ -363,6 +363,62 @@ class O0RunnerTest(unittest.TestCase):
         self.assertEqual("NONE", unchanged["gate"])
         self.assertIsNone(unchanged["approval"])
 
+    def test_terminal_states_do_not_run_agents_or_advance_phase(self):
+        repository, _, target = self._repository()
+        cases = {
+            "WAITING_PRODUCT_AUTHORITY": {
+                "last_audit_result": "PASS",
+                "last_audited_sha": target,
+                "approval": None,
+                "next_actor": "PRODUCT_AUTHORITY",
+            },
+            "BLOCKED": {
+                "last_audit_result": "ESCALATE",
+                "last_audited_sha": target,
+                "approval": None,
+                "next_actor": "PRODUCT_AUTHORITY",
+            },
+            "GATE_APPROVED": {
+                "last_audit_result": "PASS",
+                "last_audited_sha": target,
+                "approval": {
+                    "executor_id": "owner",
+                    "role": "PRODUCT_AUTHORITY",
+                    "authority": "GATE_APPROVAL",
+                    "gate": "S1",
+                    "audited_sha": target,
+                    "approved_at": "now",
+                },
+                "next_actor": "STOP",
+            },
+        }
+
+        for machine_state, expected in cases.items():
+            with self.subTest(machine_state=machine_state):
+                state, config, marker = self._audit_runner_inputs(target, target)
+                payload = json.loads(state.read_text(encoding="utf-8"))
+                payload.update({
+                    "phase": "O0",
+                    "gate": "S1",
+                    "machine_state": machine_state,
+                    "last_audit_result": expected["last_audit_result"],
+                    "last_audited_sha": expected["last_audited_sha"],
+                    "approval": expected["approval"],
+                })
+                state.write_text(json.dumps(payload), encoding="utf-8")
+                before = state.read_bytes()
+
+                result = self._run_runner_cli(config)
+
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertFalse(marker.exists())
+                self.assertEqual(before, state.read_bytes())
+                observed = json.loads(result.stdout)
+                self.assertEqual("O0", observed["phase"])
+                self.assertEqual("S1", observed["gate"])
+                self.assertEqual(machine_state, observed["machine_state"])
+                self.assertEqual(expected["next_actor"], observed["next_actor"])
+
     def test_runner_rejects_malformed_audit_sha_before_agent_or_state_mutation(self):
         _, _, head = self._repository()
         state, config, marker = self._audit_runner_inputs("not-a-sha", head)

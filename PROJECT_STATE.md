@@ -4,12 +4,12 @@
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
 - **Objetivo atual:** avançar S1 — Conformance First com O0 — Operational Orchestrator como tooling transversal prioritário
-- **Última concluída:** O0-C28 — nenhum gate humano é registrado automaticamente implementado; sem declaração de PASS
-- **Próxima:** auditoria independente de O0-C28; O0-C29 permanece não iniciado
+- **Última concluída:** O0-C29 — próxima fase não inicia automaticamente implementado; sem declaração de PASS
+- **Próxima:** auditoria independente de O0-C29; O0-C30 permanece não iniciado
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL — O0-C01–O0-C28 implementados; O0-C28 aguarda auditoria independente
+- **O0:** PARTIAL — O0-C01–O0-C29 implementados; O0-C29 aguarda auditoria independente
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
@@ -26,6 +26,8 @@
 - Auditoria independente de O0-C25: PASS no SHA `b954bddc568e2be9c4c37f88dd4ea0d22e051878`
 - Auditoria independente de O0-C26: PASS no SHA `a5d7f12ccd27370fce8751837ca4ad8751cb84dc`
 - Auditoria independente de O0-C27: PASS no SHA `0e53f0e49154688bb07ff74169402b0e33bd82fb`
+- Auditoria independente do README até O0-C27: PASS no SHA `019c561493cfaaee6628ac24bd61856bbac6b94a`
+- Auditoria independente de O0-C28: PASS no SHA `9b90b8000c16bc08787116fa99553dd8411a520a`
 - SHA funcional validado: `2ab2d3881693393e53e2ba324cc947a6eb6821e8`
 - Python 3.11: PASS
 - Python 3.12: PASS
