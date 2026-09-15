@@ -295,6 +295,8 @@ class OrchestrateHandoffsTest(unittest.TestCase):
 
     def test_machine_states_require_their_relevant_shas(self):
         initial = self.state_path.read_bytes()
+        blocked_report = self.root / "builder-blocked-sha-requirement.json"
+        dump(blocked_report, builder_report(result="BLOCKED"))
         cases = (
             ("READY_FOR_BUILD", {"builder_head_sha": SHA_A}, "all relevant SHAs to be null"),
             ("READY_FOR_AUDIT", {}, "requires builder_head_sha"),
@@ -304,7 +306,10 @@ class OrchestrateHandoffsTest(unittest.TestCase):
             ("GATE_APPROVED", {"builder_head_sha": SHA_A, "audit_target_sha": SHA_A}, "requires last_audited_sha"),
             (
                 "BLOCKED",
-                {"blocked_reason": {"code": "BUILDER_BLOCKED", "source": "BUILDER", "evidence_ref": "last_builder_report"}},
+                {
+                    "blocked_reason": {"code": "BUILDER_BLOCKED", "source": "BUILDER", "evidence_ref": "last_builder_report"},
+                    "last_builder_report": str(blocked_report),
+                },
                 "requires builder_head_sha",
             ),
         )
@@ -589,6 +594,35 @@ class OrchestrateHandoffsTest(unittest.TestCase):
             status(self.state_path)
 
         self.assertEqual(before, self.state_path.read_bytes())
+
+    def test_builder_blocked_reason_must_match_referenced_report_result(self):
+        initial = self.state_path.read_bytes()
+        cases = (
+            ("BLOCKED", "BUILDER_DISPUTED"),
+            ("DISPUTED", "BUILDER_BLOCKED"),
+        )
+
+        for result, wrong_code in cases:
+            with self.subTest(result=result, wrong_code=wrong_code):
+                self.state_path.write_bytes(initial)
+                report_path = self.root / f"builder-{result.lower()}-swapped-reason.json"
+                report = builder_report(result=result)
+                if result == "DISPUTED":
+                    report["disputed_findings"] = ["AUD-C34-001"]
+                dump(report_path, report)
+                blocked = builder_handoff(self.state_path, report_path, SHA_A)
+                blocked["blocked_reason"] = {
+                    "code": wrong_code,
+                    "source": "BUILDER",
+                    "evidence_ref": "last_builder_report",
+                }
+                dump(self.state_path, blocked)
+                before = self.state_path.read_bytes()
+
+                with self.assertRaisesRegex(HandoffError, "blocked_reason does not match Builder result"):
+                    status(self.state_path)
+
+                self.assertEqual(before, self.state_path.read_bytes())
 
 
 if __name__ == "__main__":

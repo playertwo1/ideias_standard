@@ -103,6 +103,20 @@ def validate_state(state: dict[str, Any]) -> None:
             and state["audit_round"] >= state["max_audit_rounds"]
         ):
             raise HandoffError("AUDIT_ROUND_LIMIT_REACHED requires exhausted audit rounds")
+        if code in {"BUILDER_BLOCKED", "BUILDER_DISPUTED"}:
+            report_path = state["last_builder_report"]
+            if report_path is None:
+                raise HandoffError("Builder blocked_reason requires last_builder_report")
+            try:
+                builder_result = load_json(Path(report_path)).get("result")
+            except (OSError, json.JSONDecodeError, HandoffError) as error:
+                raise HandoffError("Referenced Builder report is unavailable or invalid") from error
+            expected_code = {
+                "BLOCKED": "BUILDER_BLOCKED",
+                "DISPUTED": "BUILDER_DISPUTED",
+            }.get(builder_result)
+            if code != expected_code:
+                raise HandoffError("blocked_reason does not match Builder result")
     elif blocked_reason is not None:
         raise HandoffError(f"{machine_state} requires blocked_reason to be null")
     builder_sha = state["builder_head_sha"]
