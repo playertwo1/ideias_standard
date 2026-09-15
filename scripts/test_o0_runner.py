@@ -195,6 +195,93 @@ class O0RunnerTest(unittest.TestCase):
         ).stdout.strip()
         return repository, first, second
 
+    def _audit_runner_inputs(self, audit_target: str, builder_head: str):
+        state = self.root / "state.json"
+        state.write_text(json.dumps({
+            "schema_version": "0.1",
+            "project_id": "sample",
+            "phase": "O0",
+            "gate": "NONE",
+            "machine_state": "READY_FOR_AUDIT",
+            "builder_branch": "work",
+            "builder_executor_id": "builder-executor",
+            "auditor_executor_id": None,
+            "product_authority_id": "owner",
+            "builder_head_sha": builder_head,
+            "audit_target_sha": audit_target,
+            "last_audited_sha": None,
+            "audit_round": 0,
+            "max_audit_rounds": 3,
+            "last_builder_report": None,
+            "last_audit_report": None,
+            "last_audit_result": None,
+            "human_gate_required": True,
+            "approval": None,
+            "updated_at": "now",
+            "message": "",
+        }), encoding="utf-8")
+        (self.root / "builder").mkdir(exist_ok=True)
+        marker = self.root / "auditor-ran"
+        actor = [
+            sys.executable,
+            "-c",
+            f"from pathlib import Path; Path({str(marker)!r}).touch()",
+        ]
+        config = self.root / "runner.json"
+        config.write_text(json.dumps({
+            "repository": "repo",
+            "state_path": "state.json",
+            "reports_dir": "reports",
+            "builder_workspace": "builder",
+            "audit_workspaces": "audits",
+            "builder_command": ["must-not-run"],
+            "auditor_command": actor,
+        }), encoding="utf-8")
+        return state, config, marker
+
+    def test_runner_rejects_malformed_audit_sha_before_agent_or_state_mutation(self):
+        _, _, head = self._repository()
+        state, config, marker = self._audit_runner_inputs("not-a-sha", head)
+        before = state.read_bytes()
+
+        result = self._run_runner_cli(config)
+
+        self.assertEqual(2, result.returncode)
+        self.assertIn("state schema validation failed", result.stderr)
+        self.assertFalse(marker.exists())
+        self.assertEqual(before, state.read_bytes())
+
+    def test_runner_rejects_nonexistent_audit_sha_before_agent_or_state_mutation(self):
+        _, _, head = self._repository()
+        state, config, marker = self._audit_runner_inputs("f" * 40, head)
+        before = state.read_bytes()
+
+        result = self._run_runner_cli(config)
+
+        self.assertEqual(2, result.returncode)
+        self.assertIn("Unknown result SHA", result.stderr)
+        self.assertFalse(marker.exists())
+        self.assertEqual(before, state.read_bytes())
+
+    def test_runner_rejects_non_commit_audit_sha_before_agent_or_state_mutation(self):
+        repository, _, head = self._repository()
+        blob = subprocess.run(
+            ["git", "rev-parse", "HEAD:file.txt"],
+            cwd=repository,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        state, config, marker = self._audit_runner_inputs(blob, head)
+        before = state.read_bytes()
+
+        result = self._run_runner_cli(config)
+
+        self.assertEqual(2, result.returncode)
+        self.assertIn("Unknown result SHA", result.stderr)
+        self.assertFalse(marker.exists())
+        self.assertEqual(before, state.read_bytes())
+
     def test_auditor_cannot_restore_write_permission_or_write_target(self):
         repository, _, target = self._repository()
         workspace = prepare_audit_workspace(repository, self.root / "audits", target)
