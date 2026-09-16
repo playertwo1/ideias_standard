@@ -138,6 +138,10 @@ A existência de um relatório não prova execução. Checks declarados como `NO
 
 O runner adquire um lock de processo em `<state>.lock` antes de ler o estado e o mantém durante validação, execução do ator e persistência. `lock_timeout_seconds` define a espera máxima e usa `0` por padrão, rejeitando concorrência imediatamente. O lock pertence ao kernel: o arquivo pode permanecer após encerramento, mas não concede autoridade e um processo morto libera a exclusão automaticamente.
 
+## Identidade e replay de operação
+
+Cada execução Builder/Auditor recebe `op-<sha256>` derivado deterministicamente de `run_id`, estado de origem, ator, rodada e SHAs relevantes. O resultado, o relatório imutável e seu digest ficam em `reports/operations/`. Para repetir explicitamente uma chamada, o cliente reutiliza `operation_id` na configuração: payload idêntico retorna o resultado persistido sem executar o ator; identidade desconhecida ou payload divergente é rejeitado dentro do mesmo lock.
+
 ## Estados
 
 - `READY_FOR_BUILD`: Builder pode agir.

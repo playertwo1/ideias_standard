@@ -36,3 +36,11 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Result: one actor and one transition under contention; the concurrent runner exits deterministically.
 - Stale handling: kernel ownership releases the lock after forced process termination; a leftover lock file does not block recovery.
 - Failure handling: actor failure preserves canonical state bytes and releases the lock.
+
+## O0-C40 — idempotent operation identity
+
+- Command: `python -m unittest scripts.test_o0_idempotency` (também executado em WSL).
+- Identity: SHA-256 canônico de `run_id`, estado de origem, ator, rodada e SHAs relevantes.
+- Replay: novo processo retorna o resultado persistido sem executar novamente o ator.
+- Conflict: mesmo `operation_id` com relatório divergente é rejeitado sem mutação ou duplicação.
+- Boundary: recuperação de interrupção entre transição e registro permanece em O0-C41.

@@ -58,6 +58,7 @@ _REFER = 1 << 13
 _TRUNCATE = 1 << 14
 _EVIDENCE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+_OPERATION_ID = re.compile(r"^op-[0-9a-f]{64}$")
 
 
 class _RulesetAttr(ctypes.Structure):
@@ -90,6 +91,11 @@ def load_config(path: Path) -> dict[str, Any]:
         or timeout < 0
     ):
         raise HandoffError("lock_timeout_seconds must be a non-negative finite number")
+    operation_id = data.get("operation_id")
+    if operation_id is not None and (
+        not isinstance(operation_id, str) or not _OPERATION_ID.fullmatch(operation_id)
+    ):
+        raise HandoffError("operation_id must be op- followed by 64 lowercase hex characters")
     return data
 
 
@@ -155,6 +161,96 @@ def canonical_json_bytes(payload: dict[str, Any]) -> bytes:
     return json.dumps(
         payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
+
+
+def operation_identity(current: dict[str, Any], actor: str) -> tuple[str, dict[str, Any]]:
+    source = {
+        "run_id": current["run_id"],
+        "machine_state": current["machine_state"],
+        "actor": actor,
+        "audit_round": current["audit_round"],
+        "builder_head_sha": current.get("builder_head_sha"),
+        "audit_target_sha": current.get("audit_target_sha"),
+        "last_audited_sha": current.get("last_audited_sha"),
+    }
+    return operation_id_from_source(source), source
+
+
+def operation_id_from_source(source: dict[str, Any]) -> str:
+    digest = hashlib.sha256(canonical_json_bytes(source)).hexdigest()
+    return f"op-{digest}"
+
+
+def _operation_paths(reports_dir: Path, operation_id: str) -> tuple[Path, Path]:
+    root = reports_dir / "operations"
+    return root / f"{operation_id}.json", root / f"{operation_id}.report.json"
+
+
+def replay_operation(
+    reports_dir: Path, operation_id: str, current: dict[str, Any]
+) -> dict[str, Any] | None:
+    record_path, snapshot_path = _operation_paths(reports_dir, operation_id)
+    if not record_path.is_file():
+        return None
+    raw_record = record_path.read_bytes()
+    record = load_json(record_path)
+    validate_with_schema(record, "operation")
+    validate_with_schema(record["result"], "state")
+    if raw_record != canonical_json_bytes(record) or record.get("operation_id") != operation_id:
+        raise HandoffError("Persisted operation record is invalid")
+    if (
+        operation_id_from_source(record["source"]) != operation_id
+        or record["actor"] != record["source"]["actor"]
+        or record["result"] != current
+    ):
+        raise HandoffError("Persisted operation record identity or result is inconsistent")
+    report_path = Path(record["report_path"])
+    if not report_path.is_file() or not snapshot_path.is_file():
+        raise HandoffError("Persisted operation report is missing")
+    expected = record["report_sha256"]
+    if (
+        hashlib.sha256(report_path.read_bytes()).hexdigest() != expected
+        or hashlib.sha256(snapshot_path.read_bytes()).hexdigest() != expected
+    ):
+        raise HandoffError("Operation payload differs from the persisted identity")
+    return {
+        **record["result"],
+        "operation_id": operation_id,
+        "operation_replayed": True,
+    }
+
+
+def persist_operation(
+    reports_dir: Path,
+    operation_id: str,
+    source: dict[str, Any],
+    actor: str,
+    report_path: Path,
+    result: dict[str, Any],
+) -> dict[str, Any]:
+    record_path, snapshot_path = _operation_paths(reports_dir, operation_id)
+    record_path.parent.mkdir(parents=True, exist_ok=True)
+    report_bytes = report_path.read_bytes()
+    report_digest = hashlib.sha256(report_bytes).hexdigest()
+    try:
+        with snapshot_path.open("xb") as stream:
+            stream.write(report_bytes)
+        record = {
+            "schema_version": "0.1",
+            "operation_id": operation_id,
+            "source": source,
+            "actor": actor,
+            "report_path": str(report_path),
+            "report_sha256": report_digest,
+            "result": result,
+        }
+        validate_with_schema(record, "operation")
+        validate_with_schema(result, "state")
+        with record_path.open("xb") as stream:
+            stream.write(canonical_json_bytes(record))
+    except FileExistsError as exc:
+        raise HandoffError(f"Operation identity already exists: {operation_id}") from exc
+    return {**result, "operation_id": operation_id, "operation_replayed": False}
 
 
 def store_evidence(
@@ -747,7 +843,19 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
     validate_auditor_boundaries(state_path, audit_root, reports_dir)
 
     current = status(state_path)
+    requested_operation = config.get("operation_id")
+    if requested_operation is not None:
+        replayed = replay_operation(reports_dir, requested_operation, current)
+        if replayed is not None:
+            return replayed
     actor = next_actor(current)
+    if actor in {"BUILDER", "AUDITOR"}:
+        expected_operation, operation_source = operation_identity(current, actor)
+        if requested_operation is not None and requested_operation != expected_operation:
+            raise HandoffError("operation_id does not match the current state transition")
+        operation_id = requested_operation or expected_operation
+    elif requested_operation is not None:
+        raise HandoffError("operation_id is not valid while automation is stopped")
     common_env = {
         "IDEAS_STANDARD_PROJECT_ID": current["project_id"],
         "IDEAS_STANDARD_PHASE": current["phase"],
@@ -789,7 +897,10 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
                 findings_handoff,
                 reports_dir,
             )
-        return builder_handoff(state_path, report)
+        result = builder_handoff(state_path, report)
+        return persist_operation(
+            reports_dir, operation_id, operation_source, actor, report, result
+        )
 
     if actor == "AUDITOR":
         target = current.get("audit_target_sha")
@@ -820,7 +931,10 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
         verify_audit_after(workspace, state_path, target, state_before)
         audit_context = {**current, "audit_round": current["audit_round"] + 1}
         canonicalize_report_evidence(report, "audit", audit_context, reports_dir / "evidence")
-        return audit_handoff(state_path, report)
+        result = audit_handoff(state_path, report)
+        return persist_operation(
+            reports_dir, operation_id, operation_source, actor, report, result
+        )
 
     return current
 
