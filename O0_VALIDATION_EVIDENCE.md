@@ -73,5 +73,7 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 
 - Tests: `python -m unittest scripts.test_o0_failures scripts.test_o0_recovery scripts.test_o0_timeout_cancel scripts.test_o0_idempotency` com processos reais.
 - Falhas de ator e relatórios inválidos persistem evidência canônica de categoria, exit code e vínculo ao estado, sem saída textual, traceback ou payload sensível.
+- Journal de operação com JSON malformado persiste evidência estruturada de INVALID_JSON, exit code 2 e saída sem secrets, sem executar o ator ou alterar o estado canônico.
 - Processo reiniciado preserva evidência; se o ator saiu com código não zero após gerar relatório válido, C41 valida e recupera sem reexecutá-lo.
 - Configuração inválida persiste evidência mínima ao lado da configuração; falha de escrita da evidência retorna erro seguro.
+

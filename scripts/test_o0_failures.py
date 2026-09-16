@@ -138,3 +138,29 @@ class O0RunnerFailureTest(O0InterruptionRecoveryTest):
         record_path = next((self.root / "reports" / "runner-failures").glob("*.json"))
         evidence = json.loads(record_path.read_text(encoding="utf-8"))
         self.assertIsNone(evidence["operation_id"])
+
+    def test_malformed_journal_persists_failure_evidence_without_secrets_or_state_advance(self):
+        self._start_paused_runner("persist_operation")
+        journal_path = next((self.root / "reports" / "operations").glob("*.journal.json"))
+        secret = "C43_JOURNAL_SECRET_MALFORMED_9c1e"
+        journal_path.write_text('{"secret":"' + secret + '",', encoding="utf-8")
+        before_state = self.state.read_bytes()
+        before_marker = self.marker.read_text(encoding="utf-8") if self.marker.exists() else ""
+
+        failed = self._resume()
+
+        self.assertEqual(2, failed.returncode)
+        self.assertNotIn(secret, failed.stdout + failed.stderr)
+        self.assertEqual(before_state, self.state.read_bytes())
+        if self.marker.exists():
+            self.assertEqual(before_marker, self.marker.read_text(encoding="utf-8"))
+        record_path = next((self.root / "reports" / "runner-failures").glob("*.json"))
+        raw = record_path.read_text(encoding="utf-8")
+        self.assertNotIn(secret, raw)
+        evidence = json.loads(raw)
+        self.assertEqual("INVALID_JSON", evidence["kind"])
+        self.assertEqual(2, evidence["runner_exit_code"])
+        self.assertIsNone(evidence["actor_exit_code"])
+        self.assertIsNone(evidence["operation_id"])
+        self.assertEqual(json.loads(before_state)["run_id"], evidence["run_id"])
+

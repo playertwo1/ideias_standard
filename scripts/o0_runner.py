@@ -1180,7 +1180,7 @@ def persist_runner_failure(
         journal_present = any((root / "operations").glob("op-*.journal.json"))
         try:
             pending = load_recovery_journal(root)
-        except HandoffError:
+        except (HandoffError, json.JSONDecodeError, OSError, ValueError, UnicodeError):
             pending = None
         if pending is not None:
             operation_id = pending[1]["operation_id"]
