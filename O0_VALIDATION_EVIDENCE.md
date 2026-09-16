@@ -104,3 +104,16 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Builder: Antigravity CLI v1.2.4 headless (`gemini-3.7-flash-medium`), commit `09e05b65ce8dcb35e9b83d08fb4b8e5b96662694` reproduzido via `builder.bundle` e testes validados.
 - Auditor: OpenAI Codex CLI v0.154.0 headless, `--sandbox read-only`, checkout isolado e protegido contra escrita (`stat.S_IREAD`), tentativa de escrita real rejeitada (`PermissionError`), checkout 100% inalterado (`git status` limpo), relatório validado em schema JSON com `audit_result: PASS`.
 - Limites: M2 e S2 não iniciados; nenhum gate de produto registrado; Gate S1 = NOT_RUN.
+
+## O0 v2 M2 — Runner Adapters Integration
+
+- Status: Implementado e validado com execução real; pronto para auditoria independente
+- Evidência canônica: `O0_V2_M2_EVIDENCE.json` e pacote persistente `O0_V2_M2_EVIDENCE_PACKAGE/`
+- Documentação detalhada: `docs/O0_V2_M2_EVIDENCE.md`
+- Adapters: `scripts/o0_antigravity_adapter.py` (Builder via Antigravity CLI) e `scripts/o0_codex_adapter.py` (Auditor via OpenAI Codex CLI).
+- Orquestrador e validação: `scripts/o0_m2_runner_integration.py` e testes automatizados em `scripts/test_o0_m2_runner_integration.py`.
+- Execução real pelo runner:
+  - Step 1 (Builder): Antigravity CLI gerou commit `ccc07302d508194cbd5885e2dd3fc8718d1d7127`, validou testes unitários e produziu `builder-report.json`. O runner validou o schema, verificou o commit no Git, canonicizou evidências e transicionou para `READY_FOR_AUDIT`.
+  - Step 2 (Auditor): Codex CLI executou em worktree desacoplado e protegido contra escrita (`audit-workspaces/ccc07302...`) sob `--sandbox read-only`, auditou o commit, produziu `audit-report.json` com `audit_result: PASS`. O runner validou integridade do checkout (`git status --porcelain` vazio), schema de auditoria e canonicizou evidências.
+- Parada e governança: Estado final em `WAITING_PRODUCT_AUTHORITY` com `approval: null` e `human_gate_required: true`. Nenhum gate de produto foi registrado.
+- Limites: M3 e S2 não iniciados; Gate S1 permanece `NOT_RUN` e S2 `NOT_STARTED`.

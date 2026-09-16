@@ -266,13 +266,13 @@ Não é gate de produto.
 
 #### M2 — Conectar os adapters ao runner
 
-- [ ] Criar apenas os adapters necessários para chamar Antigravity e Codex pelos comandos configuráveis do runner.
-- [ ] Passar tarefa, contexto mínimo, workspace e destino de saída explicitamente.
-- [ ] Converter a saída das CLIs para os relatórios canônicos e validar pelos schemas existentes.
-- [ ] Verificar SHA, referências de evidência e integridade do checkout antes de aceitar o resultado.
-- [ ] Aplicar os controles existentes de timeout, cancelamento e retomada às CLIs reais.
+- [x] Criar apenas os adapters necessários para chamar Antigravity e Codex pelos comandos configuráveis do runner.
+- [x] Passar tarefa, contexto mínimo, workspace e destino de saída explicitamente.
+- [x] Converter a saída das CLIs para os relatórios canônicos e validar pelos schemas existentes.
+- [x] Verificar SHA, referências de evidência e integridade do checkout antes de aceitar o resultado.
+- [x] Aplicar os controles existentes de timeout, cancelamento e retomada às CLIs reais.
 
-**Aceite:** o runner chama cada agente e aceita relatórios válidos sem intermediação humana.
+**Aceite:** o runner chama cada agente e aceita relatórios válidos sem intermediação humana. Evidência em `O0_V2_M2_EVIDENCE.json` e pacote persistente `O0_V2_M2_EVIDENCE_PACKAGE/`. M3 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
 
 #### M3 — Fechar o ciclo de correção
 

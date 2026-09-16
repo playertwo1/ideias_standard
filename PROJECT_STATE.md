@@ -3,18 +3,20 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** O0 v2 M1 auditado e aprovado com PASS independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`; preparar O0 v2 M2 (conectar os adapters ao runner)
-- **Última implementada:** O0 v2 M1 — validação não interativa de Antigravity CLI e Codex CLI; auditada e aprovada com PASS independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`
-- **Próxima:** O0 v2 M2 — conectar os adapters ao runner; M2 não iniciado nesta atualização
+- **Objetivo atual:** O0 v2 M2 implementado e validado com ciclo real no runner; submetido para auditoria independente
+- **Última implementada:** O0 v2 M2 — conexão dos adapters Antigravity e Codex aos comandos configuráveis do `scripts/o0_runner.py`, validação de relatórios canônicos e empacotamento de evidências
+- **Próxima:** O0 v2 M3 — fechar o ciclo de correção; M3 não iniciado nesta atualização
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1 aprovado com PASS independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`; O0 v2 M2–M5 planejados; Gate S1 = NOT_RUN e S2 = NOT_STARTED
+- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1 auditado e aprovado com PASS independente; O0 v2 M2 implementado e validado; O0 v2 M3–M5 planejados; Gate S1 = NOT_RUN e S2 = NOT_STARTED
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
 
 ## Evidência atual
+
+- O0 v2 M2 implementado e validado: adapters `scripts/o0_antigravity_adapter.py` e `scripts/o0_codex_adapter.py` conectados aos comandos configuráveis do `scripts/o0_runner.py`. Execução não interativa de ciclo real orquestrada por `scripts/o0_m2_runner_integration.py`, com aceitação de relatórios canônicos validados por schema (`builder-report.json` e `audit-report.json`), verificação de commit SHA, worktree de auditoria imutável, envelopes canônicos de evidência e parada estrita em `WAITING_PRODUCT_AUTHORITY` com `approval: null` e `human_gate_required: true`. Evidência canônica em `O0_V2_M2_EVIDENCE.json` e pacote persistente `O0_V2_M2_EVIDENCE_PACKAGE/`. Testes automatizados em `scripts/test_o0_m2_runner_integration.py`. Nenhum gate humano registrado; M3 e S2 não iniciados.
 
 - Auditoria independente de O0 v2 M1: PASS no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`. Evidência canônica de aceite: `O0_V2_M1_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M1_EVIDENCE_REAUDIT_PACKAGE/` (com bundle Git do Builder `builder.bundle`, saídas completas e relatório JSON validado do Codex `codex_audit_report.json`). O registro `O0_V2_M1_EVIDENCE.json` permanece identificado como histórico substituído. Nenhum gate humano registrado; M2 e S2 não iniciados.
 
