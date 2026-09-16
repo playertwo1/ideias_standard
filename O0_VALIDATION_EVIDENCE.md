@@ -148,4 +148,3 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
   - Limite de rodadas: ciclo finalizado em 2 rodadas (respeitando `max_audit_rounds = 3`).
   - Bundle autossuficiente: `builder.bundle` registra histórico completo e pode ser clonado isoladamente com testes passando.
 - Limites: M4 e S2 não iniciados; Gate S1 permanece `NOT_RUN` e S2 `NOT_STARTED`.
-

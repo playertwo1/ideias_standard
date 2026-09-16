@@ -1312,6 +1312,50 @@ class O0RunnerTest(unittest.TestCase):
         self.assertEqual("finding must reach Builder", json.loads(report.read_text())["problem"])
         self.assertEqual(before, state.read_bytes())
 
+    @unittest.skipUnless(os.name == "nt", "Windows file sharing semantics")
+    def test_windows_late_handoff_replace_is_blocked_before_builder_read(self):
+        target = "a" * 40
+        reports = self.root / "windows-findings-reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        audit_report.write_text(json.dumps(self._fail_report(target)), encoding="utf-8")
+        current = self._fix_required_state(target, audit_report)
+        state = self.root / "windows-findings-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        handoff = prepare_builder_findings(current, reports)
+        before = state.read_bytes()
+        real_run = subprocess.run
+        rejected = False
+        write_rejected = False
+
+        def swap_at_spawn(*args, **kwargs):
+            nonlocal rejected, write_rejected
+            payload = json.loads(handoff.read_text(encoding="utf-8"))
+            payload["findings"][0]["problem"] = "forged at spawn"
+            replacement = self.root / "forged-findings.json"
+            replacement.write_text(json.dumps(payload), encoding="utf-8")
+            try:
+                os.replace(replacement, handoff)
+            except OSError:
+                rejected = True
+            try:
+                handoff.write_text(json.dumps(payload), encoding="utf-8")
+            except OSError:
+                write_rejected = True
+            return real_run(*args, **kwargs)
+
+        report = reports / "builder-report.json"
+        code = "import json,os; from pathlib import Path; p=json.load(open(os.environ['IDEAS_STANDARD_FINDINGS'])); Path(os.environ['IDEAS_STANDARD_REPORT']).write_text(json.dumps({'problem':p['findings'][0]['problem']}))"
+        with patch("scripts.o0_runner.subprocess.run", side_effect=swap_at_spawn):
+            run_actor(
+                [sys.executable, "-c", code], self.root, report,
+                {"IDEAS_STANDARD_FINDINGS": str(handoff), "IDEAS_STANDARD_STATE": str(state)},
+            )
+        self.assertTrue(rejected)
+        self.assertTrue(write_rejected)
+        self.assertEqual("finding must reach Builder", json.loads(report.read_text())["problem"])
+        self.assertEqual(before, state.read_bytes())
+
 
     def _builder_report(self, result_sha: str):
         return {

@@ -3,10 +3,10 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** auditoria independente de O0 v2 M3 (ciclo de correção Antigravity ↔ Codex)
+- **Objetivo atual:** reauditoria independente do finding de O0 v2 M3 no Windows
 - **Última implementada:** O0 v2 M3 — ciclo de correção Builder → Auditor FAIL → Builder corrige → Auditor PASS executado em chamada única
-- **Próxima:** auditoria independente de O0 v2 M3; M4 não iniciado
-- **Bloqueios do projeto:** nenhum conhecido
+- **Próxima:** reauditoria independente de O0 v2 M3; M4 não iniciado
+- **Bloqueios do projeto:** M3 aguarda reauditoria do encaminhamento íntegro de findings no Windows
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
 - **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1 e M2 aprovados com PASS independente; O0 v2 M3 implementado e validado; O0 v2 M4–M5 planejados; Gate S1 = NOT_RUN e S2 = NOT_STARTED
@@ -16,7 +16,7 @@
 
 ## Evidência atual
 
-- O0 v2 M3: ciclo real de correção implementado e executado em chamada única `run_loop`. Builder produziu SHA A (`09b34e...`), Auditor retornou `FAIL` com findings, Runner encaminhou findings ao Builder, Builder corrigiu e produziu SHA B distinto (`d360c3...`), Auditor reauditou e retornou `PASS`. Estado final: `WAITING_PRODUCT_AUTHORITY` com `approval: null`, `human_gate_required: true`, `audit_round: 2`. Evidência em `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. `builder.bundle` autossuficiente clonado com testes unitários passando. Auditoria independente pendente; M4 e S2 não iniciados; Gate S1 = NOT_RUN.
+- O0 v2 M3: ciclo real de correção implementado e executado em chamada única `run_loop`. Builder produziu SHA A (`09b34e...`), Auditor retornou `FAIL` com findings, Runner encaminhou findings ao Builder, Builder corrigiu e produziu SHA B distinto (`d360c3...`), Auditor reauditou e retornou `PASS`. Estado final: `WAITING_PRODUCT_AUTHORITY` com `approval: null`, `human_gate_required: true`, `audit_round: 2`. Evidência em `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. `builder.bundle` autossuficiente clonado com testes unitários passando. Finding independente no Windows (troca tardia do handoff) corrigido por bloqueio de escrita/rename durante a execução do Builder; teste adversarial passou, reauditoria pendente. M4 e S2 não iniciados; Gate S1 = NOT_RUN.
 
 - Auditoria independente de O0 v2 M2: PASS no SHA `c76317dfd0c3dd37adbc414455f8ad707b7dc88f`. Evidência canônica de aceite: `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote persistente `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE/` (provas com CLIs reais comprovaram encerramento de todos os descendentes via `taskkill /F /T /PID`, sem avanço de estado e com descarte de relatório). Os registros `O0_V2_M2_EVIDENCE.json` e `O0_V2_M2_EVIDENCE_REAUDIT.json` permanecem históricos substituídos. Nenhum gate humano registrado; M3 executado; M4 e S2 não iniciados.
 

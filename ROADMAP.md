@@ -282,7 +282,7 @@ Não é gate de produto.
 - [x] PASS terminar a tarefa em `WAITING_PRODUCT_AUTHORITY`; ESCALATE ou limite terminar em `BLOCKED` com motivo.
 - [x] Manter `approval = null` e Gate S1 = NOT_RUN.
 
-**Aceite:** ciclo real FAIL → correção → PASS iniciado uma única vez, sem copiar/colar. Evidência em `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. Auditoria independente pendente. M4 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
+**Aceite:** ciclo real FAIL → correção → PASS iniciado uma única vez, sem copiar/colar. Evidência em `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. Finding independente sobre troca tardia do handoff no Windows corrigido; reauditoria pendente. M4 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
 
 
 #### M4 — Fila de tarefas previamente autorizadas

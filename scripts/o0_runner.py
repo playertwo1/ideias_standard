@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import ctypes
+from ctypes import wintypes
 import hashlib
 import json
 import math
@@ -759,6 +760,7 @@ def run_actor(
 ) -> None:
     findings_path = env.get("IDEAS_STANDARD_FINDINGS")
     findings_fd = None
+    findings_handle = None
     actor_env = {**os.environ, **env, "IDEAS_STANDARD_REPORT": str(report)}
     if findings_path is not None:
         state_path = env.get("IDEAS_STANDARD_STATE")
@@ -783,15 +785,36 @@ def run_actor(
                 os.close(findings_fd)
                 raise
             actor_env["IDEAS_STANDARD_FINDINGS"] = f"/proc/self/fd/{findings_fd}"
+        elif os.name == "nt":
+            # Keep a read-only share lock until the actor exits: FILE_SHARE_READ
+            # denies both writes and rename/delete of the validated handoff.
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            create_file = kernel32.CreateFileW
+            create_file.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                    wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD,
+                                    wintypes.HANDLE]
+            create_file.restype = wintypes.HANDLE
+            findings_handle = create_file(str(Path(findings_path).resolve()), 0x80000000,
+                                         0x00000001, None, 3, 0, None)
+            if findings_handle == wintypes.HANDLE(-1).value:
+                raise HandoffError(f"Cannot lock Builder findings: {ctypes.WinError(ctypes.get_last_error())}")
+            try:
+                validate_builder_findings_handoff(status(Path(state_path)), Path(findings_path))
+            except Exception:
+                kernel32.CloseHandle(findings_handle)
+                raise
+            actor_env["IDEAS_STANDARD_FINDINGS"] = str(findings_path)
         else:
             actor_env["IDEAS_STANDARD_FINDINGS"] = str(findings_path)
 
     if cancel_path is not None and cancel_path.exists():
         if findings_fd is not None:
             os.close(findings_fd)
+        if findings_handle is not None:
+            kernel32.CloseHandle(findings_handle)
         raise ActorInterrupted("CANCELLED")
-    report.parent.mkdir(parents=True, exist_ok=True)
     try:
+        report.parent.mkdir(parents=True, exist_ok=True)
         if timeout_seconds is None and cancel_path is None:
             process = subprocess.run(
                 command, cwd=workspace, env=actor_env, check=False,
@@ -823,6 +846,8 @@ def run_actor(
     finally:
         if findings_fd is not None:
             os.close(findings_fd)
+        if findings_handle is not None:
+            kernel32.CloseHandle(findings_handle)
     if process.returncode == 126 and write_sandbox:
         raise HandoffError("Auditor write sandbox is unavailable; refusing unsafe execution")
     if process.returncode != 0:
@@ -1519,4 +1544,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
