@@ -1,8 +1,9 @@
-"""Unit tests for O0 v2 M2 runner integration and evidence artifact."""
+"""Unit tests for O0 v2 M2 runner integration, standalone bundle, and evidence artifacts."""
 import hashlib
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -12,11 +13,18 @@ from scripts.orchestrate_handoffs import validate_with_schema
 class O0V2M2Test(unittest.TestCase):
     def setUp(self):
         self.root = Path(__file__).resolve().parents[1]
-        self.evidence_path = self.root / "O0_V2_M2_EVIDENCE.json"
+        self.evidence_reaudit_path = self.root / "O0_V2_M2_EVIDENCE_REAUDIT.json"
+        self.evidence_history_path = self.root / "O0_V2_M2_EVIDENCE.json"
 
-    def test_m2_evidence_artifact_and_package(self):
-        self.assertTrue(self.evidence_path.is_file(), f"Missing evidence at {self.evidence_path}")
-        evidence = json.loads(self.evidence_path.read_text(encoding="utf-8"))
+    def test_m2_historical_evidence_preserved(self):
+        self.assertTrue(self.evidence_history_path.is_file(), f"Historical evidence missing at {self.evidence_history_path}")
+        history = json.loads(self.evidence_history_path.read_text(encoding="utf-8"))
+        self.assertEqual("0.1", history.get("schema_version"))
+        self.assertEqual("O0-v2-M2-runner-adapters", history.get("scenario"))
+
+    def test_m2_reaudit_evidence_artifact_and_package(self):
+        self.assertTrue(self.evidence_reaudit_path.is_file(), f"Missing reaudit evidence at {self.evidence_reaudit_path}")
+        evidence = json.loads(self.evidence_reaudit_path.read_text(encoding="utf-8"))
 
         self.assertEqual("0.1", evidence.get("schema_version"))
         self.assertEqual("O0-v2-M2-runner-adapters", evidence.get("scenario"))
@@ -33,6 +41,11 @@ class O0V2M2Test(unittest.TestCase):
         self.assertTrue(criteria["no_human_intervention_in_cycle"])
         self.assertTrue(criteria["no_gate_approval_registered"])
         self.assertTrue(criteria["stops_at_waiting_product_authority"])
+        self.assertTrue(criteria["self_sufficient_builder_bundle"])
+        self.assertTrue(criteria["bundle_clonable_isolated"])
+        self.assertTrue(criteria["real_cli_timeout_terminates_child"])
+        self.assertTrue(criteria["real_cli_cancellation_terminates_child"])
+        self.assertTrue(criteria["no_partial_report_or_state_advance"])
 
         runner_exec = evidence["runner_execution"]
         builder = runner_exec["builder"]
@@ -77,6 +90,39 @@ class O0V2M2Test(unittest.TestCase):
 
         state_doc = json.loads((package_root / artifacts["final_state"]["path"]).read_text(encoding="utf-8"))
         validate_with_schema(state_doc, "state")
+
+        # Verify interruption proofs
+        proofs = runner_exec["interruption_proofs"]
+        for name in ("builder_timeout", "builder_cancel", "auditor_timeout", "auditor_cancel"):
+            proof = proofs[name]
+            self.assertTrue(proof["pass"], f"Proof {name} did not pass: {proof}")
+            self.assertEqual(proof["expected_reason"], proof["interrupted_reason"])
+            self.assertTrue(proof["all_child_processes_terminated"], f"Child processes not terminated in {name}")
+            self.assertFalse(proof["report_accepted"], f"Report was accepted in {name}")
+            self.assertTrue(proof["canonical_state_preserved"], f"State not preserved in {name}")
+            self.assertTrue(proof["journal_marked_interrupted"], f"Journal not marked interrupted in {name}")
+
+    def test_standalone_builder_bundle(self):
+        bundle_path = self.root / "O0_V2_M2_EVIDENCE_REAUDIT_PACKAGE" / "builder.bundle"
+        self.assertTrue(bundle_path.is_file(), f"Missing builder.bundle at {bundle_path}")
+
+        # Verify bundle does not require external refs
+        res_v = subprocess.run(["git", "bundle", "verify", str(bundle_path)], capture_output=True, text=True, check=True)
+        self.assertNotIn("The bundle requires this ref", res_v.stdout)
+
+        # Clone bundle in completely isolated temp directory
+        with tempfile.TemporaryDirectory() as td:
+            clone_dir = Path(td) / "cloned"
+            subprocess.run(["git", "clone", str(bundle_path), str(clone_dir)], capture_output=True, check=True)
+            head = subprocess.check_output(["git", "-C", str(clone_dir), "rev-parse", "HEAD"], text=True).strip()
+
+            evidence = json.loads(self.evidence_reaudit_path.read_text(encoding="utf-8"))
+            expected_sha = evidence["runner_execution"]["builder"]["produced_sha"]
+            self.assertEqual(expected_sha, head)
+
+            # Check unit tests pass in isolated clone
+            res_test = subprocess.run([sys.executable, "-m", "unittest", "test_calc.py"], cwd=clone_dir, capture_output=True, text=True)
+            self.assertEqual(0, res_test.returncode, f"Tests failed in cloned bundle: {res_test.stderr}")
 
     def test_adapter_binary_discovery(self):
         from scripts.o0_antigravity_adapter import _find_agy_binary
@@ -131,7 +177,6 @@ class O0V2M2Test(unittest.TestCase):
             "residual_risks": [],
             "gate_registration": "NOT_AUTHORIZED",
         }
-        # Validate schema passes
         validate_with_schema(sample_fail_report, "audit")
 
 

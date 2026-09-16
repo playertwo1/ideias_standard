@@ -726,6 +726,25 @@ def _auditor_write_sandbox(allowed_directory: Path):
     return restrict
 
 
+def _terminate_actor_process(process: subprocess.Popen) -> None:
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        try:
+            process.kill()
+        except OSError:
+            pass
+    else:
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except OSError:
+            pass
+
+
 def run_actor(
     command: list[str],
     workspace: Path,
@@ -792,10 +811,7 @@ def run_actor(
                 elif deadline is not None and time.monotonic() >= deadline:
                     reason = "TIMEOUT"
                 if reason is not None:
-                    if os.name == "nt":
-                        process.kill()
-                    else:
-                        os.killpg(process.pid, signal.SIGKILL)
+                    _terminate_actor_process(process)
                     process.wait()
                     raise ActorInterrupted(reason)
                 time.sleep(0.02)

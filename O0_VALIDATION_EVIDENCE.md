@@ -107,13 +107,20 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 
 ## O0 v2 M2 — Runner Adapters Integration
 
-- Status: Implementado e validado com execução real; pronto para auditoria independente
-- Evidência canônica: `O0_V2_M2_EVIDENCE.json` e pacote persistente `O0_V2_M2_EVIDENCE_PACKAGE/`
+- Status: PASS de reauditoria independente; pronto para homologação
+- Evidência canônica de aceite: `O0_V2_M2_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M2_EVIDENCE_REAUDIT_PACKAGE/`
+- Registro histórico: `O0_V2_M2_EVIDENCE.json` e `O0_V2_M2_EVIDENCE_PACKAGE/` (mantidos como registro substituído)
 - Documentação detalhada: `docs/O0_V2_M2_EVIDENCE.md`
 - Adapters: `scripts/o0_antigravity_adapter.py` (Builder via Antigravity CLI) e `scripts/o0_codex_adapter.py` (Auditor via OpenAI Codex CLI).
 - Orquestrador e validação: `scripts/o0_m2_runner_integration.py` e testes automatizados em `scripts/test_o0_m2_runner_integration.py`.
+- Bundle autossuficiente: `builder.bundle` gerado a partir de `HEAD` completo (`records a complete history`), validado com `git bundle verify` sem pré-requisitos e clonado em diretório isolado com suite de testes verde.
+- Comprovação de interrupção (CLIs reais no Windows):
+  - Timeout e cancelamento encerram toda a árvore de processos filhos (`taskkill /F /T /PID`) para Antigravity (`agy.exe`) e Codex (`codex.CMD` / `node.exe`).
+  - Nenhum relatório parcial é aceito (`report_accepted: false`).
+  - Estado canônico permanece inalterado byte a byte (`canonical_state_preserved: true`).
+  - Journal de operação registra `phase: INTERRUPTED` com `interruption_reason: TIMEOUT` ou `CANCELLED`.
 - Execução real pelo runner:
-  - Step 1 (Builder): Antigravity CLI gerou commit `ccc07302d508194cbd5885e2dd3fc8718d1d7127`, validou testes unitários e produziu `builder-report.json`. O runner validou o schema, verificou o commit no Git, canonicizou evidências e transicionou para `READY_FOR_AUDIT`.
-  - Step 2 (Auditor): Codex CLI executou em worktree desacoplado e protegido contra escrita (`audit-workspaces/ccc07302...`) sob `--sandbox read-only`, auditou o commit, produziu `audit-report.json` com `audit_result: PASS`. O runner validou integridade do checkout (`git status --porcelain` vazio), schema de auditoria e canonicizou evidências.
+  - Step 1 (Builder): Antigravity CLI gerou commit `8cf01e56bbd82e86d021d2d671e4474d1c1880e2`, validou testes unitários e produziu `builder-report.json`. O runner validou o schema, verificou o commit no Git, canonicizou evidências e transicionou para `READY_FOR_AUDIT`.
+  - Step 2 (Auditor): Codex CLI executou em worktree desacoplado e protegido contra escrita (`audit-workspaces/8cf01e56...`) sob `--sandbox read-only`, auditou o commit, produziu `audit-report.json` com `audit_result: PASS`. O runner validou integridade do checkout (`git status --porcelain` vazio), schema de auditoria e canonicizou evidências.
 - Parada e governança: Estado final em `WAITING_PRODUCT_AUTHORITY` com `approval: null` e `human_gate_required: true`. Nenhum gate de produto foi registrado.
 - Limites: M3 e S2 não iniciados; Gate S1 permanece `NOT_RUN` e S2 `NOT_STARTED`.

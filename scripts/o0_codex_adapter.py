@@ -120,13 +120,23 @@ def main() -> int:
         auditor_prompt,
     ]
 
-    p = subprocess.run(
-        codex_cmd,
-        input="",
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    child_pid_file = os.environ.get("IDEAS_STANDARD_CHILD_PID_FILE")
+    if child_pid_file:
+        proc = subprocess.Popen(codex_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            Path(child_pid_file).write_text(str(proc.pid), encoding="utf-8")
+        except OSError:
+            pass
+        stdout, stderr = proc.communicate(input="")
+        p = subprocess.CompletedProcess(codex_cmd, proc.returncode, stdout, stderr)
+    else:
+        p = subprocess.run(
+            codex_cmd,
+            input="",
+            text=True,
+            capture_output=True,
+            check=False,
+        )
 
     if p.returncode != 0:
         print(f"ERROR: Codex CLI exited with code {p.returncode}: {p.stderr}", file=sys.stderr)

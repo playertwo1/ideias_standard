@@ -272,7 +272,7 @@ Não é gate de produto.
 - [x] Verificar SHA, referências de evidência e integridade do checkout antes de aceitar o resultado.
 - [x] Aplicar os controles existentes de timeout, cancelamento e retomada às CLIs reais.
 
-**Aceite:** o runner chama cada agente e aceita relatórios válidos sem intermediação humana. Evidência em `O0_V2_M2_EVIDENCE.json` e pacote persistente `O0_V2_M2_EVIDENCE_PACKAGE/`. M3 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
+**Aceite:** o runner chama cada agente e aceita relatórios válidos sem intermediação humana. Evidência canônica de aceite em `O0_V2_M2_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M2_EVIDENCE_REAUDIT_PACKAGE/` (`O0_V2_M2_EVIDENCE.json` mantido como registro histórico substituído). M3 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
 
 #### M3 — Fechar o ciclo de correção
 

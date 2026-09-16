@@ -102,7 +102,17 @@ def main() -> int:
         f"--print={builder_prompt}",
     ]
 
-    p = subprocess.run(cmd, cwd=workspace, capture_output=True, text=True, check=False)
+    child_pid_file = os.environ.get("IDEAS_STANDARD_CHILD_PID_FILE")
+    if child_pid_file:
+        proc = subprocess.Popen(cmd, cwd=workspace, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            Path(child_pid_file).write_text(str(proc.pid), encoding="utf-8")
+        except OSError:
+            pass
+        stdout, stderr = proc.communicate()
+        p = subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
+    else:
+        p = subprocess.run(cmd, cwd=workspace, capture_output=True, text=True, check=False)
     if p.returncode != 0:
         print(f"ERROR: Antigravity CLI exited with code {p.returncode}: {p.stderr}", file=sys.stderr)
         return p.returncode
