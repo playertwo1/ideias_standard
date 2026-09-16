@@ -16,7 +16,8 @@ SOURCE_ROOT = Path(__file__).resolve().parents[1]
 if str(SOURCE_ROOT) not in sys.path:
     sys.path.insert(0, str(SOURCE_ROOT))
 
-from scripts.orchestrate_handoffs import init_state, status, next_actor
+from scripts.orchestrate_handoffs import init_state, status, next_actor, HandoffError
+from scripts.o0_runner import check_report_not_already_accepted, persist_operation, operation_identity
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -52,6 +53,8 @@ def execute_adversarial_cycle(work_root: Path, output: Path) -> dict:
     config_path = work_root / "runner.json"
     actor_path = work_root / "adversarial_actor.py"
     marker_path = work_root / "actor-pids.txt"
+    cancel_marker = work_root / "cancel_started.marker"
+    cancel_file = work_root / "cancel.request"
 
     builder_ws.mkdir(parents=True, exist_ok=True)
     audit_ws.mkdir(parents=True, exist_ok=True)
@@ -61,7 +64,7 @@ def execute_adversarial_cycle(work_root: Path, output: Path) -> dict:
     _run(["git", "config", "user.name", "O0 C45 Adversary"], cwd=builder_ws)
     _run(["git", "config", "user.email", "o0-c45@example.invalid"], cwd=builder_ws)
 
-    # Actor script that supports all adversarial modes via flag files
+    # Actor script supporting retry failure, timeout partial report, cancel partial report, and normal modes
     actor_script = f"""import json, os, subprocess, sys, time
 from pathlib import Path
 
@@ -69,20 +72,32 @@ marker = Path({str(marker_path)!r})
 with marker.open('a', encoding='utf-8') as s:
     s.write(f'{{os.getpid()}}\\n')
 
-mode = os.environ.get('ACTOR_MODE', 'NORMAL')
 fail_flag = Path({str(work_root / "fail_once.flag")!r})
 if fail_flag.exists():
     fail_flag.unlink()
     raise SystemExit(7)
 
+report_path = Path(os.environ['IDEAS_STANDARD_REPORT'])
+report_path.parent.mkdir(parents=True, exist_ok=True)
+
 hang_flag = Path({str(work_root / "hang.flag")!r})
 if hang_flag.exists():
+    hang_flag.unlink()
+    report_path.write_text(json.dumps({{'partial': 'timeout-unwanted'}}), encoding='utf-8')
     time.sleep(10)
     raise SystemExit(0)
 
+cancel_flag = Path({str(work_root / "cancel.flag")!r})
+if cancel_flag.exists():
+    cancel_flag.unlink()
+    report_path.write_text(json.dumps({{'partial': 'cancel-unwanted'}}), encoding='utf-8')
+    Path({str(cancel_marker)!r}).write_text('started', encoding='utf-8')
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        time.sleep(0.05)
+    raise SystemExit(0)
+
 role = os.environ.get('ACTOR_ROLE', 'BUILDER')
-report_path = Path(os.environ['IDEAS_STANDARD_REPORT'])
-report_path.parent.mkdir(parents=True, exist_ok=True)
 
 if role == 'BUILDER':
     artifact = Path('artifact.txt')
@@ -134,6 +149,7 @@ elif role == 'AUDITOR':
         gate="S1",
         builder_branch="builder/o0-c45-e2e",
     )
+    initial_state_bytes = state_path.read_bytes()
 
     runner_config = {
         "repository": str(builder_ws),
@@ -144,34 +160,44 @@ elif role == 'AUDITOR':
         "builder_command": [sys.executable, str(actor_path)],
         "auditor_command": [sys.executable, str(actor_path)],
         "lock_timeout_seconds": 0,
-        "max_retries": 3,
+        "max_retries": 10,
     }
     _write_json(config_path, runner_config)
 
-    runner_pids: list[int] = []
     steps_evidence: list[dict] = []
+    canonical_reports: list[dict] = []
+    builder_report_path = reports_dir / "builder-report.json"
 
     # =========================================================================
-    # PHASE 1: RETRY & TIMEOUT (Flaky failure, timeout interruption, and safe resume)
+    # PHASE 1: RETRY (Flaky failure, failure evidence recorded, retry remains in READY_FOR_BUILD)
     # =========================================================================
     fail_flag = work_root / "fail_once.flag"
     fail_flag.write_text("fail", encoding="utf-8")
 
     env_builder = {**os.environ, "ACTOR_ROLE": "BUILDER"}
-    # Run 1: Should fail due to actor exit code 7
+    # Run 1: Fails due to actor exit code 7
     proc1 = subprocess.run(
         [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_path)],
         cwd=source, capture_output=True, text=True, env=env_builder,
     )
     assert proc1.returncode == 2, f"Expected exit code 2 on flaky failure, got {proc1.returncode}: {proc1.stderr}"
-    # Verify failure record was created in runner-failures
+    assert state_path.read_bytes() == initial_state_bytes, "State should not advance on failure"
     failures_p1 = list((reports_dir / "runner-failures").glob("*.json"))
     assert len(failures_p1) >= 1, "Expected runner failure record to be persisted"
     f_p1 = json.loads(failures_p1[0].read_text(encoding="utf-8"))
     assert f_p1["kind"] == "ACTOR_EXIT_NONZERO"
     assert f_p1["actor_exit_code"] == 7
 
-    # Run 2: Timeout interruption
+    retry_evidence = {
+        "transient_failure_exit_code": proc1.returncode,
+        "failure_record_kind": f_p1["kind"],
+        "actor_exit_code": f_p1["actor_exit_code"],
+        "state_preserved": True,
+    }
+
+    # =========================================================================
+    # PHASE 2: TIMEOUT (Actor writes partial report before hanging, partial report discarded)
+    # =========================================================================    # Run 2: Timeout interruption
     hang_flag = work_root / "hang.flag"
     hang_flag.write_text("hang", encoding="utf-8")
     config_timeout = dict(runner_config)
@@ -179,47 +205,139 @@ elif role == 'AUDITOR':
     config_timeout_path = work_root / "runner_timeout.json"
     _write_json(config_timeout_path, config_timeout)
 
-    before_timeout_state = state_path.read_bytes()
     p_timeout = subprocess.run(
         [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_timeout_path)],
         cwd=source, capture_output=True, text=True, env=env_builder,
     )
     assert p_timeout.returncode == 2, f"Expected exit code 2 on timeout, got {p_timeout.returncode}: {p_timeout.stderr}"
-    assert state_path.read_bytes() == before_timeout_state, "Canonical state changed during timeout"
-    hang_flag.unlink(missing_ok=True)
+    # Verify partial report written by actor before hanging was purged
+    assert not builder_report_path.exists(), "Partial report written before timeout must be removed"
+    assert state_path.read_bytes() == initial_state_bytes, "Canonical state changed during timeout"
+
+    timeout_journals = [
+        p for p in (reports_dir / "operations").glob("*.journal.json")
+        if json.loads(p.read_text(encoding="utf-8")).get("interruption_reason") == "TIMEOUT"
+    ]
+    assert len(timeout_journals) >= 1, "Expected INTERRUPTED journal with TIMEOUT"
+    t_history = reports_dir / "history" / "01-timeout.journal.json"
+    t_history.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(timeout_journals[0], t_history)
+
+    # Verify that resuming without resume_interrupted is blocked on timeout
+    p_timeout_blocked = subprocess.run(
+        [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_path)],
+        cwd=source, capture_output=True, text=True, env=env_builder,
+    )
+    assert p_timeout_blocked.returncode == 2
+    assert "Operation interrupted by TIMEOUT; explicit resume_interrupted required" in p_timeout_blocked.stderr
+    assert not builder_report_path.exists(), "Partial report must remain absent before resumption"
+    assert state_path.read_bytes() == initial_state_bytes, "Canonical state must not advance"
 
     timeout_evidence = {
         "timeout_seconds": 0.25,
         "timeout_exit_code": p_timeout.returncode,
+        "partial_report_discarded": True,
         "state_preserved": True,
+        "interruption_reason": "TIMEOUT",
+        "resume_required": True,
     }
 
-    # Run 3: Resuming interrupted operation succeeds within max_retries
+    # =========================================================================
+    # PHASE 3: REAL INTERRUPTION DISTINCT FROM TIMEOUT (CANCELLATION)
+    # =========================================================================
+    cancel_flag = work_root / "cancel.flag"
+    cancel_flag.write_text("cancel", encoding="utf-8")
+    config_cancel = dict(runner_config)
+    config_cancel["cancel_path"] = str(cancel_file)
+    config_cancel["resume_interrupted"] = True
+    config_cancel_path = work_root / "runner_cancel.json"
+    _write_json(config_cancel_path, config_cancel)
+
+    # Start runner resuming the interrupted operation under cancellation monitoring
+    p_cancel_proc = subprocess.Popen(
+        [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_cancel_path)],
+        cwd=source, env=env_builder, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    # Wait until actor started and wrote partial report
+    deadline = time.monotonic() + 5
+    while not cancel_marker.exists() and time.monotonic() < deadline:
+        time.sleep(0.02)
+    assert cancel_marker.exists(), "Actor did not start for cancellation test"
+
+    # Create cancel request while actor is running
+    cancel_file.write_text("cancel", encoding="utf-8")
+    stdout_c, stderr_c = p_cancel_proc.communicate(timeout=10)
+    assert p_cancel_proc.returncode == 2, f"Expected exit code 2 on cancellation, got {p_cancel_proc.returncode}"
+    # Partial report must be unlinked
+    assert not builder_report_path.exists(), "Partial report written before cancel must be removed"
+    # State preserved without premature advance
+    assert state_path.read_bytes() == initial_state_bytes, "Canonical state advanced during cancellation"
+
+    cancel_journals = [
+        p for p in (reports_dir / "operations").glob("*.journal.json")
+        if json.loads(p.read_text(encoding="utf-8")).get("interruption_reason") == "CANCELLED"
+    ]
+    assert len(cancel_journals) >= 1, "Expected INTERRUPTED journal with CANCELLED"
+    c_history = reports_dir / "history" / "02-cancelled.journal.json"
+    c_history.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(cancel_journals[0], c_history)
+
+    # Verify that resuming while cancel request exists is blocked
+    p_cleared_check = subprocess.run(
+        [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_cancel_path)],
+        cwd=source, capture_output=True, text=True, env=env_builder,
+    )
+    assert p_cleared_check.returncode == 2
+    assert "Cancellation request must be cleared" in p_cleared_check.stderr
+
+    # Verify that resuming without resume_interrupted is blocked
+    cancel_file.unlink()
+    p_flag_check = subprocess.run(
+        [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_path)],
+        cwd=source, capture_output=True, text=True, env=env_builder,
+    )
+    assert p_flag_check.returncode == 2
+    assert "explicit resume_interrupted required" in p_flag_check.stderr
+    assert not builder_report_path.exists(), "Partial report must not exist before resumption"
+    assert state_path.read_bytes() == initial_state_bytes, "Canonical state must not advance prematurely"
+
+    # Now resume cleanly with resume_interrupted=True
     config_resume = dict(runner_config)
     config_resume["resume_interrupted"] = True
     _write_json(config_path, config_resume)
 
-    proc2 = subprocess.run(
+    proc_resumed = subprocess.run(
         [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_path)],
         cwd=source, capture_output=True, text=True, env=env_builder,
     )
-    assert proc2.returncode == 0, f"Expected successful retry/resume, got {proc2.returncode}: {proc2.stderr}"
-    res2 = json.loads(proc2.stdout)
-    assert res2["machine_state"] == "READY_FOR_AUDIT"
-    steps_evidence.append(_state_evidence(res2))
+    assert proc_resumed.returncode == 0, f"Expected successful resumption, got: {proc_resumed.stderr}"
+    res_builder = json.loads(proc_resumed.stdout)
+    assert res_builder["machine_state"] == "READY_FOR_AUDIT"
+    steps_evidence.append(_state_evidence(res_builder))
 
-    retry_evidence = {
-        "transient_failure_exit_code": proc1.returncode,
-        "failure_record_kind": f_p1["kind"],
-        "actor_exit_code": f_p1["actor_exit_code"],
-        "retry_success_exit_code": proc2.returncode,
-        "machine_state_after_retry": res2["machine_state"],
+    # Save canonical builder report to history
+    b_history = reports_dir / "history" / "01-builder-report.json"
+    b_history.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(builder_report_path, b_history)
+    canonical_reports.append({
+        "path": b_history.relative_to(work_root).as_posix(),
+        "sha256": hashlib.sha256(b_history.read_bytes()).hexdigest(),
+    })
+
+    interruption_evidence = {
+        "interruption_type": "CANCELLED",
+        "interruption_exit_code": p_cancel_proc.returncode,
+        "partial_report_discarded": True,
+        "state_preserved_without_advance": True,
+        "cancel_cleared_required": True,
+        "resume_flag_required": True,
+        "resumed_success_exit_code": proc_resumed.returncode,
+        "advanced_state": res_builder["machine_state"],
     }
 
     # =========================================================================
-    # PHASE 2: CONCURRENCY (Concurrent runner collision rejected under state lock)
+    # PHASE 4: CONCURRENCY (Concurrent runner collision rejected under state lock)
     # =========================================================================
-    # Start a paused runner that holds <state>.lock
     pause_marker = work_root / "pause_lock.reached"
     release_marker = work_root / "release_lock.flag"
     wrapper_script = work_root / "pause_runner.py"
@@ -256,7 +374,7 @@ raise SystemExit(runner.main())
         time.sleep(0.02)
     assert pause_marker.exists(), "Primary runner failed to acquire lock"
 
-    # Now run concurrent runner against the locked state
+    # Concurrent runner against the locked state
     p_concurrent = subprocess.run(
         [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_path)],
         cwd=source, capture_output=True, text=True, env=env_auditor,
@@ -272,6 +390,15 @@ raise SystemExit(runner.main())
     assert res_auditor["machine_state"] == "WAITING_PRODUCT_AUTHORITY"
     steps_evidence.append(_state_evidence(res_auditor))
 
+    # Save canonical audit report to history
+    audit_report_path = reports_dir / "audit-report.json"
+    a_history = reports_dir / "history" / "02-audit-report.json"
+    shutil.copyfile(audit_report_path, a_history)
+    canonical_reports.append({
+        "path": a_history.relative_to(work_root).as_posix(),
+        "sha256": hashlib.sha256(a_history.read_bytes()).hexdigest(),
+    })
+
     concurrency_evidence = {
         "primary_pid": p_primary.pid,
         "concurrent_rejected_exit_code": p_concurrent.returncode,
@@ -281,38 +408,44 @@ raise SystemExit(runner.main())
     }
 
     # =========================================================================
-    # PHASE 3: DUPLICATE REJECTION & IDEMPOTENT REPLAY (O0-C44)
+    # PHASE 5: DUPLICATE REJECTION & IDEMPOTENT REPLAY (O0-C44)
     # =========================================================================
-    # Attempting to run a completed operation without replay identity is rejected
-    # In WAITING_PRODUCT_AUTHORITY, automation is stopped
     p_stopped = subprocess.run(
         [sys.executable, "-m", "scripts.o0_runner", "--config", str(config_path)],
         cwd=source, capture_output=True, text=True, env=env_auditor,
     )
-    # When automation is stopped (next_actor: PRODUCT_AUTHORITY), runner returns state without error
     assert p_stopped.returncode == 0
     res_stopped = json.loads(p_stopped.stdout)
     assert res_stopped["machine_state"] == "WAITING_PRODUCT_AUTHORITY"
 
-    # Verify duplicate report rejection via unit reports
-    accepted_reports = [
+    # Verify duplicate report rejection across operations
+    accepted_operations = [
         p for p in (reports_dir / "operations").glob("op-*.json")
         if not p.name.endswith(".journal.json") and not p.name.endswith(".report.json")
     ]
-    assert len(accepted_reports) >= 1, "Expected accepted operations"
-    rep_record = json.loads(accepted_reports[0].read_text(encoding="utf-8"))
+    assert len(accepted_operations) >= 1, "Expected accepted operations"
+    rep_record = json.loads(accepted_operations[0].read_text(encoding="utf-8"))
     accepted_report_digest = rep_record["report_sha256"]
+
+    # Rejection of duplicate report for a distinct operation ID
+    duplicate_rejected = False
+    try:
+        check_report_not_already_accepted(reports_dir, accepted_report_digest, "op-" + "f" * 64)
+    except HandoffError as exc:
+        if "Report has already been accepted" in str(exc):
+            duplicate_rejected = True
+    assert duplicate_rejected, "Expected check_report_not_already_accepted to reject duplicate report"
 
     duplicate_evidence = {
         "automation_stopped_preserved": True,
-        "accepted_operations_count": len(accepted_reports),
+        "accepted_operations_count": len(accepted_operations),
         "verified_report_sha256": accepted_report_digest,
+        "duplicate_report_rejected": True,
     }
 
-    # Final summary evidence assembly
-    all_pids = [int(line.strip()) for line in marker_path.read_text(encoding="utf-8").splitlines() if line.strip()]
-    final_state = status(state_path)
-
+    # =========================================================================
+    # PHASE 6: VERIFIABLE EVIDENCE REFERENCES
+    # =========================================================================
     evidence_references = []
     for path in sorted((reports_dir / "evidence").glob("*.json")):
         envelope = json.loads(path.read_text(encoding="utf-8"))
@@ -322,23 +455,55 @@ raise SystemExit(runner.main())
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         })
 
+    failure_references = []
+    for path in sorted((reports_dir / "runner-failures").glob("*.json")):
+        f_record = json.loads(path.read_text(encoding="utf-8"))
+        failure_references.append({
+            "failure_id": f_record["failure_id"],
+            "kind": f_record["kind"],
+            "path": path.relative_to(work_root).as_posix(),
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        })
+
+    journal_references = [
+        {
+            "path": t_history.relative_to(work_root).as_posix(),
+            "phase": "INTERRUPTED",
+            "interruption_reason": "TIMEOUT",
+            "sha256": hashlib.sha256(t_history.read_bytes()).hexdigest(),
+        },
+        {
+            "path": c_history.relative_to(work_root).as_posix(),
+            "phase": "INTERRUPTED",
+            "interruption_reason": "CANCELLED",
+            "sha256": hashlib.sha256(c_history.read_bytes()).hexdigest(),
+        },
+    ]
+
+    all_pids = [int(line.strip()) for line in marker_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    final_state = status(state_path)
+
     result = {
         "schema_version": "0.1",
         "scenario": "O0-C45-adversarial-e2e-cycle",
         "adversarial_coverage": {
             "retry": True,
-            "concurrency": True,
             "timeout": True,
-            "interruption_preservation": True,
+            "interruption": True,
+            "concurrency": True,
             "duplicate_rejection": True,
         },
         "retry_evidence": retry_evidence,
-        "concurrency_evidence": concurrency_evidence,
         "timeout_evidence": timeout_evidence,
+        "interruption_evidence": interruption_evidence,
+        "concurrency_evidence": concurrency_evidence,
         "duplicate_evidence": duplicate_evidence,
         "steps": steps_evidence,
-        "actor_pids": sorted(list(set(all_pids))),
+        "canonical_reports": canonical_reports,
         "evidence_references": evidence_references,
+        "failure_references": failure_references,
+        "journal_references": journal_references,
+        "actor_pids": sorted(list(set(all_pids))),
         "final_state": _state_evidence(final_state),
     }
 

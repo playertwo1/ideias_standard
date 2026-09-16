@@ -1194,9 +1194,13 @@ def safe_failure_message(exc: Exception) -> str:
     if message.startswith("Operation retry limit exceeded"):
         return "Operation retry limit exceeded"
     if message.startswith("Operation has already been completed"):
-        return "Operation has already been completed"
+        return message
     if message.startswith("Report has already been accepted"):
-        return "Report has already been accepted"
+        return message
+    if message.startswith("Operation interrupted by "):
+        return message
+    if message == "Cancellation request must be cleared before resuming":
+        return message
     return failure_kind(exc)
 
 
