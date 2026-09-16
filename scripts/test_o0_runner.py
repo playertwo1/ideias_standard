@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import subprocess
@@ -928,7 +929,7 @@ class O0RunnerTest(unittest.TestCase):
                 self.assertEqual("O0", unchanged["phase"])
 
     def _fix_required_state(self, target: str, report: Path, round_number: int = 1):
-        return {
+        current = {
             "schema_version": "0.1",
             "run_id": "run-" + "0" * 64,
             "project_id": "sample",
@@ -954,6 +955,9 @@ class O0RunnerTest(unittest.TestCase):
             "updated_at": "now",
             "message": "Audit failed; findings are ready for Builder correction.",
         }
+        runner_module.canonicalize_report_evidence(report, "audit", current, report.parent / "evidence")
+        current["last_audit_report_sha256"] = hashlib.sha256(report.read_bytes()).hexdigest()
+        return current
 
     def _fail_report(self, target: str):
         return {
@@ -985,6 +989,9 @@ class O0RunnerTest(unittest.TestCase):
         reports.mkdir()
         audit_report = reports / "audit-report.json"
         source = self._fail_report(target)
+        second = dict(source["findings"][0])
+        second.update(id="O0-015-002", evidence="second forwarding evidence", problem="second finding")
+        source["findings"].append(second)
         audit_report.write_text(json.dumps(source), encoding="utf-8")
 
         handoff = prepare_builder_findings(
@@ -995,7 +1002,10 @@ class O0RunnerTest(unittest.TestCase):
 
         self.assertEqual(target, payload["audit_target_sha"])
         self.assertEqual(2, payload["audit_round"])
-        self.assertEqual(source["findings"][0]["id"], payload["findings"][0]["id"])
+        canonical_audit = json.loads(audit_report.read_text(encoding="utf-8"))
+        self.assertEqual(canonical_audit["findings"], payload["findings"])
+        self.assertEqual(2, len(payload["findings"]))
+        self.assertEqual({"audit_target_sha", "audit_round", "findings"}, set(payload))
         reference = payload["findings"][0]["evidence"]
         self.assertEqual(
             source["findings"][0]["evidence"],
@@ -1077,6 +1087,231 @@ class O0RunnerTest(unittest.TestCase):
             )
         self.assertFalse((reports / "builder-findings.json").exists())
 
+    def test_schema_valid_changed_finding_is_rejected_against_canonical_audit(self):
+        target = "a" * 40
+        reports = self.root / "reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        audit_report.write_text(json.dumps(self._fail_report(target)), encoding="utf-8")
+        current = self._fix_required_state(target, audit_report)
+        handoff = prepare_builder_findings(current, reports)
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+        payload["findings"][0]["problem"] = "schema-valid adulteration"
+        handoff.write_text(json.dumps(payload), encoding="utf-8")
+
+        with self.assertRaisesRegex(HandoffError, "canonical audit report"):
+            runner_module.validate_builder_findings_handoff(current, handoff)
+
+    def test_changed_accepted_audit_report_is_rejected_before_builder(self):
+        target = "a" * 40
+        reports = self.root / "sealed-reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        audit_report.write_text(json.dumps(self._fail_report(target)), encoding="utf-8")
+        current = self._fix_required_state(target, audit_report)
+        runner_module.seal_audit_report(audit_report)
+        changed = json.loads(audit_report.read_text(encoding="utf-8"))
+        changed["findings"][0]["problem"] = "forged after acceptance"
+        audit_report.write_text(json.dumps(changed), encoding="utf-8")
+
+        with self.assertRaisesRegex(HandoffError, "accepted audit report"):
+            prepare_builder_findings(current, reports)
+
+    def test_removed_or_forged_snapshot_cannot_rewrite_accepted_findings(self):
+        target = "a" * 40
+        reports = self.root / "tampered-source-reports"
+        reports.mkdir()
+        report = reports / "audit-report.json"
+        report.write_text(json.dumps(self._fail_report(target)), encoding="utf-8")
+        current = self._fix_required_state(target, report)
+        runner_module.seal_audit_report(report)
+        accepted_digest = hashlib.sha256(report.read_bytes()).hexdigest()
+        current["last_audit_report_sha256"] = accepted_digest
+        changed = json.loads(report.read_text(encoding="utf-8"))
+        changed["findings"][0]["problem"] = "forged after FAIL"
+        forged = json.dumps(changed).encode()
+        report.write_bytes(forged)
+        snapshot = runner_module.accepted_audit_snapshot(report)
+        state_before = json.dumps(current).encode()
+
+        for snapshot_bytes in (None, forged):
+            with self.subTest(snapshot_bytes=snapshot_bytes is not None):
+                if snapshot_bytes is None:
+                    snapshot.unlink(missing_ok=True)
+                else:
+                    snapshot.write_bytes(snapshot_bytes)
+                with self.assertRaises(HandoffError):
+                    prepare_builder_findings(current, reports)
+                self.assertEqual(state_before, json.dumps(current).encode())
+
+    def test_forged_source_after_fail_stops_runner_before_builder(self):
+        target = "a" * 40
+        reports = self.root / "forged-runner-reports"
+        reports.mkdir()
+        report = reports / "audit-report.json"
+        report.write_text(json.dumps(self._fail_report(target)), encoding="utf-8")
+        current = self._fix_required_state(target, report)
+        state = self.root / "forged-runner-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        changed = json.loads(report.read_text(encoding="utf-8"))
+        changed["findings"][0]["problem"] = "forged"
+        report.write_text(json.dumps(changed), encoding="utf-8")
+        runner_module.accepted_audit_snapshot(report).write_bytes(report.read_bytes())
+        (self.root / "builder").mkdir()
+        config = self.root / "forged-runner.json"
+        config.write_text(json.dumps({
+            "repository": "repo", "state_path": str(state), "reports_dir": str(reports),
+            "builder_workspace": "builder", "audit_workspaces": "audits",
+            "builder_command": ["builder"], "auditor_command": ["auditor"],
+        }), encoding="utf-8")
+        before = state.read_bytes()
+        with patch("scripts.o0_runner.run_actor") as actor:
+            with self.assertRaisesRegex(HandoffError, "accepted audit report digest"):
+                run_once(config)
+        actor.assert_not_called()
+        self.assertEqual(before, state.read_bytes())
+
+    def test_duplicate_finding_id_is_rejected_before_handoff(self):
+        target = "a" * 40
+        reports = self.root / "duplicate-reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        source = self._fail_report(target)
+        source["findings"].append(dict(source["findings"][0]))
+        audit_report.write_text(json.dumps(source), encoding="utf-8")
+
+        with self.assertRaisesRegex(HandoffError, "Duplicate audit finding ID"):
+            prepare_builder_findings(self._fix_required_state(target, audit_report), reports)
+
+    def test_runner_rejects_tampered_findings_before_builder_execution(self):
+        target = "a" * 40
+        reports = self.root / "reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        audit_report.write_text(json.dumps(self._fail_report(target)), encoding="utf-8")
+        state = self.root / "state.json"
+        current = self._fix_required_state(target, audit_report)
+        state.write_text(json.dumps(current), encoding="utf-8")
+        (self.root / "builder").mkdir()
+        config = self.root / "runner.json"
+        config.write_text(json.dumps({
+            "repository": "repo", "state_path": "state.json", "reports_dir": "reports",
+            "builder_workspace": "builder", "audit_workspaces": "audits",
+            "builder_command": ["builder"], "auditor_command": ["auditor"],
+        }), encoding="utf-8")
+        original_prepare = runner_module.prepare_builder_findings
+        actor_called = False
+
+        def tampered_prepare(state_payload, reports_path):
+            handoff = original_prepare(state_payload, reports_path)
+            payload = json.loads(handoff.read_text(encoding="utf-8"))
+            payload["findings"][0]["problem"] = "changed before Builder"
+            handoff.write_text(json.dumps(payload), encoding="utf-8")
+            return handoff
+
+        def mark_actor(*args, **kwargs):
+            nonlocal actor_called
+            actor_called = True
+            raise HandoffError("Builder must not execute")
+
+        before = state.read_bytes()
+        with patch("scripts.o0_runner.prepare_builder_findings", side_effect=tampered_prepare), patch(
+            "scripts.o0_runner.run_actor", side_effect=mark_actor
+        ):
+            with self.assertRaisesRegex(HandoffError, "canonical audit report"):
+                run_once(config)
+
+        self.assertFalse(actor_called)
+        self.assertEqual(before, state.read_bytes())
+
+    def test_launch_revalidates_findings_after_initial_check(self):
+        target = "a" * 40
+        reports = self.root / "launch-reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        audit_report.write_text(json.dumps(self._fail_report(target)), encoding="utf-8")
+        current = self._fix_required_state(target, audit_report)
+        state = self.root / "launch-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        handoff = prepare_builder_findings(current, reports)
+        runner_module.validate_builder_findings_handoff(current, handoff)
+        payload = json.loads(handoff.read_text(encoding="utf-8"))
+        payload["findings"][0]["problem"] = "changed after first validation"
+        handoff.write_text(json.dumps(payload), encoding="utf-8")
+        marker = self.root / "builder-launched.txt"
+
+        with self.assertRaisesRegex(HandoffError, "canonical audit report"):
+            run_actor(
+                [sys.executable, "-c", f"from pathlib import Path; Path({str(marker)!r}).write_text('ran')"],
+                self.root,
+                reports / "builder-report.json",
+                {"IDEAS_STANDARD_FINDINGS": str(handoff), "IDEAS_STANDARD_STATE": str(state)},
+            )
+
+        self.assertFalse(marker.exists())
+
+    @unittest.skipUnless(hasattr(os, "memfd_create"), "sealed file descriptors require Linux")
+    def test_handoff_swap_during_sealing_is_rejected_before_builder(self):
+        target = "a" * 40
+        reports = self.root / "handoff-race-reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        audit_report.write_text(json.dumps(self._fail_report(target)), encoding="utf-8")
+        current = self._fix_required_state(target, audit_report)
+        state = self.root / "handoff-race-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        handoff = prepare_builder_findings(current, reports)
+        original_memfd = os.memfd_create
+        marker = self.root / "race-builder-launched"
+
+        def swap_then_seal(*args, **kwargs):
+            payload = json.loads(handoff.read_text(encoding="utf-8"))
+            payload["findings"][0]["problem"] = "forged during sealing"
+            handoff.write_text(json.dumps(payload), encoding="utf-8")
+            return original_memfd(*args, **kwargs)
+
+        before = state.read_bytes()
+        with patch("scripts.o0_runner.os.memfd_create", side_effect=swap_then_seal):
+            with self.assertRaises(HandoffError):
+                run_actor(
+                    [sys.executable, "-c", f"from pathlib import Path; Path({str(marker)!r}).touch()"],
+                    self.root,
+                    reports / "builder-report.json",
+                    {"IDEAS_STANDARD_FINDINGS": str(handoff), "IDEAS_STANDARD_STATE": str(state)},
+                )
+        self.assertFalse(marker.exists())
+        self.assertEqual(before, state.read_bytes())
+
+    @unittest.skipUnless(hasattr(os, "memfd_create"), "sealed file descriptors require Linux")
+    def test_late_handoff_swap_cannot_reach_builder(self):
+        target = "a" * 40
+        reports = self.root / "sealed-delivery-reports"
+        reports.mkdir()
+        audit_report = reports / "audit-report.json"
+        audit_report.write_text(json.dumps(self._fail_report(target)), encoding="utf-8")
+        current = self._fix_required_state(target, audit_report)
+        state = self.root / "sealed-delivery-state.json"
+        state.write_text(json.dumps(current), encoding="utf-8")
+        handoff = prepare_builder_findings(current, reports)
+        before = state.read_bytes()
+        real_run = subprocess.run
+
+        def swap_at_spawn(*args, **kwargs):
+            payload = json.loads(handoff.read_text(encoding="utf-8"))
+            payload["findings"][0]["problem"] = "forged at spawn"
+            handoff.write_text(json.dumps(payload), encoding="utf-8")
+            return real_run(*args, **kwargs)
+
+        report = reports / "builder-report.json"
+        code = "import json,os; from pathlib import Path; p=json.load(open(os.environ['IDEAS_STANDARD_FINDINGS'])); Path(os.environ['IDEAS_STANDARD_REPORT']).write_text(json.dumps({'problem':p['findings'][0]['problem']}))"
+        with patch("scripts.o0_runner.subprocess.run", side_effect=swap_at_spawn):
+            run_actor(
+                [sys.executable, "-c", code], self.root, report,
+                {"IDEAS_STANDARD_FINDINGS": str(handoff), "IDEAS_STANDARD_STATE": str(state)},
+            )
+        self.assertEqual("finding must reach Builder", json.loads(report.read_text())["problem"])
+        self.assertEqual(before, state.read_bytes())
+
 
     def _builder_report(self, result_sha: str):
         return {
@@ -1100,6 +1335,12 @@ class O0RunnerTest(unittest.TestCase):
         return runner_module.canonicalize_report_evidence(
             report_path, "builder", context, report_path.parent / "evidence"
         )
+
+    def _accept_changed_audit_report(self, current, report_path):
+        runner_module.canonicalize_report_evidence(
+            report_path, "audit", current, report_path.parent / "evidence"
+        )
+        current["last_audit_report_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
 
     def _correction_inputs(self):
         repository, previous, corrected = self._repository()
@@ -1132,6 +1373,7 @@ class O0RunnerTest(unittest.TestCase):
         audit_payload["findings"][0]["severity"] = "MEDIUM"
         audit_payload["checks"][0]["status"] = "PASS"
         audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
+        self._accept_changed_audit_report(current, audit_report)
         findings_handoff = prepare_builder_findings(current, findings_handoff.parent)
         builder_payload = self._builder_report(corrected)
         reports = self.root / "reaudit-reports"
@@ -1173,6 +1415,7 @@ class O0RunnerTest(unittest.TestCase):
                 audit_payload["findings"][0]["severity"] = severity
                 audit_payload["checks"][0]["evidence"] = check_evidence
                 audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
+                self._accept_changed_audit_report(current, audit_report)
                 findings_handoff = prepare_builder_findings(current, findings_handoff.parent)
                 builder_payload = self._builder_report(corrected)
                 builder_payload["changed_paths"] = declared_paths
@@ -1261,6 +1504,7 @@ class O0RunnerTest(unittest.TestCase):
         audit_payload = json.loads(audit_report.read_text(encoding="utf-8"))
         audit_payload["findings"][0]["severity"] = "MEDIUM"
         audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
+        self._accept_changed_audit_report(current, audit_report)
         findings_handoff = prepare_builder_findings(current, findings_handoff.parent)
         builder_payload = self._builder_report(corrected)
         builder_payload["changed_paths"] = ["undeclared.txt"]
@@ -1306,6 +1550,7 @@ class O0RunnerTest(unittest.TestCase):
         audit_payload["findings"][0]["severity"] = "MEDIUM"
         audit_payload["summary"] = "historical narrative " * 5000
         audit_report.write_text(json.dumps(audit_payload), encoding="utf-8")
+        self._accept_changed_audit_report(current, audit_report)
         findings_handoff = prepare_builder_findings(current, findings_handoff.parent)
         builder_payload = self._builder_report(corrected)
         builder_payload["summary"] = "superseded builder narrative " * 5000

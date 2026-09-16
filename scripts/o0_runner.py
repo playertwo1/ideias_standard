@@ -16,13 +16,19 @@ import time
 from pathlib import Path
 from typing import Any
 
+if sys.platform == "linux":
+    import fcntl
+
 from scripts.orchestrate_handoffs import (
     HandoffError,
+    accepted_audit_snapshot,
     audit_handoff,
     builder_handoff,
     load_json,
     next_actor,
+    seal_audit_report,
     status,
+    validate_accepted_audit_report,
     validate_with_schema,
     write_json,
 )
@@ -494,14 +500,46 @@ def run_actor(
     *,
     write_sandbox: bool = False,
 ) -> None:
+    findings_path = env.get("IDEAS_STANDARD_FINDINGS")
+    findings_fd = None
+    actor_env = {**os.environ, **env, "IDEAS_STANDARD_REPORT": str(report)}
+    if findings_path is not None:
+        state_path = env.get("IDEAS_STANDARD_STATE")
+        if state_path is None:
+            raise HandoffError("Builder findings require canonical state at launch")
+        validate_builder_findings_handoff(status(Path(state_path)), Path(findings_path))
+        if not hasattr(os, "memfd_create"):
+            raise HandoffError("Immutable Builder findings delivery is unavailable")
+        findings_bytes = Path(findings_path).read_bytes()
+        findings_fd = os.memfd_create("ideas-builder-findings", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+        try:
+            with os.fdopen(os.dup(findings_fd), "wb") as stream:
+                stream.write(findings_bytes)
+            fcntl.fcntl(
+                findings_fd,
+                fcntl.F_ADD_SEALS,
+                fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL,
+            )
+            validate_builder_findings_handoff(status(Path(state_path)), Path(findings_path))
+            if Path(findings_path).read_bytes() != findings_bytes:
+                raise HandoffError("Builder findings changed during immutable handoff preparation")
+        except Exception:
+            os.close(findings_fd)
+            raise
+        actor_env["IDEAS_STANDARD_FINDINGS"] = f"/proc/self/fd/{findings_fd}"
     report.parent.mkdir(parents=True, exist_ok=True)
-    process = subprocess.run(
-        command,
-        cwd=workspace,
-        env={**os.environ, **env, "IDEAS_STANDARD_REPORT": str(report)},
-        check=False,
-        preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox else None,
-    )
+    try:
+        process = subprocess.run(
+            command,
+            cwd=workspace,
+            env=actor_env,
+            check=False,
+            preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox else None,
+            pass_fds=(findings_fd,) if findings_fd is not None else (),
+        )
+    finally:
+        if findings_fd is not None:
+            os.close(findings_fd)
     if process.returncode == 126 and write_sandbox:
         raise HandoffError("Auditor write sandbox is unavailable; refusing unsafe execution")
     if process.returncode != 0:
@@ -541,6 +579,16 @@ def verify_audit_after(
         raise HandoffError("Auditor modified or invalidated the frozen audit workspace")
 
 
+def validate_accepted_audit_digest(current: dict[str, Any], report_path: Path) -> bytes:
+    expected = current.get("last_audit_report_sha256")
+    if not isinstance(expected, str) or not _SHA256.fullmatch(expected):
+        raise HandoffError("Accepted audit report digest is missing or invalid")
+    raw = report_path.read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected:
+        raise HandoffError("Audit report differs from accepted audit report digest")
+    return raw
+
+
 def prepare_builder_findings(
     current: dict[str, Any],
     reports_dir: Path,
@@ -552,9 +600,10 @@ def prepare_builder_findings(
     report_ref = current.get("last_audit_report")
     if not report_ref:
         raise HandoffError("FIX_REQUIRED requires last_audit_report")
-    report = canonicalize_report_evidence(
-        Path(report_ref), "audit", current, Path(report_ref).parent / "evidence"
-    )
+    accepted_bytes = validate_accepted_audit_digest(current, Path(report_ref))
+    validate_accepted_audit_report(Path(report_ref), current["audit_round"])
+    report = json.loads(accepted_bytes)
+    validate_with_schema(report, "audit")
     target = current.get("audit_target_sha")
     if (
         report["audit_result"] != "FAIL"
@@ -562,6 +611,9 @@ def prepare_builder_findings(
         or current.get("last_audited_sha") != target
     ):
         raise HandoffError("Audit findings do not match the current failed audit target")
+    finding_ids = [finding["id"] for finding in report["findings"]]
+    if len(finding_ids) != len(set(finding_ids)):
+        raise HandoffError("Duplicate audit finding ID")
     findings = []
     for finding in report["findings"]:
         forwarded = dict(finding)
@@ -588,6 +640,22 @@ def validate_builder_findings_handoff(current: dict[str, Any], handoff: Path) ->
         or payload["audit_round"] != current.get("audit_round")
     ):
         raise HandoffError("Builder findings are not linked to the current audit round")
+    report_ref = current.get("last_audit_report")
+    if not report_ref:
+        raise HandoffError("Builder findings require the canonical audit report")
+    accepted_bytes = validate_accepted_audit_digest(current, Path(report_ref))
+    validate_accepted_audit_report(Path(report_ref), current["audit_round"])
+    audit_report = json.loads(accepted_bytes)
+    validate_with_schema(audit_report, "audit")
+    if (
+        audit_report.get("audit_result") != "FAIL"
+        or audit_report.get("audited_sha") != current.get("audit_target_sha")
+        or payload["findings"] != audit_report.get("findings")
+    ):
+        raise HandoffError("Builder findings differ from the canonical audit report")
+    finding_ids = [finding["id"] for finding in payload["findings"]]
+    if len(finding_ids) != len(set(finding_ids)):
+        raise HandoffError("Duplicate audit finding ID")
     for finding in payload["findings"]:
         resolve_evidence(handoff.parent / "evidence", finding["evidence"], current)
 
@@ -870,6 +938,7 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
         findings_handoff = prepare_builder_findings(current, reports_dir)
         findings_before = None
         if findings_handoff is not None:
+            validate_builder_findings_handoff(current, findings_handoff)
             builder_env["IDEAS_STANDARD_FINDINGS"] = str(findings_handoff)
             findings_before = findings_handoff.read_bytes()
         run_actor(

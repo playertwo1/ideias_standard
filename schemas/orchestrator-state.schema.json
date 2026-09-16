@@ -25,6 +25,7 @@
     "max_audit_rounds": {"type": "integer", "minimum": 1, "maximum": 10},
     "last_builder_report": {"type": ["string", "null"]},
     "last_audit_report": {"type": ["string", "null"]},
+    "last_audit_report_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
     "last_audit_result": {"anyOf": [{"type": "null"}, {"enum": ["PASS", "FAIL", "ESCALATE"]}]},
     "human_gate_required": {"type": "boolean", "const": true},
     "approval": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/approval"}]},

@@ -179,8 +179,8 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C11 `audit_target_sha` permanece imutável durante auditoria.
 - [x] O0-C12 Auditor produz `audit-report` válido.
 - [x] O0-C13 Auditor verifica exclusivamente o SHA congelado.
-- [ ] O0-C14 FAIL → FIX_REQUIRED.
-- [ ] O0-C15 Findings são encaminhados automaticamente ao Builder.
+- [x] O0-C14 FAIL → FIX_REQUIRED.
+- [x] O0-C15 Findings são encaminhados automaticamente ao Builder.
 - [x] O0-C16 Correção produz novo SHA.
 - [x] O0-C17 Novo SHA exige nova auditoria.
 - [x] O0-C18 PASS → WAITING_PRODUCT_AUTHORITY.

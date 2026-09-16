@@ -386,6 +386,24 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         self.assertEqual("GATE_APPROVED", state["machine_state"])
         self.assertEqual(SHA_B, state["approval"]["audited_sha"])
 
+    def test_fail_transition_preserves_all_o0_c14_invariants(self):
+        builder_path = self.root / "builder-o0-c14.json"
+        audit_path = self.root / "audit-o0-c14.json"
+        dump(builder_path, builder_report())
+        dump(audit_path, audit_report(SHA_A, result="FAIL", blocking=True))
+        before = builder_handoff(self.state_path, builder_path, SHA_A)
+
+        result = audit_handoff(self.state_path, audit_path)
+
+        self.assertEqual("FIX_REQUIRED", result["machine_state"])
+        self.assertEqual("BUILDER", result["next_actor"])
+        self.assertEqual(before["audit_round"] + 1, result["audit_round"])
+        self.assertEqual(SHA_A, result["audit_target_sha"])
+        self.assertEqual(SHA_A, result["last_audited_sha"])
+        self.assertEqual("FAIL", result["last_audit_result"])
+        self.assertIsNone(result["approval"])
+        self.assertEqual("G01", result["gate"])
+
     def test_audit_sha_mismatch_is_rejected(self):
         builder_path = self.root / "builder.json"
         dump(builder_path, builder_report())
@@ -510,8 +528,25 @@ class OrchestrateHandoffsTest(unittest.TestCase):
         builder_handoff(self.state_path, builder_path, SHA_A)
         audit_path = self.root / "audit-empty-findings.json"
         dump(audit_path, audit_report(SHA_A, result="FAIL"))
+        before = self.state_path.read_bytes()
         with self.assertRaises(HandoffError):
             audit_handoff(self.state_path, audit_path)
+        self.assertEqual(before, self.state_path.read_bytes())
+
+    def test_malformed_fail_is_rejected_without_state_mutation(self):
+        builder_path = self.root / "builder-malformed-fail.json"
+        audit_path = self.root / "audit-malformed-fail.json"
+        dump(builder_path, builder_report())
+        builder_handoff(self.state_path, builder_path, SHA_A)
+        malformed = audit_report(SHA_A, result="FAIL", blocking=True)
+        del malformed["executor_id"]
+        dump(audit_path, malformed)
+        before = self.state_path.read_bytes()
+
+        with self.assertRaises(HandoffError):
+            audit_handoff(self.state_path, audit_path)
+
+        self.assertEqual(before, self.state_path.read_bytes())
 
     def test_unauthorized_gate_requester_is_rejected(self):
         builder_path = self.root / "builder-approval.json"

@@ -44,3 +44,11 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Replay: novo processo retorna o resultado persistido sem executar novamente o ator.
 - Conflict: mesmo `operation_id` com relatório divergente é rejeitado sem mutação ou duplicação.
 - Boundary: recuperação de interrupção entre transição e registro permanece em O0-C41.
+
+## O0-C14/O0-C15 — formal regularization
+
+- Commands: `python -m unittest scripts.test_orchestrate_handoffs scripts.test_o0_runner` em ambiente POSIX/WSL.
+- O0-C14: FAIL válido produz `FIX_REQUIRED`, incrementa uma rodada, preserva SHAs/gate/aprovação e direciona ao Builder; relatórios inválidos não alteram o estado.
+- O0-C15: `builder-findings` contém somente alvo, rodada e findings canônicos com evidências referenciadas; o digest do relatório aceito fica no estado e impede adulteração conjunta de relatório/snapshot. No Linux, o Builder recebe um descritor de memória selado, não o caminho mutável; troca durante preparação é rejeitada antes do spawn.
+- Round limit: o terceiro FAIL produz `BLOCKED`, sem avanço indevido.
+- Boundary: entrega imutável depende de `memfd`/seals do Linux; outros sistemas recusam a execução Builder em FIX_REQUIRED. O0-C41 permanece não iniciado neste SHA.

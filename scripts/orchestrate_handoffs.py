@@ -69,6 +69,27 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     tmp.replace(path)
 
 
+def accepted_audit_snapshot(report_path: Path, audit_round: int = 1) -> Path:
+    return report_path.with_name(report_path.name + f".accepted.{audit_round}")
+
+
+def seal_audit_report(report_path: Path, audit_round: int = 1) -> None:
+    snapshot = accepted_audit_snapshot(report_path, audit_round)
+    raw = report_path.read_bytes()
+    if snapshot.exists():
+        if snapshot.read_bytes() != raw:
+            raise HandoffError("Audit report differs from accepted audit report")
+        return
+    with snapshot.open("xb") as stream:
+        stream.write(raw)
+
+
+def validate_accepted_audit_report(report_path: Path, audit_round: int = 1) -> None:
+    snapshot = accepted_audit_snapshot(report_path, audit_round)
+    if snapshot.exists() and snapshot.read_bytes() != report_path.read_bytes():
+        raise HandoffError("Audit report differs from accepted audit report")
+
+
 def validate_with_schema(data: dict[str, Any], schema_name: str) -> None:
     schema = load_json(SCHEMAS[schema_name])
     errors = sorted(
@@ -287,6 +308,7 @@ def init_state(
         "max_audit_rounds": policy["max_audit_rounds"],
         "last_builder_report": None,
         "last_audit_report": None,
+        "last_audit_report_sha256": None,
         "last_audit_result": None,
         "human_gate_required": True,
         "approval": None,
@@ -374,9 +396,13 @@ def audit_handoff(
         raise HandoffError("Audit PASS requires every mandatory check to be PASS or NOT_APPLICABLE")
     if report["audit_result"] == "FAIL" and not report["findings"]:
         raise HandoffError("Audit FAIL requires at least one finding")
+    finding_ids = [finding["id"] for finding in report["findings"]]
+    if len(finding_ids) != len(set(finding_ids)):
+        raise HandoffError("Duplicate audit finding ID")
 
     state["audit_round"] += 1
     state["last_audit_report"] = str(report_path)
+    state["last_audit_report_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
     state["auditor_executor_id"] = report["executor_id"]
     state["last_audited_sha"] = report["audited_sha"]
     state["last_audit_result"] = report["audit_result"]
@@ -398,6 +424,7 @@ def audit_handoff(
 
     state["updated_at"] = now()
     validate_state(state)
+    seal_audit_report(report_path, state["audit_round"])
     write_json(state_path, state)
     return state
 
