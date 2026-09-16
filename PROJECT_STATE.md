@@ -3,9 +3,9 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** integrar O0 v2 com Antigravity CLI e Codex CLI antes de retomar a implementação de S1; começar por M1
-- **Última implementada:** O0-C45 — ciclo E2E adversarial cobrindo concorrência, interrupção, timeout e retry; sem declaração de PASS
-- **Próxima:** O0 v2 M1 — validar as duas CLIs em repositório descartável
+- **Objetivo atual:** reauditoria independente de O0 v2 M1 com pacote persistente e verificável
+- **Última implementada:** O0 v2 M1 — validação não interativa corrigida; reauditoria pendente
+- **Próxima:** reauditoria independente de O0 v2 M1; M2 não iniciado
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
@@ -15,6 +15,8 @@
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
 
 ## Evidência atual
+
+- O0 v2 M1: `O0_V2_M1_EVIDENCE_REAUDIT.json` referencia bundle Git do Builder, saídas completas e relatório JSON validado do Codex; escrita em checkout protegida foi rejeitada. O artefato anterior não serve para aceite. Auditoria independente pendente.
 
 - Auditoria independente de O0-C19: PASS no SHA `cfa228463f2ed2a92de0cba06225860520bb116b`
 - HEAD de reconciliação `1eca5ba80be883fe5491dd9178429f033aed6899`: merge com árvore idêntica ao SHA auditado

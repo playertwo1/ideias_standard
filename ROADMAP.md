@@ -255,10 +255,12 @@ Não é gate de produto.
 
 #### M1 — Validar as CLIs em repositório descartável
 
-- [ ] Registrar versão, autenticação, comando não interativo, código de saída e diretório de trabalho explícito de cada CLI.
-- [ ] Antigravity alterar um arquivo, executar teste, criar commit e devolver SHA verificável.
-- [ ] Codex auditar esse SHA em checkout separado, com código protegido contra escrita, temporários e relatório fora do checkout.
-- [ ] Capturar saída estruturada das duas CLIs sem perguntas interativas.
+**Estado:** implementação e evidência corrigidas; reauditoria independente pendente. M2 não iniciado.
+
+- [x] Registrar versão, autenticação, comando não interativo, código de saída e diretório de trabalho explícito de cada CLI.
+- [x] Antigravity alterar um arquivo, executar teste, criar commit e devolver SHA verificável.
+- [x] Codex auditar esse SHA em checkout separado, com código protegido contra escrita, temporários e relatório fora do checkout.
+- [x] Capturar saída estruturada das duas CLIs sem perguntas interativas.
 
 **Aceite:** uma execução real de cada CLI, com comandos e evidência reproduzível. Se faltar capacidade essencial, registrar bloqueio antes de M2.
 
