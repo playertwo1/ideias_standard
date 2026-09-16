@@ -52,6 +52,7 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - O0-C15: `builder-findings` contém somente alvo, rodada e findings canônicos com evidências referenciadas; o digest do relatório aceito fica no estado e impede adulteração conjunta de relatório/snapshot. No Linux, o Builder recebe um descritor de memória selado, não o caminho mutável; troca durante preparação é rejeitada antes do spawn.
 - Round limit: o terceiro FAIL produz `BLOCKED`, sem avanço indevido.
 - Boundary: entrega imutável depende de `memfd`/seals do Linux; outros sistemas recusam a execução Builder em FIX_REQUIRED.
+- Independent audit: PASS informado para O0-C15 no SHA `fa2794f97ea2c93fe311872a4111220eb0773390`; relatório não anexado.
 
 ## O0-C41 — interruption recovery journal
 
@@ -60,6 +61,7 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Recovery: a retomada conclui estado e `operation-record` sem uma segunda execução do Builder.
 - Integrity: journal, relatório, estado resultante e snapshot são vinculados à identidade e a digests canônicos.
 - Boundary: timeout e cancelamento explícitos permanecem em O0-C42.
+- Independent audit: PASS informado para O0-C41 no SHA `c3ee4da2544a47f46d7f109edd2edea250e60de1`; relatório não anexado.
 
 ## O0-C42 — timeout and cancellation
 

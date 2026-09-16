@@ -5,11 +5,11 @@
 - **Status:** ACTIVE
 - **Objetivo atual:** avançar S1 — Conformance First com O0 — Operational Orchestrator como tooling transversal prioritário
 - **Última implementada:** O0-C42 — timeout/cancelamento explícitos e retomada controlada; sem declaração de PASS
-- **Próxima:** auditorias independentes de O0-C15, O0-C41 e O0-C42; O0-C43 permanece não iniciado
+- **Próxima:** auditoria independente de O0-C42; O0-C43 permanece não iniciado
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL — O0-C01–O0-C42 implementados; O0-C15/O0-C41/O0-C42 aguardam auditoria independente
+- **O0:** PARTIAL — O0-C01–O0-C42 implementados; O0-C15/O0-C41 receberam PASS independente informado; O0-C42 aguarda auditoria
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
@@ -47,6 +47,7 @@
 - O0-C14: invariantes de FAIL → FIX_REQUIRED e rejeições sem mutação cobertos diretamente
 - O0-C15: findings mínimos e evidências vinculadas são encaminhados ao Builder; adulteração é rejeitada antes da execução
 - O0-C41: journal durável retoma relatório, transição e `operation-record` após encerramento forçado sem reexecutar o ator
+- Auditorias independentes informadas: O0-C15 PASS no SHA `fa2794f97ea2c93fe311872a4111220eb0773390`; O0-C41 PASS no SHA `c3ee4da2544a47f46d7f109edd2edea250e60de1` (cenários solicitados; relatórios não anexados nesta atualização)
 - O0-C42: timeout e cancelamento registram `INTERRUPTED` no journal sem transição canônica; retomada exige `resume_interrupted=true`
 - SHA funcional validado: `2ab2d3881693393e53e2ba324cc947a6eb6821e8`
 - Python 3.11: PASS
