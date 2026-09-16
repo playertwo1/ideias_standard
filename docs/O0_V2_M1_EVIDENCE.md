@@ -1,7 +1,7 @@
 # O0 v2 M1 — Validacao nao interativa de Antigravity CLI e Codex CLI
 
 - **Marco:** O0 v2 M1 (Roadmap v3)
-- **Status:** M1 implementado; reauditoria independente pendente
+- **Status:** PASS independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`
 - **Artefato verificavel:** [O0_V2_M1_EVIDENCE_REAUDIT.json](../O0_V2_M1_EVIDENCE_REAUDIT.json) e [pacote persistente](../O0_V2_M1_EVIDENCE_REAUDIT_PACKAGE/)
 - **Registro anterior:** `O0_V2_M1_EVIDENCE.json` foi substituido para fins de aceite porque referenciava artefatos nao preservados e relatorio textual.
 - **Data da execucao:** 2026-09-16

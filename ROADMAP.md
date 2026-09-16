@@ -255,7 +255,7 @@ Não é gate de produto.
 
 #### M1 — Validar as CLIs em repositório descartável
 
-**Estado:** implementação e evidência corrigidas; reauditoria independente pendente. M2 não iniciado.
+**Estado:** PASS independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`. Evidência de aceite em `O0_V2_M1_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M1_EVIDENCE_REAUDIT_PACKAGE/` (`O0_V2_M1_EVIDENCE.json` mantido como registro histórico substituído). M2 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
 
 - [x] Registrar versão, autenticação, comando não interativo, código de saída e diretório de trabalho explícito de cada CLI.
 - [x] Antigravity alterar um arquivo, executar teste, criar commit e devolver SHA verificável.

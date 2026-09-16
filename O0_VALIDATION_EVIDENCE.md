@@ -95,3 +95,12 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Rejeição de duplicatas: operações já aceitas ou relatórios com digest idêntico ao já aceito em outra operação são rejeitados de forma segura (`Operation has already been completed` e `Report has already been accepted`).
 - Referências verificáveis: artefato de evidência registra referências canônicas (`canonical_reports`, `evidence_references`, `failure_references`, `journal_references`) verificáveis por digest sha256 em disco.
 - Final state: ciclo adversarial conclui em `WAITING_PRODUCT_AUTHORITY` com `approval: null`, `human_gate_required: true`, sem aprovação de gate e sem início de S2.
+
+## O0 v2 M1 — CLI validation
+
+- Status: PASS (auditoria independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`)
+- Evidência canônica de aceite: `O0_V2_M1_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M1_EVIDENCE_REAUDIT_PACKAGE/`
+- Registro histórico: `O0_V2_M1_EVIDENCE.json` (mantido como registro substituído)
+- Builder: Antigravity CLI v1.2.4 headless (`gemini-3.7-flash-medium`), commit `09e05b65ce8dcb35e9b83d08fb4b8e5b96662694` reproduzido via `builder.bundle` e testes validados.
+- Auditor: OpenAI Codex CLI v0.154.0 headless, `--sandbox read-only`, checkout isolado e protegido contra escrita (`stat.S_IREAD`), tentativa de escrita real rejeitada (`PermissionError`), checkout 100% inalterado (`git status` limpo), relatório validado em schema JSON com `audit_result: PASS`.
+- Limites: M2 e S2 não iniciados; nenhum gate de produto registrado; Gate S1 = NOT_RUN.

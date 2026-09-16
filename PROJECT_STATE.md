@@ -3,20 +3,20 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** reauditoria independente de O0 v2 M1 com pacote persistente e verificável
-- **Última implementada:** O0 v2 M1 — validação não interativa corrigida; reauditoria pendente
-- **Próxima:** reauditoria independente de O0 v2 M1; M2 não iniciado
+- **Objetivo atual:** O0 v2 M1 auditado e aprovado com PASS independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`; preparar O0 v2 M2 (conectar os adapters ao runner)
+- **Última implementada:** O0 v2 M1 — validação não interativa de Antigravity CLI e Codex CLI; auditada e aprovada com PASS independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`
+- **Próxima:** O0 v2 M2 — conectar os adapters ao runner; M2 não iniciado nesta atualização
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; integração real Antigravity ↔ Codex planejada em O0 v2 M1–M5; O0-C42/O0-C43/O0-C44/O0-C45 ainda constam como aguardando auditoria independente neste estado
+- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1 aprovado com PASS independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`; O0 v2 M2–M5 planejados; Gate S1 = NOT_RUN e S2 = NOT_STARTED
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
 
 ## Evidência atual
 
-- O0 v2 M1: `O0_V2_M1_EVIDENCE_REAUDIT.json` referencia bundle Git do Builder, saídas completas e relatório JSON validado do Codex; escrita em checkout protegida foi rejeitada. O artefato anterior não serve para aceite. Auditoria independente pendente.
+- Auditoria independente de O0 v2 M1: PASS no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`. Evidência canônica de aceite: `O0_V2_M1_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M1_EVIDENCE_REAUDIT_PACKAGE/` (com bundle Git do Builder `builder.bundle`, saídas completas e relatório JSON validado do Codex `codex_audit_report.json`). O registro `O0_V2_M1_EVIDENCE.json` permanece identificado como histórico substituído. Nenhum gate humano registrado; M2 e S2 não iniciados.
 
 - Auditoria independente de O0-C19: PASS no SHA `cfa228463f2ed2a92de0cba06225860520bb116b`
 - HEAD de reconciliação `1eca5ba80be883fe5491dd9178429f033aed6899`: merge com árvore idêntica ao SHA auditado
@@ -100,4 +100,4 @@ A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um ada
 
 ## Próxima ação
 
-Executar somente O0 v2 M1 definido no `ROADMAP.md`. S1 permanece ACTIVE com implementação pausada até D-C02; Gate S1 = NOT_RUN e S2 permanece não iniciada.
+Preparar O0 v2 M2 (conectar os adapters ao runner) conforme o `ROADMAP.md`. S1 permanece ACTIVE com implementação pausada até D-C02; Gate S1 = NOT_RUN e S2 permanece não iniciada. Nenhum gate humano registrado; M2 e S2 não iniciados.
