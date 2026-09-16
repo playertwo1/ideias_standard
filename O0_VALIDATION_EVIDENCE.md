@@ -84,3 +84,12 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Operação já concluída: reexecução sem configuração explícita de replay (`operation_id` repetido) é rejeitada de forma segura (`Operation has already been completed`).
 - Rejeição de duplicatas: o runner e a persistência de operações rejeitam qualquer relatório cujo digest já tenha sido aceito em outra operação (`Report has already been accepted`).
 - Idempotência e integridade: retomada bem-sucedida dentro do limite avança o estado; replay idempotente com o mesmo `operation_id` e mesmo payload continua preservado.
+
+## O0-C45 — adversarial e2e cycle
+
+- Commands: `python -m unittest scripts.test_o0_adversarial_e2e` e `python scripts/o0_adversarial_e2e.py --work-root <dir> --output O0_C45_E2E_EVIDENCE.json`.
+- Concorrência: tentativa concorrente sob o lock de estado `<state>.lock` é rejeitada com exit code 2 e erro estruturado (`Runner state lock is busy`) sem alterar o estado canônico.
+- Retry: falha transitória do ator gera evidência estruturada de falha (`ACTOR_EXIT_NONZERO`), exit code 2, e retry seguinte avança o estado com segurança dentro de `max_retries`.
+- Timeout: expiração de `actor_timeout_seconds` encerra o processo do ator, registra journal `INTERRUPTED` (`TIMEOUT`), limpa relatório parcial e preserva o estado canônico byte a byte.
+- Rejeição de duplicatas: operações já aceitas ou relatórios com digest idêntico ao já aceito em outra operação são rejeitados de forma segura (`Operation has already been completed` e `Report has already been accepted`).
+- Final state: ciclo adversarial conclui em `WAITING_PRODUCT_AUTHORITY` com `approval: null`, `human_gate_required: true`, sem aprovação de gate e sem início de S2.

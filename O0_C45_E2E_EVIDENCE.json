@@ -1,0 +1,100 @@
+{
+  "actor_pids": [
+    13016,
+    22240,
+    31684,
+    46548
+  ],
+  "adversarial_coverage": {
+    "concurrency": true,
+    "duplicate_rejection": true,
+    "interruption_preservation": true,
+    "retry": true,
+    "timeout": true
+  },
+  "concurrency_evidence": {
+    "concurrent_error_message": "RUNNER ERROR: Runner state lock is busy",
+    "concurrent_rejected_exit_code": 2,
+    "machine_state_after_primary": "WAITING_PRODUCT_AUTHORITY",
+    "primary_completed_exit_code": 0,
+    "primary_pid": 21652
+  },
+  "duplicate_evidence": {
+    "accepted_operations_count": 2,
+    "automation_stopped_preserved": true,
+    "verified_report_sha256": "59964f5e2db3e236f2154bb0086c6d8a53bbec6d0c354603c35500c16f5b2ef2"
+  },
+  "evidence_references": [
+    {
+      "evidence_id": "r0-builder-check-f8977d24f03f1a07",
+      "path": "reports/evidence/r0-builder-check-f8977d24f03f1a07.json",
+      "sha256": "3c579c377a56bef43b9bea0d0919507907dea5b0204b6a7c7d1966704d90fbb7"
+    },
+    {
+      "evidence_id": "r1-audit-check-27ea3e4474ada271",
+      "path": "reports/evidence/r1-audit-check-27ea3e4474ada271.json",
+      "sha256": "2a9406adb766d89d1c81f5d2d9d71ced6b94131dfecc0ea2963a6ebab5a97fda"
+    }
+  ],
+  "final_state": {
+    "approval": null,
+    "audit_round": 1,
+    "audit_target_sha": "f8187b4ec5640e58ddf66357f669f5ddc6731e0e",
+    "builder_head_sha": "f8187b4ec5640e58ddf66357f669f5ddc6731e0e",
+    "gate": "S1",
+    "human_gate_required": true,
+    "last_audit_result": "PASS",
+    "last_audited_sha": "f8187b4ec5640e58ddf66357f669f5ddc6731e0e",
+    "machine_state": "WAITING_PRODUCT_AUTHORITY",
+    "max_audit_rounds": 3,
+    "next_actor": "PRODUCT_AUTHORITY",
+    "phase": "O0",
+    "run_id": "run-a86e43539817d47c55b28b44b6a8f45bfe58ecfd9f1b7308dc84c0ed8b06da33"
+  },
+  "retry_evidence": {
+    "actor_exit_code": 7,
+    "failure_record_kind": "ACTOR_EXIT_NONZERO",
+    "machine_state_after_retry": "READY_FOR_AUDIT",
+    "retry_success_exit_code": 0,
+    "transient_failure_exit_code": 2
+  },
+  "scenario": "O0-C45-adversarial-e2e-cycle",
+  "schema_version": "0.1",
+  "steps": [
+    {
+      "approval": null,
+      "audit_round": 0,
+      "audit_target_sha": "f8187b4ec5640e58ddf66357f669f5ddc6731e0e",
+      "builder_head_sha": "f8187b4ec5640e58ddf66357f669f5ddc6731e0e",
+      "gate": "S1",
+      "human_gate_required": true,
+      "last_audit_result": null,
+      "last_audited_sha": null,
+      "machine_state": "READY_FOR_AUDIT",
+      "max_audit_rounds": 3,
+      "next_actor": "AUDITOR",
+      "phase": "O0",
+      "run_id": "run-a86e43539817d47c55b28b44b6a8f45bfe58ecfd9f1b7308dc84c0ed8b06da33"
+    },
+    {
+      "approval": null,
+      "audit_round": 1,
+      "audit_target_sha": "f8187b4ec5640e58ddf66357f669f5ddc6731e0e",
+      "builder_head_sha": "f8187b4ec5640e58ddf66357f669f5ddc6731e0e",
+      "gate": "S1",
+      "human_gate_required": true,
+      "last_audit_result": "PASS",
+      "last_audited_sha": "f8187b4ec5640e58ddf66357f669f5ddc6731e0e",
+      "machine_state": "WAITING_PRODUCT_AUTHORITY",
+      "max_audit_rounds": 3,
+      "next_actor": "PRODUCT_AUTHORITY",
+      "phase": "O0",
+      "run_id": "run-a86e43539817d47c55b28b44b6a8f45bfe58ecfd9f1b7308dc84c0ed8b06da33"
+    }
+  ],
+  "timeout_evidence": {
+    "state_preserved": true,
+    "timeout_exit_code": 2,
+    "timeout_seconds": 0.25
+  }
+}

@@ -210,7 +210,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C42 Timeout e cancelamento produzem estado explícito, retomável e sem avanço parcial.
 - [x] O0-C43 Falha do runner persiste evidência estruturada e exit code sem expor secrets.
 - [x] O0-C44 Retry é limitado e não aceita duas vezes o mesmo relatório/operação.
-- [ ] O0-C45 Ciclo E2E adversarial cobre concorrência, interrupção, timeout e retry.
+- [x] O0-C45 Ciclo E2E adversarial cobre concorrência, interrupção, timeout e retry.
 
 Todos os critérios O0-C01–O0-C45 são obrigatórios. Exceção exige `NOT_APPLICABLE` justificado e aceito explicitamente pela Product Authority; omissão não equivale a PASS.
 

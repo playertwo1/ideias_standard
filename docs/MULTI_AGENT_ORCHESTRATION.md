@@ -150,6 +150,8 @@ Falhas do runner são persistidas em `reports/runner-failures/` como evidência 
 
 O runner limita o número de retries por operação (via `max_retries`, padrão 3). Quando o total de falhas em `reports/runner-failures/` para a mesma `operation_id` atinge o limite, novas tentativas são bloqueadas com exit code 2 sem executar o ator nem alterar o estado canônico. Operações já concluídas não podem ser reexecutadas sem configuração de replay explícita (`Operation has already been completed`). Da mesma forma, relatórios com o mesmo digest de um relatório já aceito em outra operação são rejeitados (`Report has already been accepted`), impedindo reutilização acidental ou fraudulenta.
 
+O ciclo adversarial de ponta a ponta (`scripts/o0_adversarial_e2e.py`) valida em processos reais todas as garantias de robustez integradas: injeção de falhas transitórias com retry limitado, colisão concorrente de runners com rejeição imediata pelo lock de estado, interrupção forçada por expiração de timeout e preservação do estado canônico, e rejeição de relatórios duplicados, culminando na parada controlada em `WAITING_PRODUCT_AUTHORITY` sem autoaprovação de gate.
+
 ## Estados
 
 - `READY_FOR_BUILD`: Builder pode agir.

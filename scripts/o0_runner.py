@@ -773,14 +773,14 @@ def run_actor(
             process = subprocess.run(
                 command, cwd=workspace, env=actor_env, check=False,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox else None,
+                preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
                 pass_fds=(findings_fd,) if findings_fd is not None else (),
             )
         else:
             process = subprocess.Popen(
                 command, cwd=workspace, env=actor_env,
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox else None,
+                preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
                 pass_fds=(findings_fd,) if findings_fd is not None else (),
                 start_new_session=os.name != "nt",
             )
