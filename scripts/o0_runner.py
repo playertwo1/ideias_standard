@@ -1209,6 +1209,7 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
                 )
             except ActorInterrupted as exc:
                 mark_actor_interrupted(journal_path, journal, exc.reason)
+                report.unlink(missing_ok=True)
                 raise
             except (HandoffError, OSError):
                 if not report.is_file():
@@ -1279,6 +1280,7 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
                 )
             except ActorInterrupted as exc:
                 mark_actor_interrupted(journal_path, journal, exc.reason)
+                report.unlink(missing_ok=True)
                 raise
             except (HandoffError, OSError):
                 if not report.is_file():
