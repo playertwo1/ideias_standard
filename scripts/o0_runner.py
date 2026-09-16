@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import ctypes
 from ctypes import wintypes
 import hashlib
@@ -10,6 +11,7 @@ import json
 import math
 import os
 import re
+import shutil
 import signal
 import stat
 import subprocess
@@ -727,6 +729,89 @@ def _auditor_write_sandbox(allowed_directory: Path):
     return restrict
 
 
+@contextlib.contextmanager
+def _windows_auditor_write_sandbox(
+    workspace: Path,
+    report: Path,
+    env: dict[str, str],
+):
+    """Restricts write access on Windows during Auditor execution; fail closed."""
+    if shutil.which("icacls") is None:
+        raise HandoffError("Auditor write sandbox is unavailable; refusing unsafe execution")
+
+    applied_dirs: list[Path] = []
+    applied_files: list[Path] = []
+    report_parent = report.parent.resolve()
+
+    def _is_subpath(p: Path, parent: Path) -> bool:
+        try:
+            p.relative_to(parent)
+            return True
+        except ValueError:
+            return False
+
+    targets_to_protect: list[Path] = []
+    ws_resolved = workspace.resolve()
+    if ws_resolved.exists() and not _is_subpath(ws_resolved, report_parent):
+        targets_to_protect.append(ws_resolved)
+
+    for env_key in (
+        "CANONICAL",
+        "IDEAS_STANDARD_STATE",
+        "IDEAS_STANDARD_STATE_SNAPSHOT",
+        "IDEAS_STANDARD_FINDINGS",
+        "IDEAS_STANDARD_REAUDIT_HANDOFF",
+    ):
+        val = env.get(env_key)
+        if val:
+            p = Path(val).resolve()
+            if p.exists() and not _is_subpath(p, report_parent) and p not in targets_to_protect:
+                targets_to_protect.append(p)
+
+    def _rollback() -> None:
+        for f in reversed(applied_files):
+            subprocess.run(
+                ["icacls", str(f), "/remove:d", "*S-1-1-0"],
+                capture_output=True,
+                check=False,
+            )
+        for d in reversed(applied_dirs):
+            subprocess.run(
+                ["icacls", str(d), "/remove:d", "*S-1-1-0", "/t"],
+                capture_output=True,
+                check=False,
+            )
+
+    try:
+        for target in targets_to_protect:
+            if target.is_dir():
+                res = subprocess.run(
+                    ["icacls", str(target), "/deny", "*S-1-1-0:(OI)(CI)(WD,AD,WA,WEA,DC,DE)", "/t"],
+                    capture_output=True,
+                    check=False,
+                )
+                if res.returncode != 0:
+                    raise HandoffError(f"Failed to apply write sandbox to {target}: {res.stderr.decode('utf-8', errors='ignore')}")
+                applied_dirs.append(target)
+            elif target.is_file():
+                res = subprocess.run(
+                    ["icacls", str(target), "/deny", "*S-1-1-0:(WD,AD,WA,WEA,DC,DE)"],
+                    capture_output=True,
+                    check=False,
+                )
+                if res.returncode != 0:
+                    raise HandoffError(f"Failed to apply write sandbox to {target}: {res.stderr.decode('utf-8', errors='ignore')}")
+                applied_files.append(target)
+    except Exception as exc:
+        _rollback()
+        raise HandoffError(f"Auditor write sandbox is unavailable; refusing unsafe execution ({exc})") from exc
+
+    try:
+        yield
+    finally:
+        _rollback()
+
+
 def _terminate_actor_process(process: subprocess.Popen) -> None:
     if os.name == "nt":
         result = subprocess.run(
@@ -813,36 +898,47 @@ def run_actor(
         if findings_handle is not None:
             kernel32.CloseHandle(findings_handle)
         raise ActorInterrupted("CANCELLED")
+
+    if write_sandbox and os.name != "nt" and sys.platform != "linux":
+        raise HandoffError("Auditor write sandbox is unavailable; refusing unsafe execution")
+
+    sandbox_ctx = (
+        _windows_auditor_write_sandbox(workspace, report, actor_env)
+        if write_sandbox and os.name == "nt"
+        else contextlib.nullcontext()
+    )
+
     try:
         report.parent.mkdir(parents=True, exist_ok=True)
-        if timeout_seconds is None and cancel_path is None:
-            process = subprocess.run(
-                command, cwd=workspace, env=actor_env, check=False,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
-                pass_fds=(findings_fd,) if findings_fd is not None else (),
-            )
-        else:
-            process = subprocess.Popen(
-                command, cwd=workspace, env=actor_env,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
-                pass_fds=(findings_fd,) if findings_fd is not None else (),
-                start_new_session=os.name != "nt",
-            )
-            deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
-            while process.poll() is None:
-                reason = None
-                if cancel_path is not None and cancel_path.exists():
-                    reason = "CANCELLED"
-                elif deadline is not None and time.monotonic() >= deadline:
-                    reason = "TIMEOUT"
-                if reason is not None:
-                    _terminate_actor_process(process)
-                    process.wait()
-                    raise ActorInterrupted(reason)
-                time.sleep(0.02)
-            process.wait()
+        with sandbox_ctx:
+            if timeout_seconds is None and cancel_path is None:
+                process = subprocess.run(
+                    command, cwd=workspace, env=actor_env, check=False,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
+                    pass_fds=(findings_fd,) if findings_fd is not None else (),
+                )
+            else:
+                process = subprocess.Popen(
+                    command, cwd=workspace, env=actor_env,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
+                    pass_fds=(findings_fd,) if findings_fd is not None else (),
+                    start_new_session=os.name != "nt",
+                )
+                deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+                while process.poll() is None:
+                    reason = None
+                    if cancel_path is not None and cancel_path.exists():
+                        reason = "CANCELLED"
+                    elif deadline is not None and time.monotonic() >= deadline:
+                        reason = "TIMEOUT"
+                    if reason is not None:
+                        _terminate_actor_process(process)
+                        process.wait()
+                        raise ActorInterrupted(reason)
+                    time.sleep(0.02)
+                process.wait()
     finally:
         if findings_fd is not None:
             os.close(findings_fd)

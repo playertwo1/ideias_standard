@@ -530,6 +530,15 @@ class O0RunnerTest(unittest.TestCase):
         self.assertTrue(json.loads(report.read_text())["blocked"])
         self.assertEqual('{"audit_target_sha":"fixed"}', state.read_text())
 
+    def test_auditor_failsafe_when_sandbox_unavailable(self):
+        repository, _, target = self._repository()
+        workspace = prepare_audit_workspace(repository, self.root / "audits", target)
+        report = self.root / "reports" / "audit.json"
+        if os.name == "nt":
+            with patch("shutil.which", return_value=None):
+                with self.assertRaisesRegex(HandoffError, "Auditor write sandbox is unavailable"):
+                    run_actor([sys.executable, "-c", "pass"], workspace, report, {}, write_sandbox=True)
+
     def test_state_change_during_audit_is_rejected(self):
         repository, _, target = self._repository()
         workspace = prepare_audit_workspace(repository, self.root / "audits", target)
