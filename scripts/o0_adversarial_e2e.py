@@ -515,8 +515,22 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work-root", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--package-dir", type=Path,
+                        help="Persist the manifest's referenced files beside a committed evidence artifact")
     args = parser.parse_args()
-    execute_adversarial_cycle(args.work_root, args.output)
+    result = execute_adversarial_cycle(args.work_root, args.output)
+    if args.package_dir is not None:
+        package = args.package_dir.resolve()
+        result["package_root"] = package.relative_to(SOURCE_ROOT).as_posix()
+        for category in ("canonical_reports", "evidence_references", "failure_references", "journal_references"):
+            for reference in result[category]:
+                relative = Path(reference["path"])
+                source = args.work_root.resolve() / relative
+                target = package / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, target)
+                assert hashlib.sha256(target.read_bytes()).hexdigest() == reference["sha256"]
+        _write_json(args.output, result)
     return 0
 
 

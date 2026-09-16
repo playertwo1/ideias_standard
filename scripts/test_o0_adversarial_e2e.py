@@ -9,6 +9,25 @@ from pathlib import Path
 
 
 class O0AdversarialE2ETest(unittest.TestCase):
+    def test_committed_evidence_references_are_verifiable(self):
+        source = Path(__file__).resolve().parents[1]
+        manifest = json.loads((source / "O0_C45_E2E_EVIDENCE.json").read_text(encoding="utf-8"))
+        package = source / manifest["package_root"]
+        for category in ("canonical_reports", "evidence_references", "failure_references", "journal_references"):
+            self.assertTrue(manifest[category], category)
+            for reference in manifest[category]:
+                relative = Path(reference["path"])
+                self.assertFalse(relative.is_absolute())
+                self.assertNotIn("..", relative.parts)
+                target = package / relative
+                self.assertTrue(target.is_file(), str(target))
+                tracked = subprocess.run(
+                    ["git", "ls-files", "--error-unmatch", "--", str(target.relative_to(source))],
+                    cwd=source, capture_output=True, check=False,
+                )
+                self.assertEqual(0, tracked.returncode, str(target))
+                self.assertEqual(reference["sha256"], hashlib.sha256(target.read_bytes()).hexdigest())
+
     def test_adversarial_e2e_cycle_covers_all_dimensions(self):
         source = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as temporary:
