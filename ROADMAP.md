@@ -247,11 +247,68 @@ O0 = OPERATIONALLY_READY
 
 Não é gate de produto.
 
+### O0 v2 — integração local Antigravity ↔ Codex
+
+**Status:** PLANNED — prioridade operacional antes de retomar a implementação de S1. S1 permanece ACTIVE, Gate S1 = NOT_RUN e S2 = NOT_STARTED.
+
+**Objetivo:** eliminar o copiar/colar entre Builder e Auditor usando Antigravity CLI, `scripts/o0_runner.py` e Codex CLI. Reutilizar a máquina de estados, schemas, locks, evidências, limites de rodada e recovery de O0-C01–O0-C45. Os adapters são específicos dos provedores; os contratos do Standard continuam independentes deles.
+
+#### M1 — Validar as CLIs em repositório descartável
+
+- [ ] Registrar versão, autenticação, comando não interativo, código de saída e diretório de trabalho explícito de cada CLI.
+- [ ] Antigravity alterar um arquivo, executar teste, criar commit e devolver SHA verificável.
+- [ ] Codex auditar esse SHA em checkout separado, com código protegido contra escrita, temporários e relatório fora do checkout.
+- [ ] Capturar saída estruturada das duas CLIs sem perguntas interativas.
+
+**Aceite:** uma execução real de cada CLI, com comandos e evidência reproduzível. Se faltar capacidade essencial, registrar bloqueio antes de M2.
+
+#### M2 — Conectar os adapters ao runner
+
+- [ ] Criar apenas os adapters necessários para chamar Antigravity e Codex pelos comandos configuráveis do runner.
+- [ ] Passar tarefa, contexto mínimo, workspace e destino de saída explicitamente.
+- [ ] Converter a saída das CLIs para os relatórios canônicos e validar pelos schemas existentes.
+- [ ] Verificar SHA, referências de evidência e integridade do checkout antes de aceitar o resultado.
+- [ ] Aplicar os controles existentes de timeout, cancelamento e retomada às CLIs reais.
+
+**Aceite:** o runner chama cada agente e aceita relatórios válidos sem intermediação humana.
+
+#### M3 — Fechar o ciclo de correção
+
+- [ ] Executar Builder → Auditor e encaminhar automaticamente findings de FAIL ao Builder.
+- [ ] Exigir novo SHA após correção e iniciar nova auditoria, preservando `run_id`, rodadas e evidências.
+- [ ] Respeitar `max_audit_rounds = 3`: três auditorias no total, sem retry automático de PASS, FAIL ou ESCALATE válidos.
+- [ ] PASS terminar a tarefa em `WAITING_PRODUCT_AUTHORITY`; ESCALATE ou limite terminar em `BLOCKED` com motivo.
+- [ ] Manter `approval = null` e Gate S1 = NOT_RUN.
+
+**Aceite:** ciclo real FAIL → correção → PASS iniciado uma única vez, sem copiar/colar.
+
+#### M4 — Fila de tarefas previamente autorizadas
+
+- [ ] Receber fila simples e ordenada; cada tarefa declara objetivo, escopo e critérios de aceite.
+- [ ] Manter a fila fora da máquina de estados da tarefa; cada tarefa recebe seu próprio `run_id`.
+- [ ] Após PASS técnico, iniciar apenas a próxima tarefa autorizada da mesma fase.
+- [ ] Atualizar explicitamente o contrato e os testes afetados pela regra O0-C29, preservando a proibição de avanço automático de fase.
+- [ ] Parar ao terminar a fila ou encontrar gate humano, BLOCKED ou mudança de escopo.
+
+**Aceite:** duas tarefas autorizadas executadas em sequência; nenhuma aprovação de produto inferida do PASS técnico.
+
+#### M5 — Prova final com agentes reais
+
+- [ ] Executar defeito conhecido: SHA A → FAIL → correção → SHA B distinto → PASS.
+- [ ] Iniciar automaticamente a segunda tarefa autorizada e parar ao terminar a fila.
+- [ ] Verificar relatórios, journals e referências de evidência por SHA-256.
+- [ ] Testar timeout/cancelamento das CLIs reais sem aceitar relatório parcial; retomar sem duplicar resultado aceito.
+- [ ] Executar regressões pertinentes e self-check; documentar um comando de início e um de retomada.
+
+**Aceite:** ciclo local completo sem copiar/colar operacional. Não exigir respostas ou commits idênticos entre execuções de agentes reais.
+
+**Ordem:** M1 → M2 → M3 → M4 → M5. Um marco dependente só inicia após o aceite técnico do anterior. D-C01 registra o uso no próprio repositório após M5; D-C02 permite retomar S1 com O0. Gate S1 continua sob decisão explícita da Product Authority. Dashboard, banco externo, múltiplos auditores, execução distribuída e automação de GUI ficam fora deste plano.
+
 ---
 
 ## S1 — CONFORMANCE FIRST
 
-**Status:** ACTIVE
+**Status:** ACTIVE — implementação pausada enquanto O0 v2 é integrado; retomar em D-C02.
 
 ### Objective
 
@@ -550,8 +607,8 @@ Gate S8 = PASS.
 
 ## 6. DOGFOODING
 
-- [ ] D-C01 O0 usado no próprio `ideias_standard` após O0-C45, antes de declarar `OPERATIONALLY_READY`.
-- [ ] D-C02 S1 desenvolvido usando O0 após D-C01, quando seguro e sem ampliar autoridade.
+- [ ] D-C01 O0 v2 M1–M5 aceitos e O0 usado no próprio `ideias_standard`, antes de declarar `OPERATIONALLY_READY`.
+- [ ] D-C02 Retomar a implementação de S1 usando O0 após D-C01, sem ampliar autoridade.
 - [ ] D-C03 O0 testado em pelo menos outro projeto antes de S6.
 - [ ] D-C04 S5 passa a gerar contexto do próprio Standard.
 - [ ] D-C05 S8 passa a controlar novas mudanças do próprio Standard.
