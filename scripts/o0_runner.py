@@ -765,25 +765,27 @@ def run_actor(
         if state_path is None:
             raise HandoffError("Builder findings require canonical state at launch")
         validate_builder_findings_handoff(status(Path(state_path)), Path(findings_path))
-        if not hasattr(os, "memfd_create"):
-            raise HandoffError("Immutable Builder findings delivery is unavailable")
-        findings_bytes = Path(findings_path).read_bytes()
-        findings_fd = os.memfd_create("ideas-builder-findings", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
-        try:
-            with os.fdopen(os.dup(findings_fd), "wb") as stream:
-                stream.write(findings_bytes)
-            fcntl.fcntl(
-                findings_fd,
-                fcntl.F_ADD_SEALS,
-                fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL,
-            )
-            validate_builder_findings_handoff(status(Path(state_path)), Path(findings_path))
-            if Path(findings_path).read_bytes() != findings_bytes:
-                raise HandoffError("Builder findings changed during immutable handoff preparation")
-        except Exception:
-            os.close(findings_fd)
-            raise
-        actor_env["IDEAS_STANDARD_FINDINGS"] = f"/proc/self/fd/{findings_fd}"
+        if hasattr(os, "memfd_create") and sys.platform == "linux":
+            findings_bytes = Path(findings_path).read_bytes()
+            findings_fd = os.memfd_create("ideas-builder-findings", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
+            try:
+                with os.fdopen(os.dup(findings_fd), "wb") as stream:
+                    stream.write(findings_bytes)
+                fcntl.fcntl(
+                    findings_fd,
+                    fcntl.F_ADD_SEALS,
+                    fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL,
+                )
+                validate_builder_findings_handoff(status(Path(state_path)), Path(findings_path))
+                if Path(findings_path).read_bytes() != findings_bytes:
+                    raise HandoffError("Builder findings changed during immutable handoff preparation")
+            except Exception:
+                os.close(findings_fd)
+                raise
+            actor_env["IDEAS_STANDARD_FINDINGS"] = f"/proc/self/fd/{findings_fd}"
+        else:
+            actor_env["IDEAS_STANDARD_FINDINGS"] = str(findings_path)
+
     if cancel_path is not None and cancel_path.exists():
         if findings_fd is not None:
             os.close(findings_fd)
@@ -1467,12 +1469,35 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
     return current
 
 
+def run_loop(config_path: Path, max_steps: int = 10) -> dict[str, Any]:
+    config_path = config_path.resolve()
+    config = load_config(config_path)
+    state_path = resolve_path(config_path, config["state_path"])
+
+    steps = 0
+    current = status(state_path)
+    while steps < max_steps:
+        if current.get("machine_state") in {"WAITING_PRODUCT_AUTHORITY", "BLOCKED", "GATE_APPROVED"}:
+            break
+        current = run_once(config_path)
+        steps += 1
+        if current.get("machine_state") in {"WAITING_PRODUCT_AUTHORITY", "BLOCKED", "GATE_APPROVED"}:
+            break
+    if steps >= max_steps and current.get("machine_state") not in {"WAITING_PRODUCT_AUTHORITY", "BLOCKED", "GATE_APPROVED"}:
+        raise HandoffError("Runner loop exceeded max_steps without reaching terminal state")
+    return current
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, type=Path)
+    parser.add_argument("--loop", action="store_true", help="Run handoff loop until terminal state or human gate")
     args = parser.parse_args()
     try:
-        result = run_once(args.config)
+        if args.loop:
+            result = run_loop(args.config)
+        else:
+            result = run_once(args.config)
         print(json.dumps({**result, "next_actor": next_actor(result)}, ensure_ascii=False, indent=2))
         return 0
     except Exception as exc:
@@ -1494,3 +1519,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

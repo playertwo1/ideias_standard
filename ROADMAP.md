@@ -272,17 +272,18 @@ Não é gate de produto.
 - [x] Verificar SHA, referências de evidência e integridade do checkout antes de aceitar o resultado.
 - [x] Aplicar os controles existentes de timeout, cancelamento e retomada às CLIs reais.
 
-**Aceite:** o runner chama cada agente e aceita relatórios válidos sem intermediação humana. Finding de processo corrigido em `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote persistente correspondente; reauditoria independente pendente. `O0_V2_M2_EVIDENCE_REAUDIT.json`, seu pacote e `O0_V2_M2_EVIDENCE.json` permanecem históricos e inalterados. M3 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
+**Aceite:** o runner chama cada agente e aceita relatórios válidos sem intermediação humana. PASS independente no SHA `c76317dfd0c3dd37adbc414455f8ad707b7dc88f`. Evidência canônica de aceite em `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote persistente correspondente. `O0_V2_M2_EVIDENCE_REAUDIT.json`, seu pacote e `O0_V2_M2_EVIDENCE.json` permanecem históricos substituídos. M3 executado; M4 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
 
 #### M3 — Fechar o ciclo de correção
 
-- [ ] Executar Builder → Auditor e encaminhar automaticamente findings de FAIL ao Builder.
-- [ ] Exigir novo SHA após correção e iniciar nova auditoria, preservando `run_id`, rodadas e evidências.
-- [ ] Respeitar `max_audit_rounds = 3`: três auditorias no total, sem retry automático de PASS, FAIL ou ESCALATE válidos.
-- [ ] PASS terminar a tarefa em `WAITING_PRODUCT_AUTHORITY`; ESCALATE ou limite terminar em `BLOCKED` com motivo.
-- [ ] Manter `approval = null` e Gate S1 = NOT_RUN.
+- [x] Executar Builder → Auditor e encaminhar automaticamente findings de FAIL ao Builder.
+- [x] Exigir novo SHA após correção e iniciar nova auditoria, preservando `run_id`, rodadas e evidências.
+- [x] Respeitar `max_audit_rounds = 3`: três auditorias no total, sem retry automático de PASS, FAIL ou ESCALATE válidos.
+- [x] PASS terminar a tarefa em `WAITING_PRODUCT_AUTHORITY`; ESCALATE ou limite terminar em `BLOCKED` com motivo.
+- [x] Manter `approval = null` e Gate S1 = NOT_RUN.
 
-**Aceite:** ciclo real FAIL → correção → PASS iniciado uma única vez, sem copiar/colar.
+**Aceite:** ciclo real FAIL → correção → PASS iniciado uma única vez, sem copiar/colar. Evidência em `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. Auditoria independente pendente. M4 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
+
 
 #### M4 — Fila de tarefas previamente autorizadas
 

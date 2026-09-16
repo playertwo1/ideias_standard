@@ -100,12 +100,30 @@ def main() -> int:
         "Verify correctness, completeness and that tests pass."
     )
 
-    auditor_prompt = (
-        f"You are an independent auditor. Audit the repository in the current directory at commit {target_sha}. "
-        f"{task_criteria} "
-        "Return the JSON report required by the output schema. Use audit_result PASS only if the implementation and tests are correct. "
-        "Use arrays of strings for findings and checks; findings must be empty for PASS."
-    )
+    reaudit_handoff_env = os.environ.get("IDEAS_STANDARD_REAUDIT_HANDOFF")
+    if reaudit_handoff_env and Path(reaudit_handoff_env).is_file():
+        try:
+            reaudit_data = json.loads(Path(reaudit_handoff_env).read_text(encoding="utf-8"))
+            changed_paths = reaudit_data.get("changed_paths", [])
+            changed_desc = f" Changed files: {', '.join(changed_paths)}." if changed_paths else ""
+        except Exception:
+            changed_desc = ""
+        auditor_prompt = (
+            f"You are an independent auditor performing a REAUDIT of the repository in the current directory at commit {target_sha}. "
+            f"The previous round had findings that Builder was tasked to fix.{changed_desc} "
+            f"{task_criteria} "
+            "Verify whether the findings from the previous round have been corrected and all tests pass in this commit. "
+            "Return the JSON report required by the output schema. Use audit_result PASS only if the implementation and tests are correct. "
+            "Use arrays of strings for findings and checks; findings must be empty for PASS."
+        )
+    else:
+        auditor_prompt = (
+            f"You are an independent auditor. Audit the repository in the current directory at commit {target_sha}. "
+            f"{task_criteria} "
+            "Return the JSON report required by the output schema. Use audit_result PASS only if the implementation and tests are correct. "
+            "Use arrays of strings for findings and checks; findings must be empty for PASS."
+        )
+
 
     codex_cmd = [
         str(codex_bin),

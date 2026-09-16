@@ -107,9 +107,11 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 
 ## O0 v2 M2 — Runner Adapters Integration
 
-- Status: PASS de reauditoria independente; pronto para homologação
-- Evidência canônica de aceite: `O0_V2_M2_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M2_EVIDENCE_REAUDIT_PACKAGE/`
-- Registro histórico: `O0_V2_M2_EVIDENCE.json` e `O0_V2_M2_EVIDENCE_PACKAGE/` (mantidos como registro substituído)
+## O0 v2 M2 — Runner Adapters Integration
+
+- Status: PASS (auditoria independente no SHA `c76317dfd0c3dd37adbc414455f8ad707b7dc88f`)
+- Evidência canônica de aceite: `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote persistente `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE/`
+- Registros históricos: `O0_V2_M2_EVIDENCE.json`, `O0_V2_M2_EVIDENCE_REAUDIT.json` e seus respectivos pacotes (mantidos como registros históricos)
 - Documentação detalhada: `docs/O0_V2_M2_EVIDENCE.md`
 - Adapters: `scripts/o0_antigravity_adapter.py` (Builder via Antigravity CLI) e `scripts/o0_codex_adapter.py` (Auditor via OpenAI Codex CLI).
 - Orquestrador e validação: `scripts/o0_m2_runner_integration.py` e testes automatizados em `scripts/test_o0_m2_runner_integration.py`.
@@ -120,7 +122,30 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
   - Estado canônico permanece inalterado byte a byte (`canonical_state_preserved: true`).
   - Journal de operação registra `phase: INTERRUPTED` com `interruption_reason: TIMEOUT` ou `CANCELLED`.
 - Execução real pelo runner:
-  - Step 1 (Builder): Antigravity CLI gerou commit `8cf01e56bbd82e86d021d2d671e4474d1c1880e2`, validou testes unitários e produziu `builder-report.json`. O runner validou o schema, verificou o commit no Git, canonicizou evidências e transicionou para `READY_FOR_AUDIT`.
-  - Step 2 (Auditor): Codex CLI executou em worktree desacoplado e protegido contra escrita (`audit-workspaces/8cf01e56...`) sob `--sandbox read-only`, auditou o commit, produziu `audit-report.json` com `audit_result: PASS`. O runner validou integridade do checkout (`git status --porcelain` vazio), schema de auditoria e canonicizou evidências.
+  - Step 1 (Builder): Antigravity CLI gerou commit, validou testes unitários e produziu `builder-report.json`. O runner validou o schema, verificou o commit no Git, canonicizou evidências e transicionou para `READY_FOR_AUDIT`.
+  - Step 2 (Auditor): Codex CLI executou em worktree desacoplado e protegido contra escrita sob `--sandbox read-only`, auditou o commit, produziu `audit-report.json` com `audit_result: PASS`. O runner validou integridade do checkout (`git status --porcelain` vazio), schema de auditoria e canonicizou evidências.
 - Parada e governança: Estado final em `WAITING_PRODUCT_AUTHORITY` com `approval: null` e `human_gate_required: true`. Nenhum gate de produto foi registrado.
-- Limites: M3 e S2 não iniciados; Gate S1 permanece `NOT_RUN` e S2 `NOT_STARTED`.
+- Limites: M3 executado; M4 e S2 não iniciados; Gate S1 permanece `NOT_RUN` e S2 `NOT_STARTED`.
+
+## O0 v2 M3 — Correction Loop (Antigravity ↔ Codex)
+
+- Status: IMPLEMENTADO — aguardando auditoria independente
+- Evidência canônica: `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`
+- Documentação detalhada: `docs/O0_V2_M3_EVIDENCE.md`
+- Script de execução: `scripts/o0_m3_correction_loop.py`
+- Testes automatizados: `scripts/test_o0_m3_correction_loop.py` (4 testes passando, 4.96s)
+- Fluxo de execução (iniciado em chamada única `run_loop`):
+  1. Builder (Antigravity CLI) produz SHA A (`09b34e...`) com defeito intencional (adição em vez de multiplicação).
+  2. Auditor (Codex CLI) audita SHA A em checkout congelado, detecta a não conformidade e retorna `FAIL` com finding estruturado bloqueante (`CODEX-FINDING-001`).
+  3. Runner encaminha findings via `reports/builder-findings.json` e `IDEAS_STANDARD_FINDINGS`, transicionando para `FIX_REQUIRED`.
+  4. Builder (Antigravity CLI) consome os findings, corrige a implementação (`a * b`), atualiza os testes para verificar o caso corrigido, valida os testes unitários e comita o SHA B distinto (`d360c3...`).
+  5. Runner valida distinção de SHA (`SHA B != SHA A`), prepara `reports/reaudit-handoff.json` (modo DELTA) e transiciona para `READY_FOR_AUDIT`.
+  6. Auditor (Codex CLI) executa reauditoria de SHA B em checkout congelado, confirma a resolução dos findings e testes passando, retornando `PASS`.
+  7. Runner transiciona para `WAITING_PRODUCT_AUTHORITY` com `approval: null`, `human_gate_required: true` e encerra o loop de handoff.
+- Invariantes verificados:
+  - Invocação única: sem passos manuais ou copiar/colar entre etapas.
+  - Preservação de `run_id`, SHAs de auditoria e referências de evidências canônicas por SHA-256.
+  - Limite de rodadas: ciclo finalizado em 2 rodadas (respeitando `max_audit_rounds = 3`).
+  - Bundle autossuficiente: `builder.bundle` registra histórico completo e pode ser clonado isoladamente com testes passando.
+- Limites: M4 e S2 não iniciados; Gate S1 permanece `NOT_RUN` e S2 `NOT_STARTED`.
+

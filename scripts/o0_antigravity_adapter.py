@@ -141,12 +141,14 @@ def main() -> int:
 
     # Run optional or detected unit tests
     test_evidence = "Unit tests verified by Antigravity Builder"
-    if args.test_cmd:
-        p_test = subprocess.run(args.test_cmd, shell=True, cwd=workspace, capture_output=True, text=True)
+    test_cmd = args.test_cmd or os.environ.get("IDEAS_STANDARD_TEST_CMD")
+    if test_cmd:
+        p_test = subprocess.run(test_cmd, shell=True, cwd=workspace, capture_output=True, text=True)
         if p_test.returncode != 0:
             print(f"ERROR: Builder tests failed: {p_test.stderr}", file=sys.stderr)
             return 1
-        test_evidence = f"Test command '{args.test_cmd}' passed successfully"
+        test_evidence = f"Test command '{test_cmd}' passed successfully"
+
 
     # Assemble canonical builder-report.json
     report_payload: dict[str, Any] = {
