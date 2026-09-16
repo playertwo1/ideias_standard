@@ -4,12 +4,12 @@
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
 - **Objetivo atual:** avançar S1 — Conformance First com O0 — Operational Orchestrator como tooling transversal prioritário
-- **Última implementada:** O0-C43 — falhas do runner com evidência estruturada e exit code; sem declaração de PASS
-- **Próxima:** auditorias independentes de O0-C42 e O0-C43; O0-C44 permanece não iniciado
+- **Última implementada:** O0-C44 — limite de retry e rejeição de duplicatas de relatório/operação; sem declaração de PASS
+- **Próxima:** auditorias independentes de O0-C42, O0-C43 e O0-C44; O0-C45 permanece não iniciado
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL — O0-C01–O0-C43 implementados; O0-C42/O0-C43 aguardam auditoria independente
+- **O0:** PARTIAL — O0-C01–O0-C44 implementados; O0-C42/O0-C43/O0-C44 aguardam auditoria independente
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`

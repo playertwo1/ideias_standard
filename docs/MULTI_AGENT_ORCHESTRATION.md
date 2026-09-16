@@ -148,6 +148,8 @@ Antes de iniciar o ator, o runner grava um journal canônico para a operação. 
 
 Falhas do runner são persistidas em `reports/runner-failures/` como evidência JSON de campos fechados: categoria, código de saída do runner, código do ator quando houver e vínculo ao estado/operação. Configuração inválida usa `runner-failures/` ao lado do arquivo de configuração. Saída textual do ator é descartada, e mensagem livre de exceção, traceback, comando e payload não entram na evidência. Ator que retorna código não zero não avança o estado naquela execução; se deixou relatório válido, a recuperação de C41 ainda pode validá-lo e concluir a operação sem reexecutar o ator. Isso não substitui logs protegidos que um adapter externo possa exigir.
 
+O runner limita o número de retries por operação (via `max_retries`, padrão 3). Quando o total de falhas em `reports/runner-failures/` para a mesma `operation_id` atinge o limite, novas tentativas são bloqueadas com exit code 2 sem executar o ator nem alterar o estado canônico. Operações já concluídas não podem ser reexecutadas sem configuração de replay explícita (`Operation has already been completed`). Da mesma forma, relatórios com o mesmo digest de um relatório já aceito em outra operação são rejeitados (`Report has already been accepted`), impedindo reutilização acidental ou fraudulenta.
+
 ## Estados
 
 - `READY_FOR_BUILD`: Builder pode agir.

@@ -77,3 +77,10 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Processo reiniciado preserva evidência; se o ator saiu com código não zero após gerar relatório válido, C41 valida e recupera sem reexecutá-lo.
 - Configuração inválida persiste evidência mínima ao lado da configuração; falha de escrita da evidência retorna erro seguro.
 
+## O0-C44 — limited retries and duplicate rejection
+
+- Tests: `python -m unittest scripts.test_o0_retry scripts.test_o0_failures scripts.test_o0_recovery scripts.test_o0_timeout_cancel scripts.test_o0_idempotency` em processos reais.
+- Limite de retries: `max_retries` (padrão 3) bloqueia novas tentativas após falhas sucessivas sem executar o ator e sem alterar o estado canônico (exit code 2).
+- Operação já concluída: reexecução sem configuração explícita de replay (`operation_id` repetido) é rejeitada de forma segura (`Operation has already been completed`).
+- Rejeição de duplicatas: o runner e a persistência de operações rejeitam qualquer relatório cujo digest já tenha sido aceito em outra operação (`Report has already been accepted`).
+- Idempotência e integridade: retomada bem-sucedida dentro do limite avança o estado; replay idempotente com o mesmo `operation_id` e mesmo payload continua preservado.

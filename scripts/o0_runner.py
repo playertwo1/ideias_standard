@@ -425,6 +425,40 @@ def replay_operation(
     }
 
 
+def check_report_not_already_accepted(
+    reports_dir: Path, report_digest: str, current_operation_id: str
+) -> None:
+    operations_root = reports_dir / "operations"
+    if not operations_root.is_dir():
+        return
+    for path in operations_root.glob("op-*.json"):
+        if path.name.endswith(".journal.json"):
+            continue
+        if path.name == f"{current_operation_id}.json":
+            continue
+        try:
+            record = load_json(path)
+            if record.get("report_sha256") == report_digest:
+                raise HandoffError("Report has already been accepted for another operation")
+        except (OSError, json.JSONDecodeError, UnicodeError, ValueError):
+            continue
+
+
+def count_operation_failures(reports_dir: Path, operation_id: str) -> int:
+    failure_root = reports_dir / "runner-failures"
+    if not failure_root.is_dir():
+        return 0
+    count = 0
+    for path in failure_root.glob("*.json"):
+        try:
+            record = load_json(path)
+            if record.get("operation_id") == operation_id:
+                count += 1
+        except (OSError, json.JSONDecodeError, UnicodeError, ValueError):
+            continue
+    return count
+
+
 def persist_operation(
     reports_dir: Path,
     operation_id: str,
@@ -442,6 +476,7 @@ def persist_operation(
         if replayed is None:
             raise HandoffError(f"Operation identity already exists: {operation_id}")
         return replayed
+    check_report_not_already_accepted(reports_dir, report_digest, operation_id)
     if not snapshot_path.exists() or snapshot_path.read_bytes() != report_bytes:
         _write_bytes_atomic(snapshot_path, report_bytes)
     record = {
@@ -1156,6 +1191,12 @@ def safe_failure_message(exc: Exception) -> str:
         return "Unknown result SHA"
     if "does not match audit_target_sha" in message:
         return "Audit workspace does not match audit_target_sha"
+    if message.startswith("Operation retry limit exceeded"):
+        return "Operation retry limit exceeded"
+    if message.startswith("Operation has already been completed"):
+        return "Operation has already been completed"
+    if message.startswith("Report has already been accepted"):
+        return "Report has already been accepted"
     return failure_kind(exc)
 
 
@@ -1266,8 +1307,15 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
             if requested_operation is not None and requested_operation != expected_operation:
                 raise HandoffError("operation_id does not match the current state transition")
             operation_id = requested_operation or expected_operation
+            if requested_operation is None and _operation_paths(reports_dir, operation_id)[0].exists():
+                raise HandoffError(f"Operation has already been completed: {operation_id}")
         elif requested_operation is not None:
             raise HandoffError("operation_id is not valid while automation is stopped")
+        else:
+            return current
+    max_retries = int(config.get("max_retries", 3))
+    if not recovering_report and count_operation_failures(reports_dir, operation_id) >= max_retries:
+        raise HandoffError(f"Operation retry limit exceeded: {operation_id}")
     common_env = {
         "IDEAS_STANDARD_PROJECT_ID": current["project_id"],
         "IDEAS_STANDARD_PHASE": current["phase"],
@@ -1321,6 +1369,8 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
             findings_before,
             builder_workspace,
         )
+        report_digest = hashlib.sha256(report.read_bytes()).hexdigest()
+        check_report_not_already_accepted(reports_dir, report_digest, operation_id)
         if current["machine_state"] == "FIX_REQUIRED":
             prepare_reaudit_handoff(
                 current,
@@ -1382,6 +1432,8 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
                     journal_path.unlink(missing_ok=True)
                 raise
         verify_audit_after(workspace, state_path, target, state_before)
+        report_digest = hashlib.sha256(report.read_bytes()).hexdigest()
+        check_report_not_already_accepted(reports_dir, report_digest, operation_id)
         audit_context = {**current, "audit_round": current["audit_round"] + 1}
         canonicalize_report_evidence(report, "audit", audit_context, reports_dir / "evidence")
         result = compute_transition(state_path, current, report, actor, operation_id)

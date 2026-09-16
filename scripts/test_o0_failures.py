@@ -163,4 +163,3 @@ class O0RunnerFailureTest(O0InterruptionRecoveryTest):
         self.assertIsNone(evidence["actor_exit_code"])
         self.assertIsNone(evidence["operation_id"])
         self.assertEqual(json.loads(before_state)["run_id"], evidence["run_id"])
-
