@@ -146,6 +146,8 @@ Antes de iniciar o ator, o runner grava um journal canônico para a operação. 
 
 `actor_timeout_seconds` (positivo) limita a execução do ator; `cancel_path` aponta para um arquivo de pedido de cancelamento. Em ambos os casos o runner encerra o processo do ator, grava `phase=INTERRUPTED` com `interruption_reason=TIMEOUT|CANCELLED` no journal, remove o relatório parcial antes de retornar e deixa o estado canônico byte a byte inalterado. Nova execução sem `resume_interrupted=true` não inicia ator algum. A retomada explícita exige remover o pedido de cancelamento, valida o estado de origem e reinicia a mesma operação sob lock. No POSIX, o grupo de processos do ator é encerrado; no Windows, a garantia de encerramento cobre o processo direto, não descendentes independentes.
 
+Falhas do runner são persistidas em `reports/runner-failures/` como evidência JSON de campos fechados: categoria, código de saída do runner, código do ator quando houver e vínculo ao estado/operação. Configuração inválida usa `runner-failures/` ao lado do arquivo de configuração. Saída textual do ator é descartada, e mensagem livre de exceção, traceback, comando e payload não entram na evidência. Ator que retorna código não zero não avança o estado naquela execução; se deixou relatório válido, a recuperação de C41 ainda pode validá-lo e concluir a operação sem reexecutar o ator. Isso não substitui logs protegidos que um adapter externo possa exigir.
+
 ## Estados
 
 - `READY_FOR_BUILD`: Builder pode agir.

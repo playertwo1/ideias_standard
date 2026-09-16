@@ -34,6 +34,7 @@ SCHEMA_FILES = {
     "reaudit-handoff": "reaudit-handoff.schema.json",
     "operation-record": "operation-record.schema.json",
     "operation-journal": "operation-journal.schema.json",
+    "runner-failure": "runner-failure.schema.json",
 }
 
 

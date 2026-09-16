@@ -14,6 +14,7 @@ import stat
 import subprocess
 import sys
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -84,6 +85,12 @@ class ActorInterrupted(HandoffError):
     def __init__(self, reason: str):
         self.reason = reason
         super().__init__(f"Actor {reason.lower()}; operation is interrupted and resumable")
+
+
+class ActorExitError(HandoffError):
+    def __init__(self, exit_code: int):
+        self.exit_code = exit_code
+        super().__init__(f"Actor command failed with exit code {exit_code}")
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -730,12 +737,14 @@ def run_actor(
         if timeout_seconds is None and cancel_path is None:
             process = subprocess.run(
                 command, cwd=workspace, env=actor_env, check=False,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox else None,
                 pass_fds=(findings_fd,) if findings_fd is not None else (),
             )
         else:
             process = subprocess.Popen(
                 command, cwd=workspace, env=actor_env,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox else None,
                 pass_fds=(findings_fd,) if findings_fd is not None else (),
                 start_new_session=os.name != "nt",
@@ -762,7 +771,7 @@ def run_actor(
     if process.returncode == 126 and write_sandbox:
         raise HandoffError("Auditor write sandbox is unavailable; refusing unsafe execution")
     if process.returncode != 0:
-        raise HandoffError(f"Actor command failed with exit code {process.returncode}")
+        raise ActorExitError(process.returncode)
     if not report.is_file():
         raise HandoffError(f"Actor did not produce report: {report}")
 
@@ -1112,12 +1121,98 @@ def validate_builder_result(
         raise HandoffError("Builder findings are not linked to the corrected audit round")
 
 
+def failure_kind(exc: Exception) -> str:
+    if isinstance(exc, ActorExitError):
+        return "ACTOR_EXIT_NONZERO"
+    if isinstance(exc, ActorInterrupted):
+        return exc.reason
+    if isinstance(exc, json.JSONDecodeError):
+        return "INVALID_JSON"
+    if isinstance(exc, HandoffError):
+        return "HANDOFF_REJECTED"
+    if isinstance(exc, OSError):
+        return "IO_ERROR"
+    return "INTERNAL_ERROR"
+
+
+def safe_failure_message(exc: Exception) -> str:
+    if isinstance(exc, ActorExitError):
+        return f"Actor command failed with exit code {exc.exit_code}"
+    if isinstance(exc, ActorInterrupted):
+        return exc.reason
+    message = str(exc)
+    safe_exact = {
+        "Runner state lock is busy",
+        "Persisted operation journal result is not derived from its report",
+        "Persisted operation record identity or result is inconsistent",
+        "Operation payload differs from the persisted identity",
+        "operation_id does not match the current state transition",
+    }
+    if message in safe_exact:
+        return message
+    if message.startswith("state schema validation failed:"):
+        return "state schema validation failed"
+    if message.startswith("Unknown result SHA"):
+        return "Unknown result SHA"
+    if "does not match audit_target_sha" in message:
+        return "Audit workspace does not match audit_target_sha"
+    return failure_kind(exc)
+
+
+def persist_runner_failure(
+    config_path: Path, config: dict[str, Any] | None, state_path: Path | None, exc: Exception
+) -> None:
+    raw = state_path.read_bytes() if state_path is not None and state_path.is_file() else None
+    current = None
+    try:
+        if raw is not None and state_path is not None:
+            current = status(state_path)
+    except (HandoffError, OSError, ValueError, UnicodeError, json.JSONDecodeError):
+        pass
+    root = (
+        resolve_path(config_path, config["reports_dir"])
+        if config is not None else config_path.parent
+    )
+    actor = current.get("next_actor") if current is not None else None
+    operation_id = None
+    journal_present = False
+    if config is not None:
+        journal_present = any((root / "operations").glob("op-*.journal.json"))
+        try:
+            pending = load_recovery_journal(root)
+        except HandoffError:
+            pending = None
+        if pending is not None:
+            operation_id = pending[1]["operation_id"]
+    if operation_id is None and not journal_present and actor in {"BUILDER", "AUDITOR"}:
+        operation_id = operation_identity(current, actor)[0]
+    evidence = {
+        "schema_version": "0.1",
+        "failure_id": f"failure-{uuid.uuid4().hex}",
+        "kind": failure_kind(exc),
+        "runner_exit_code": 2,
+        "actor_exit_code": exc.exit_code if isinstance(exc, ActorExitError) else None,
+        "run_id": current["run_id"] if current is not None else None,
+        "operation_id": operation_id,
+        "machine_state": current["machine_state"] if current is not None else None,
+        "state_sha256": hashlib.sha256(raw).hexdigest() if raw is not None else None,
+    }
+    validate_with_schema(evidence, "runner-failure")
+    failure_root = root / "runner-failures"
+    _write_canonical_atomic(failure_root / f"{evidence['failure_id']}.json", evidence)
+
+
 def run_once(config_path: Path) -> dict[str, Any]:
     config_path = config_path.resolve()
     config = load_config(config_path)
     state_path = resolve_path(config_path, config["state_path"])
     with StateLock(state_path, float(config.get("lock_timeout_seconds", 0))):
-        return _run_once_locked(config_path, config)
+        try:
+            return _run_once_locked(config_path, config)
+        except Exception as exc:
+            persist_runner_failure(config_path, config, state_path, exc)
+            setattr(exc, "_runner_failure_recorded", True)
+            raise
 
 
 def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any]:
@@ -1306,8 +1401,20 @@ def main() -> int:
         result = run_once(args.config)
         print(json.dumps({**result, "next_actor": next_actor(result)}, ensure_ascii=False, indent=2))
         return 0
-    except (HandoffError, OSError, json.JSONDecodeError) as exc:
-        print(f"RUNNER ERROR: {exc}", file=sys.stderr)
+    except Exception as exc:
+        if not getattr(exc, "_runner_failure_recorded", False):
+            try:
+                config = load_config(args.config)
+                state_path = resolve_path(args.config.resolve(), config["state_path"])
+            except Exception:
+                config = None
+                state_path = None
+            try:
+                persist_runner_failure(args.config.resolve(), config, state_path, exc)
+            except Exception:
+                print("RUNNER ERROR: EVIDENCE_WRITE_FAILED", file=sys.stderr)
+                return 2
+        print(f"RUNNER ERROR: {safe_failure_message(exc)}", file=sys.stderr)
         return 2
 
 

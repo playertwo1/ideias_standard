@@ -68,3 +68,10 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Regressão: processos reais escrevem relatório parcial antes de timeout/cancelamento; o arquivo está ausente antes da retomada explícita e o journal permanece `INTERRUPTED`.
 - Resume: requer `resume_interrupted=true`, estado de origem intacto e pedido de cancelamento removido; C41 continua recuperando o período após relatório/transição.
 - Boundary: encerramento de descendentes no Windows e falhas estruturadas do runner ficam fora de O0-C42.
+
+## O0-C43 — structured runner failures
+
+- Tests: `python -m unittest scripts.test_o0_failures scripts.test_o0_recovery scripts.test_o0_timeout_cancel scripts.test_o0_idempotency` com processos reais.
+- Falhas de ator e relatórios inválidos persistem evidência canônica de categoria, exit code e vínculo ao estado, sem saída textual, traceback ou payload sensível.
+- Processo reiniciado preserva evidência; se o ator saiu com código não zero após gerar relatório válido, C41 valida e recupera sem reexecutá-lo.
+- Configuração inválida persiste evidência mínima ao lado da configuração; falha de escrita da evidência retorna erro seguro.
