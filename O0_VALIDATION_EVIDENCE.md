@@ -43,4 +43,12 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 - Identity: SHA-256 canônico de `run_id`, estado de origem, ator, rodada e SHAs relevantes.
 - Replay: novo processo retorna o resultado persistido sem executar novamente o ator.
 - Conflict: mesmo `operation_id` com relatório divergente é rejeitado sem mutação ou duplicação.
-- Boundary: recuperação de interrupção entre transição e registro permanece em O0-C41.
+- Independent audit: PASS no SHA `ca347c0aade5ebc9ee5c2568c08cf49fab6d2328`.
+
+## O0-C41 — interruption recovery journal
+
+- Command: `python -m unittest scripts.test_o0_recovery` (também executado em WSL).
+- Real processes: o runner é encerrado à força após o relatório, após a transição e após o snapshot do relatório.
+- Recovery: a retomada conclui estado e `operation-record` sem uma segunda execução do Builder.
+- Integrity: journal, relatório, estado resultante e snapshot são vinculados à identidade e a digests canônicos.
+- Boundary: timeout e cancelamento explícitos permanecem em O0-C42.

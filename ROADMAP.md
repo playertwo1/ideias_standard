@@ -206,7 +206,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C38 Ciclo E2E real básico executado.
 - [x] O0-C39 Execuções concorrentes sobre o mesmo estado são serializadas ou rejeitadas com segurança.
 - [x] O0-C40 Transições possuem identidade idempotente e repetição não duplica handoff ou resultado.
-- [ ] O0-C41 Interrupção entre execução, relatório e persistência é retomada sem executar o ator indevidamente duas vezes.
+- [x] O0-C41 Interrupção entre execução, relatório e persistência é retomada sem executar o ator indevidamente duas vezes.
 - [ ] O0-C42 Timeout e cancelamento produzem estado explícito, retomável e sem avanço parcial.
 - [ ] O0-C43 Falha do runner persiste evidência estruturada e exit code sem expor secrets.
 - [ ] O0-C44 Retry é limitado e não aceita duas vezes o mesmo relatório/operação.
