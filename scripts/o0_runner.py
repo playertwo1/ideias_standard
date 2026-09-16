@@ -9,6 +9,7 @@ import json
 import math
 import os
 import re
+import signal
 import stat
 import subprocess
 import sys
@@ -79,6 +80,12 @@ class _PathBeneathAttr(ctypes.Structure):
     ]
 
 
+class ActorInterrupted(HandoffError):
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(f"Actor {reason.lower()}; operation is interrupted and resumable")
+
+
 def load_config(path: Path) -> dict[str, Any]:
     data = load_json(path)
     missing = sorted(REQUIRED_CONFIG - data.keys())
@@ -97,6 +104,18 @@ def load_config(path: Path) -> dict[str, Any]:
         or timeout < 0
     ):
         raise HandoffError("lock_timeout_seconds must be a non-negative finite number")
+    actor_timeout = data.get("actor_timeout_seconds")
+    if actor_timeout is not None and (
+        isinstance(actor_timeout, bool)
+        or not isinstance(actor_timeout, (int, float))
+        or not math.isfinite(actor_timeout)
+        or actor_timeout <= 0
+    ):
+        raise HandoffError("actor_timeout_seconds must be a positive finite number")
+    if "cancel_path" in data and (not isinstance(data["cancel_path"], str) or not data["cancel_path"]):
+        raise HandoffError("cancel_path must be a non-empty string")
+    if "resume_interrupted" in data and not isinstance(data["resume_interrupted"], bool):
+        raise HandoffError("resume_interrupted must be boolean")
     operation_id = data.get("operation_id")
     if operation_id is not None and (
         not isinstance(operation_id, str) or not _OPERATION_ID.fullmatch(operation_id)
@@ -224,6 +243,9 @@ def _validate_journal(journal: dict[str, Any], raw: bytes) -> None:
     ready = journal["phase"] == "REPORT_READY"
     if ready != (journal["report_sha256"] is not None and journal["result"] is not None):
         raise HandoffError("Persisted operation journal phase is inconsistent")
+    interrupted = journal["phase"] == "INTERRUPTED"
+    if interrupted != (journal.get("interruption_reason") is not None):
+        raise HandoffError("Persisted operation interruption reason is inconsistent")
     if ready:
         validate_with_schema(journal["result"], "state")
 
@@ -263,6 +285,7 @@ def prepare_operation_journal(
         "report_path": str(report_path),
         "report_sha256": None,
         "result": None,
+        "interruption_reason": None,
     }
     validate_with_schema(journal, "operation-journal")
     _write_canonical_atomic(path, journal)
@@ -305,6 +328,19 @@ def mark_report_ready(
     validate_with_schema(ready, "operation-journal")
     _write_canonical_atomic(journal_path, ready)
     return ready
+
+
+def mark_actor_interrupted(journal_path: Path, journal: dict[str, Any], reason: str) -> None:
+    interrupted = {**journal, "phase": "INTERRUPTED", "interruption_reason": reason}
+    validate_with_schema(interrupted, "operation-journal")
+    _write_canonical_atomic(journal_path, interrupted)
+
+
+def prepare_interrupted_resume(journal_path: Path, journal: dict[str, Any]) -> dict[str, Any]:
+    prepared = {**journal, "phase": "PREPARED", "interruption_reason": None}
+    validate_with_schema(prepared, "operation-journal")
+    _write_canonical_atomic(journal_path, prepared)
+    return prepared
 
 
 def finish_recovered_operation(
@@ -655,6 +691,8 @@ def run_actor(
     env: dict[str, str],
     *,
     write_sandbox: bool = False,
+    timeout_seconds: float | None = None,
+    cancel_path: Path | None = None,
 ) -> None:
     findings_path = env.get("IDEAS_STANDARD_FINDINGS")
     findings_fd = None
@@ -683,16 +721,41 @@ def run_actor(
             os.close(findings_fd)
             raise
         actor_env["IDEAS_STANDARD_FINDINGS"] = f"/proc/self/fd/{findings_fd}"
+    if cancel_path is not None and cancel_path.exists():
+        if findings_fd is not None:
+            os.close(findings_fd)
+        raise ActorInterrupted("CANCELLED")
     report.parent.mkdir(parents=True, exist_ok=True)
     try:
-        process = subprocess.run(
-            command,
-            cwd=workspace,
-            env=actor_env,
-            check=False,
-            preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox else None,
-            pass_fds=(findings_fd,) if findings_fd is not None else (),
-        )
+        if timeout_seconds is None and cancel_path is None:
+            process = subprocess.run(
+                command, cwd=workspace, env=actor_env, check=False,
+                preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox else None,
+                pass_fds=(findings_fd,) if findings_fd is not None else (),
+            )
+        else:
+            process = subprocess.Popen(
+                command, cwd=workspace, env=actor_env,
+                preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox else None,
+                pass_fds=(findings_fd,) if findings_fd is not None else (),
+                start_new_session=os.name != "nt",
+            )
+            deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+            while process.poll() is None:
+                reason = None
+                if cancel_path is not None and cancel_path.exists():
+                    reason = "CANCELLED"
+                elif deadline is not None and time.monotonic() >= deadline:
+                    reason = "TIMEOUT"
+                if reason is not None:
+                    if os.name == "nt":
+                        process.kill()
+                    else:
+                        os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+                    raise ActorInterrupted(reason)
+                time.sleep(0.02)
+            process.wait()
     finally:
         if findings_fd is not None:
             os.close(findings_fd)
@@ -1070,6 +1133,7 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
     requested_operation = config.get("operation_id")
     recovery = load_recovery_journal(reports_dir)
     recovering_report = False
+    resuming_interrupted = False
     if recovery is not None:
         journal_path, journal = recovery
         operation_id = journal["operation_id"]
@@ -1081,9 +1145,21 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
             return finish_recovered_operation(
                 state_path, reports_dir, journal_path, journal, current, True
             )
+        if journal["phase"] == "INTERRUPTED":
+            if current != journal["source_state"]:
+                raise HandoffError("Interrupted operation source state has changed")
+            if not config.get("resume_interrupted", False):
+                raise HandoffError(
+                    f"Operation interrupted by {journal['interruption_reason']}; explicit resume_interrupted required"
+                )
+            if "cancel_path" in config and resolve_path(config_path, config["cancel_path"]).exists():
+                raise HandoffError("Cancellation request must be cleared before resuming")
+            Path(journal["report_path"]).unlink(missing_ok=True)
+            journal = prepare_interrupted_resume(journal_path, journal)
+            resuming_interrupted = True
         if operation_identity(current, actor)[0] != operation_id:
             raise HandoffError("Prepared operation journal does not match current state")
-        recovering_report = True
+        recovering_report = not resuming_interrupted
     elif requested_operation is not None:
         replayed = replay_operation(reports_dir, requested_operation, current)
         if replayed is not None:
@@ -1102,6 +1178,8 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
         "IDEAS_STANDARD_PHASE": current["phase"],
         "IDEAS_STANDARD_GATE": current["gate"],
     }
+    actor_timeout = config.get("actor_timeout_seconds")
+    cancel_path = resolve_path(config_path, config["cancel_path"]) if "cancel_path" in config else None
 
     if actor == "BUILDER":
         if not builder_workspace.is_dir() or not os.access(builder_workspace, os.W_OK):
@@ -1110,7 +1188,7 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
         if recovering_report:
             if Path(journal["report_path"]) != report or not report.is_file():
                 raise HandoffError("Prepared Builder operation has no durable report")
-        else:
+        elif not resuming_interrupted:
             report.unlink(missing_ok=True)
             journal_path, journal = prepare_operation_journal(
                 reports_dir, operation_id, operation_source, current, actor, report
@@ -1125,11 +1203,13 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
         if not recovering_report:
             try:
                 run_actor(
-                    config["builder_command"],
-                    builder_workspace,
-                    report,
-                    builder_env,
+                    config["builder_command"], builder_workspace, report, builder_env,
+                    **({"timeout_seconds": actor_timeout} if actor_timeout is not None else {}),
+                    **({"cancel_path": cancel_path} if cancel_path is not None else {}),
                 )
+            except ActorInterrupted as exc:
+                mark_actor_interrupted(journal_path, journal, exc.reason)
+                raise
             except (HandoffError, OSError):
                 if not report.is_file():
                     journal_path.unlink(missing_ok=True)
@@ -1180,7 +1260,7 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
         if recovering_report:
             if Path(journal["report_path"]) != report or not report.is_file():
                 raise HandoffError("Prepared Auditor operation has no durable report")
-        else:
+        elif not resuming_interrupted:
             report.unlink(missing_ok=True)
             journal_path, journal = prepare_operation_journal(
                 reports_dir, operation_id, operation_source, current, actor, report
@@ -1194,7 +1274,12 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
                     report,
                     auditor_env,
                     write_sandbox=True,
+                    **({"timeout_seconds": actor_timeout} if actor_timeout is not None else {}),
+                    **({"cancel_path": cancel_path} if cancel_path is not None else {}),
                 )
+            except ActorInterrupted as exc:
+                mark_actor_interrupted(journal_path, journal, exc.reason)
+                raise
             except (HandoffError, OSError):
                 if not report.is_file():
                     journal_path.unlink(missing_ok=True)
