@@ -5,8 +5,8 @@
 - **Status:** ACTIVE
 - **Objetivo atual:** integrar O0 v2 com Antigravity CLI e Codex CLI antes de retomar a implementação de S1; começar por M1
 - **Última implementada:** O0-C45 — ciclo E2E adversarial cobrindo concorrência, interrupção, timeout e retry; sem declaração de PASS
-- **Próxima:** O0 v2 M1 — validar as duas CLIs em repositório descartável
-- **Bloqueios do projeto:** nenhum conhecido
+- **Próxima:** repetir O0 v2 M1 após disponibilizar Antigravity CLI headless e isolar writes auxiliares do Codex
+- **Bloqueios do projeto:** O0 v2 M1 BLOCKED — `agy` encontrado é o Antigravity IDE, não a CLI headless; detalhes em `O0_V2_M1_EVIDENCE.md`
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
 - **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; integração real Antigravity ↔ Codex planejada em O0 v2 M1–M5; O0-C42/O0-C43/O0-C44/O0-C45 ainda constam como aguardando auditoria independente neste estado
@@ -15,6 +15,8 @@
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
 
 ## Evidência atual
+
+- O0 v2 M1: ensaio parcial de Codex CLI em clone descartável; Antigravity CLI headless ausente e checkout Codex com `.serena/` não rastreado. M1 não aceito; ver `O0_V2_M1_EVIDENCE.md`.
 
 - Auditoria independente de O0-C19: PASS no SHA `cfa228463f2ed2a92de0cba06225860520bb116b`
 - HEAD de reconciliação `1eca5ba80be883fe5491dd9178429f033aed6899`: merge com árvore idêntica ao SHA auditado
