@@ -325,6 +325,83 @@ class O0QueueTest(unittest.TestCase):
         with self.assertRaises(Exception):
             run_task_queue(config_path, queue_path)
 
+    def test_queue_invocation_idempotency_rejects_duplicate_and_preserves_accepted_results(self) -> None:
+        builder_script, auditor_script = self._create_actor_scripts()
+        config = {
+            "repository": str(self.repo),
+            "state_path": str(self.state_path),
+            "reports_dir": str(self.reports_dir),
+            "builder_workspace": str(self.repo),
+            "audit_workspaces": str(self.audit_workspaces),
+            "builder_command": [sys.executable, str(builder_script)],
+            "auditor_command": [sys.executable, str(auditor_script)],
+            "max_retries": 3,
+        }
+        config_path = self.root / "config.json"
+        config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
+
+        invocation_id = "inv-req-12345"
+        queue = {
+            "schema_version": "0.1",
+            "invocation_id": invocation_id,
+            "phase": "O0",
+            "tasks": [
+                {
+                    "task_id": "task-01",
+                    "goal": "Goal 1",
+                    "scope": ["file1.txt"],
+                    "acceptance_criteria": ["criteria 1"],
+                    "phase": "O0",
+                },
+            ],
+        }
+        queue_path = self.root / "queue.json"
+        queue_path.write_text(json.dumps(queue, indent=2), encoding="utf-8")
+
+        # 1st Invocation - Processed
+        run_task_queue(config_path, queue_path, invocation_id=invocation_id)
+
+        # Update state to ACCEPTED with existing results
+        record_file = self.reports_dir / f"task-queue-execution-{invocation_id}.json"
+        record_file.write_text(
+            json.dumps({"status": "ACCEPTED", "results": ["item1"], "invocation_id": invocation_id}),
+            encoding="utf-8",
+        )
+
+        # 2nd Invocation - Duplicate attempt
+        with self.assertRaises(HandoffError) as ctx:
+            run_task_queue(config_path, queue_path, invocation_id=invocation_id)
+        self.assertIn("ALREADY_EXISTS", str(ctx.exception))
+
+        # Main invariant validation: previous accepted state and results must NOT be erased
+        state = json.loads(record_file.read_text(encoding="utf-8"))
+        self.assertEqual("ACCEPTED", state["status"])
+        self.assertEqual(["item1"], state["results"])
+
+    def test_queue_service_and_repository_python_api(self) -> None:
+        from scripts.o0_queue import QueueRepository, QueueService
+
+        queue_repo = QueueRepository()
+        queue_service = QueueService(queue_repo)
+        invocation_id = "inv-req-12345"
+        payload = {"data": "test-payload"}
+
+        # 1ª Invocação - Aceita e processada (parcial ou total)
+        queue_service.invoke(invocation_id, payload)
+        queue_repo.update_state(invocation_id, {"status": "ACCEPTED", "results": ["item1"]})
+
+        # 2ª Invocação - Tentativa duplicada
+        try:
+            queue_service.invoke(invocation_id, payload)
+        except Exception as error:
+            self.assertIn("ALREADY_EXISTS", str(error))  # Comportamento aceito (Rejeição)
+
+        # Validação principal: o estado anterior NÃO pode ter sido apagado
+        state = queue_repo.get_state(invocation_id)
+        self.assertIsNotNone(state)
+        self.assertEqual("ACCEPTED", state["status"])
+        self.assertEqual(["item1"], state["results"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,16 +4,16 @@
   "role": "AUDITOR",
   "authority": "INDEPENDENT_AUDIT",
   "audit_result": "PASS",
-  "audited_sha": "fe0981326567cbd3482a006878a8c833efd4532a",
-  "summary": "Independent audit PASS for task-02-multiply at fe0981326567cbd3482a006878a8c833efd4532a",
+  "audited_sha": "4beaaaaf0bf0800e829cc5dbd00088943d1575ed",
+  "summary": "Independent audit PASS for task-02-multiply at 4beaaaaf0bf0800e829cc5dbd00088943d1575ed",
   "findings": [],
   "checks": [
     {
       "id": "aud-chk-task-02-multiply",
       "status": "PASS",
       "evidence": {
-        "evidence_id": "r1-audit-check-485ded284ff9e7c5",
-        "sha256": "ec168ecbf3b22eaa945b56d370d536a15a6fc148be1d881b2b8a8c04653dda07"
+        "evidence_id": "r1-audit-check-9086bfb64ea53df7",
+        "sha256": "5135b9d5b7e231ffb93f062e2812640272512408eeba85b9039fe594a7481bca"
       }
     }
   ],

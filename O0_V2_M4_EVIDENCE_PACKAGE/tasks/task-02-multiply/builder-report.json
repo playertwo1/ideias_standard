@@ -3,7 +3,7 @@
   "executor_id": "queue-builder",
   "role": "BUILDER",
   "authority": "IMPLEMENTATION",
-  "result_sha": "fe0981326567cbd3482a006878a8c833efd4532a",
+  "result_sha": "4beaaaaf0bf0800e829cc5dbd00088943d1575ed",
   "result": "READY_FOR_AUDIT",
   "summary": "Completed task-02-multiply",
   "changed_paths": [
@@ -15,8 +15,8 @@
       "id": "chk-task-02-multiply",
       "status": "PASS",
       "evidence": {
-        "evidence_id": "r0-builder-check-e32b08ccd3b00dcf",
-        "sha256": "6c14280a013c3437f889a044d9edbc7ed14a9d2fe60c3d6dea25e86896576a01"
+        "evidence_id": "r0-builder-check-ee8d654daa5cf0d2",
+        "sha256": "717bcd32b3aaadf893b6fcc05c3935964fda6e4b6d1c2910b57a03ad2e1d504c"
       }
     }
   ],

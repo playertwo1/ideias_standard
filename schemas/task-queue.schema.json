@@ -14,6 +14,14 @@
       "type": "string",
       "const": "0.1"
     },
+    "invocation_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
+    "queue_id": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]+$"
+    },
     "phase": {
       "type": "string",
       "enum": ["S0", "O0", "S1", "S2", "S3", "S4", "S5", "S6"]

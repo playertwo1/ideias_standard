@@ -1,0 +1,11 @@
+{
+  "name": "ideias-standard",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Ideias Standard - Conformance, Invariants & Multi-Agent Orchestration",
+  "scripts": {
+    "test": "node --import ./test-preload.mjs --test",
+    "test:m4": "python -m unittest scripts.test_o0_queue",
+    "self-check": "python scripts/validate_standard.py --self-check"
+  }
+}

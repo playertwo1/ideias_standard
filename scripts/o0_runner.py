@@ -1613,6 +1613,8 @@ def run_task_queue(
     config_path: Path,
     queue_path: Path,
     max_steps_per_task: int = 10,
+    invocation_id: str | None = None,
+    on_conflict: str = "raise",
 ) -> dict[str, Any]:
     """Execute a sequence of pre-authorized tasks within the same phase (O0 v2 M4).
 
@@ -1623,6 +1625,7 @@ def run_task_queue(
       - Automatic phase advancement is prohibited (O0-C29); stops on phase mismatch.
       - Technical PASS never infers product approval (approval remains null).
       - Stops on queue completion, human gate, BLOCKED state, or unauthorized scope change.
+      - Idempotent invocation: duplicate invocation preserves accepted state without mutation.
     """
     config_path = config_path.resolve()
     queue_path = queue_path.resolve()
@@ -1633,6 +1636,43 @@ def run_task_queue(
 
     queue_data = load_json(queue_path)
     validate_with_schema(queue_data, "task-queue")
+
+    effective_invocation_id = (
+        invocation_id
+        or queue_data.get("invocation_id")
+        or queue_data.get("queue_id")
+    )
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    queue_record_path = (
+        reports_dir / f"task-queue-execution-{effective_invocation_id}.json"
+        if effective_invocation_id
+        else reports_dir / "task-queue-execution.json"
+    )
+
+    # Pre-execution mutation lock & idempotency check
+    existing_record: dict[str, Any] | None = None
+    if queue_record_path.is_file():
+        try:
+            existing_record = load_json(queue_record_path)
+        except Exception:
+            existing_record = None
+    elif effective_invocation_id and (reports_dir / "task-queue-execution.json").is_file():
+        try:
+            candidate = load_json(reports_dir / "task-queue-execution.json")
+            if candidate.get("invocation_id") == effective_invocation_id:
+                existing_record = candidate
+        except Exception:
+            existing_record = None
+
+    if existing_record is not None:
+        existing_status = existing_record.get("status")
+        if existing_status in ("ACCEPTED", "IN_PROGRESS", "COMPLETED"):
+            if on_conflict == "raise":
+                raise HandoffError(
+                    f"INVOCATION_ALREADY_EXISTS: Queue invocation '{effective_invocation_id or queue_path.name}' "
+                    f"already exists with status '{existing_status}'."
+                )
+            return existing_record
 
     queue_phase = queue_data["phase"]
     tasks = queue_data["tasks"]
@@ -1654,9 +1694,11 @@ def run_task_queue(
     queue_record: dict[str, Any] = {
         "schema_version": "0.1",
         "queue_path": str(queue_path),
+        "invocation_id": effective_invocation_id,
         "phase": queue_phase,
         "total_tasks": len(tasks),
         "executed_tasks": [],
+        "results": [],
         "status": "IN_PROGRESS",
         "stop_reason": None,
     }
@@ -1765,6 +1807,7 @@ def run_task_queue(
                 "approval": final_task_state.get("approval"),
             }
             queue_record["executed_tasks"].append(task_summary)
+            queue_record["results"].append(task_id)
 
             # Check stop conditions
             if final_task_state.get("machine_state") == "BLOCKED":
@@ -1808,8 +1851,9 @@ def run_task_queue(
     finally:
         task_config_path.unlink(missing_ok=True)
 
-    queue_record_path = reports_dir / "task-queue-execution.json"
     write_json(queue_record_path, queue_record)
+    if effective_invocation_id and queue_record_path != (reports_dir / "task-queue-execution.json"):
+        write_json(reports_dir / "task-queue-execution.json", queue_record)
     return queue_record
 
 
@@ -1818,10 +1862,11 @@ def main() -> int:
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--loop", action="store_true", help="Run handoff loop until terminal state or human gate")
     parser.add_argument("--queue", type=Path, default=None, help="Execute pre-authorized task queue")
+    parser.add_argument("--invocation-id", type=str, default=None, help="Explicit invocation ID for queue")
     args = parser.parse_args()
     try:
         if args.queue:
-            result = run_task_queue(args.config, args.queue)
+            result = run_task_queue(args.config, args.queue, invocation_id=args.invocation_id)
             print(json.dumps(result, ensure_ascii=False, indent=2))
             return 0 if result.get("status") == "COMPLETED" else 1
         elif args.loop:
