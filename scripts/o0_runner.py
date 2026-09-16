@@ -1609,13 +1609,222 @@ def run_loop(config_path: Path, max_steps: int = 10) -> dict[str, Any]:
     return current
 
 
+def run_task_queue(
+    config_path: Path,
+    queue_path: Path,
+    max_steps_per_task: int = 10,
+) -> dict[str, Any]:
+    """Execute a sequence of pre-authorized tasks within the same phase (O0 v2 M4).
+
+    Invariants enforced:
+      - Queue remains outside the task state machine (orchestrator-state.json).
+      - Each task receives its own unique run_id matching ^run-[0-9a-f]{64}$.
+      - Upon technical PASS, only the next authorized task of the same phase starts.
+      - Automatic phase advancement is prohibited (O0-C29); stops on phase mismatch.
+      - Technical PASS never infers product approval (approval remains null).
+      - Stops on queue completion, human gate, BLOCKED state, or unauthorized scope change.
+    """
+    config_path = config_path.resolve()
+    queue_path = queue_path.resolve()
+    base_config = load_config(config_path)
+    state_path = resolve_path(config_path, base_config["state_path"])
+    reports_dir = resolve_path(config_path, base_config["reports_dir"])
+    repository = resolve_path(config_path, base_config["repository"])
+
+    queue_data = load_json(queue_path)
+    validate_with_schema(queue_data, "task-queue")
+
+    queue_phase = queue_data["phase"]
+    tasks = queue_data["tasks"]
+    if not tasks:
+        raise HandoffError("Task queue must contain at least one task")
+
+    seen_ids: set[str] = set()
+    for task in tasks:
+        task_id = task["task_id"]
+        if task_id in seen_ids:
+            raise HandoffError(f"Duplicate task_id in queue: {task_id}")
+        seen_ids.add(task_id)
+        if task["phase"] != queue_phase:
+            raise HandoffError(
+                f"Task '{task_id}' phase '{task['phase']}' differs from queue phase '{queue_phase}'; "
+                "automatic phase advancement is prohibited by O0-C29"
+            )
+
+    queue_record: dict[str, Any] = {
+        "schema_version": "0.1",
+        "queue_path": str(queue_path),
+        "phase": queue_phase,
+        "total_tasks": len(tasks),
+        "executed_tasks": [],
+        "status": "IN_PROGRESS",
+        "stop_reason": None,
+    }
+
+    builder_branch = base_config.get("builder_branch", "main")
+    project_id = base_config.get("project_id", "ideias-standard")
+
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    task_config_path = config_path.parent / f"{config_path.stem}.task_active.json"
+
+    try:
+        for idx, task in enumerate(tasks):
+            task_id = task["task_id"]
+            task_run_id = f"run-{hashlib.sha256(f'{task_id}-{uuid.uuid4().hex}'.encode('utf-8')).hexdigest()}"
+
+            # Verify phase invariance
+            if task["phase"] != queue_phase:
+                queue_record["status"] = "STOPPED_PHASE_GATE"
+                queue_record["stop_reason"] = (
+                    f"Task '{task_id}' requires phase '{task['phase']}' while current phase is '{queue_phase}'; "
+                    "automatic phase advancement is prohibited by O0-C29"
+                )
+                break
+
+            # Clean any leftover active reports from prior tasks
+            state_path.unlink(missing_ok=True)
+            for item in list(reports_dir.glob("audit-report.json*")) + list(reports_dir.glob("builder-report.json*")):
+                item.unlink(missing_ok=True)
+            task_state = {
+                "schema_version": "0.1",
+                "run_id": task_run_id,
+                "project_id": project_id,
+                "phase": queue_phase,
+                "gate": "NONE",
+                "machine_state": "READY_FOR_BUILD",
+                "next_actor": "BUILDER",
+                "blocked_reason": None,
+                "builder_branch": builder_branch,
+                "builder_executor_id": None,
+                "auditor_executor_id": None,
+                "product_authority_id": "owner",
+                "builder_head_sha": None,
+                "audit_target_sha": None,
+                "last_audited_sha": None,
+                "audit_round": 0,
+                "max_audit_rounds": int(base_config.get("max_retries", 3)),
+                "last_builder_report": None,
+                "last_audit_report": None,
+                "last_audit_report_sha256": None,
+                "last_audit_result": None,
+                "human_gate_required": True,
+                "approval": None,
+                "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "message": f"Initialized task {task_id}: {task['goal']}",
+            }
+            validate_with_schema(task_state, "state")
+            write_json(state_path, task_state)
+
+            # Build task-specific configuration
+            task_config = dict(base_config)
+            if "builder_command" in task:
+                task_config["builder_command"] = task["builder_command"]
+            if "auditor_command" in task:
+                task_config["auditor_command"] = task["auditor_command"]
+            write_json(task_config_path, task_config)
+
+            # Inject task context into environment
+            task_env_vars = {
+                "IDEAS_STANDARD_TASK_ID": task_id,
+                "IDEAS_STANDARD_TASK_GOAL": task["goal"],
+                "IDEAS_STANDARD_TASK_SCOPE": json.dumps(task["scope"]),
+                "IDEAS_STANDARD_TASK_CRITERIA": json.dumps(task["acceptance_criteria"]),
+            }
+            for k, v in task_env_vars.items():
+                os.environ[k] = v
+
+            # Execute the single-task loop
+            try:
+                final_task_state = run_loop(task_config_path, max_steps=max_steps_per_task)
+            finally:
+                for k in task_env_vars:
+                    os.environ.pop(k, None)
+
+            # Invariants verification
+            if final_task_state.get("run_id") != task_run_id:
+                raise HandoffError(f"Task {task_id} run_id was mutated during execution")
+            if final_task_state.get("approval") is not None:
+                raise HandoffError(f"Task {task_id} unexpectedly recorded product approval")
+
+            # Archive task reports
+            task_reports_dir = reports_dir / "tasks" / task_id
+            task_reports_dir.mkdir(parents=True, exist_ok=True)
+            for item in list(reports_dir.glob("audit-report.json*")) + list(reports_dir.glob("builder-report.json*")):
+                shutil.copy2(item, task_reports_dir / item.name)
+                item.unlink(missing_ok=True)
+
+            task_summary = {
+                "task_id": task_id,
+                "run_id": task_run_id,
+                "goal": task["goal"],
+                "scope": task["scope"],
+                "machine_state": final_task_state.get("machine_state"),
+                "last_audit_result": final_task_state.get("last_audit_result"),
+                "last_audited_sha": final_task_state.get("last_audited_sha"),
+                "audit_round": final_task_state.get("audit_round"),
+                "approval": final_task_state.get("approval"),
+            }
+            queue_record["executed_tasks"].append(task_summary)
+
+            # Check stop conditions
+            if final_task_state.get("machine_state") == "BLOCKED":
+                queue_record["status"] = "BLOCKED"
+                queue_record["stop_reason"] = (
+                    f"Task '{task_id}' entered BLOCKED state: {final_task_state.get('blocked_reason')}"
+                )
+                break
+
+            if (
+                final_task_state.get("machine_state") != "WAITING_PRODUCT_AUTHORITY"
+                or final_task_state.get("last_audit_result") != "PASS"
+            ):
+                queue_record["status"] = "STOPPED"
+                queue_record["stop_reason"] = (
+                    f"Task '{task_id}' finished in unexpected state: {final_task_state.get('machine_state')} "
+                    f"with result {final_task_state.get('last_audit_result')}"
+                )
+                break
+
+            # Technical PASS achieved
+            if idx + 1 < len(tasks):
+                next_task = tasks[idx + 1]
+                # Check phase boundary (O0-C29)
+                if next_task["phase"] != queue_phase:
+                    queue_record["status"] = "STOPPED_PHASE_GATE"
+                    queue_record["stop_reason"] = (
+                        f"Next task '{next_task['task_id']}' specifies phase '{next_task['phase']}', "
+                        f"differing from current phase '{queue_phase}'; automatic phase advancement prohibited by O0-C29"
+                    )
+                    break
+                # Check explicit human gate requirement
+                if task.get("human_gate_required") and task.get("gate", "NONE") != "NONE":
+                    queue_record["status"] = "STOPPED_HUMAN_GATE"
+                    queue_record["stop_reason"] = (
+                        f"Task '{task_id}' requires explicit human gate before proceeding"
+                    )
+                    break
+            else:
+                queue_record["status"] = "COMPLETED"
+    finally:
+        task_config_path.unlink(missing_ok=True)
+
+    queue_record_path = reports_dir / "task-queue-execution.json"
+    write_json(queue_record_path, queue_record)
+    return queue_record
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--loop", action="store_true", help="Run handoff loop until terminal state or human gate")
+    parser.add_argument("--queue", type=Path, default=None, help="Execute pre-authorized task queue")
     args = parser.parse_args()
     try:
-        if args.loop:
+        if args.queue:
+            result = run_task_queue(args.config, args.queue)
+            print(json.dumps(result, ensure_ascii=False, indent=2))
+            return 0 if result.get("status") == "COMPLETED" else 1
+        elif args.loop:
             result = run_loop(args.config)
         else:
             result = run_once(args.config)

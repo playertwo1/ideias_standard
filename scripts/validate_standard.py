@@ -35,6 +35,7 @@ SCHEMA_FILES = {
     "operation-record": "operation-record.schema.json",
     "operation-journal": "operation-journal.schema.json",
     "runner-failure": "runner-failure.schema.json",
+    "task-queue": "task-queue.schema.json",
 }
 
 

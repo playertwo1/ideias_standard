@@ -1,0 +1,26 @@
+{
+  "schema_version": "0.1",
+  "executor_id": "queue-builder",
+  "role": "BUILDER",
+  "authority": "IMPLEMENTATION",
+  "result_sha": "9e4547abfff0cc91f588362527b23c48c02be833",
+  "result": "READY_FOR_AUDIT",
+  "summary": "Completed task-01-subtract",
+  "changed_paths": [
+    "calc.py",
+    "test_calc.py"
+  ],
+  "checks": [
+    {
+      "id": "chk-task-01-subtract",
+      "status": "PASS",
+      "evidence": {
+        "evidence_id": "r0-builder-check-5600bd5724a725c5",
+        "sha256": "d5d67537286b9a33b6a7e7461bd76eb76bee62287c59a6bc3a63f3b3b7a40097"
+      }
+    }
+  ],
+  "limitations": [],
+  "disputed_findings": [],
+  "escalation": null
+}

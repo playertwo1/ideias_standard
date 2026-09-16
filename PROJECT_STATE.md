@@ -3,20 +3,22 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** reauditoria independente do finding de O0 v2 M3 no Windows
-- **Última implementada:** O0 v2 M3 — ciclo de correção Builder → Auditor FAIL → Builder corrige → Auditor PASS executado em chamada única
-- **Próxima:** reauditoria independente de O0 v2 M3; M4 não iniciado
-- **Bloqueios do projeto:** M3 aguarda reauditoria do encaminhamento íntegro de findings no Windows
+- **Objetivo atual:** submeter O0 v2 M4 à auditoria independente
+- **Última implementada:** O0 v2 M4 — fila de tarefas previamente autorizadas executada em sequência com isolamento de `run_id`, sem avanço automático de fase ou inferência de gate
+- **Próxima:** auditoria independente de O0 v2 M4; M5 não iniciado
+- **Bloqueios do projeto:** nenhum; finding de M3 aprovado com PASS independente no SHA `9bc00e0df9c105e9ffc10b5cbaf7294244786c5a`
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1 e M2 aprovados com PASS independente; O0 v2 M3 implementado e validado; O0 v2 M4–M5 planejados; Gate S1 = NOT_RUN e S2 = NOT_STARTED
+- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1, M2 e M3 aprovados com PASS independente; O0 v2 M4 implementado e validado; O0 v2 M5 planejado; Gate S1 = NOT_RUN e S2 = NOT_STARTED
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
 
 ## Evidência atual
 
-- O0 v2 M3: ciclo real de correção implementado e executado em chamada única `run_loop`. Builder produziu SHA A (`09b34e...`), Auditor retornou `FAIL` com findings, Runner encaminhou findings ao Builder, Builder corrigiu e produziu SHA B distinto (`d360c3...`), Auditor reauditou e retornou `PASS`. Estado final: `WAITING_PRODUCT_AUTHORITY` com `approval: null`, `human_gate_required: true`, `audit_round: 2`. Evidência em `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. `builder.bundle` autossuficiente clonado com testes unitários passando. Finding independente no Windows (troca tardia do handoff) corrigido por bloqueio de escrita/rename durante a execução do Builder; teste adversarial passou, reauditoria pendente. M4 e S2 não iniciados; Gate S1 = NOT_RUN.
+- O0 v2 M4: fila simples e ordenada de tarefas previamente autorizadas implementada e executada em sequência via `run_task_queue`. Duas tarefas autorizadas (`task-01-subtract` e `task-02-multiply`) declarando objetivo, escopo e critérios executadas com sucesso. A fila permanece estritamente fora do estado canônico (`orchestrator-state.json`); cada tarefa recebe seu próprio `run_id` determinístico e conforme (`run-...`). Relatórios canônicos validados e arquivados por tarefa (`reports/tasks/<task_id>/`). Invariante O0-C29 preservado e atualizado no contrato: avanço automático restrito a tarefas da mesma fase (`O0`), cessando ao concluir a fila, ao encontrar gate humano ou `BLOCKED`, ou mediante tentativa de transição de fase sem aprovação humana. Mantidos `approval: null`, `human_gate_required: true` e Gate S1 = NOT_RUN. Evidência em `O0_V2_M4_EVIDENCE.json` e pacote persistente `O0_V2_M4_EVIDENCE_PACKAGE/`. `builder.bundle` autossuficiente validado via `git bundle verify` e clone autônomo com testes passando. M5 e S2 não iniciados.
+
+- Auditoria independente de O0 v2 M3: PASS no SHA `9bc00e0df9c105e9ffc10b5cbaf7294244786c5a`. Evidência canônica de aceite: `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. Finding no Windows resolvido com isolamento fail-safe de sandbox via Deny ACLs e trava de handoff durante execução. Nenhum gate humano registrado; M4 executado; M5 e S2 não iniciados.
 
 - Auditoria independente de O0 v2 M2: PASS no SHA `c76317dfd0c3dd37adbc414455f8ad707b7dc88f`. Evidência canônica de aceite: `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote persistente `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE/` (provas com CLIs reais comprovaram encerramento de todos os descendentes via `taskkill /F /T /PID`, sem avanço de estado e com descarte de relatório). Os registros `O0_V2_M2_EVIDENCE.json` e `O0_V2_M2_EVIDENCE_REAUDIT.json` permanecem históricos substituídos. Nenhum gate humano registrado; M3 executado; M4 e S2 não iniciados.
 
@@ -105,4 +107,4 @@ A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um ada
 
 ## Próxima ação
 
-Submeter somente o finding corrigido de O0 v2 M2 à reauditoria independente. S1 permanece ACTIVE; Gate S1 = NOT_RUN, M3 e S2 não iniciados.
+Submeter O0 v2 M4 à auditoria independente. S1 permanece ACTIVE; Gate S1 = NOT_RUN, M5 e S2 não iniciados.

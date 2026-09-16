@@ -194,7 +194,7 @@ Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Aut
 - [x] O0-C26 Runner detecta tentativa de auditar SHA divergente.
 - [x] O0-C27 PASS com finding blocking é rejeitado.
 - [x] O0-C28 Nenhum gate humano é registrado automaticamente.
-- [x] O0-C29 Próxima fase não inicia automaticamente.
+- [x] O0-C29 Próxima fase não inicia automaticamente (avanço automático restrito a tarefas autorizadas da mesma fase via fila M4; transição entre fases ou gates permanece estritamente bloqueada até aprovação humana).
 - [x] O0-C30 Estado persistido inclui `run_id`.
 - [x] O0-C31 Estado persistido inclui rodada atual.
 - [x] O0-C32 Estado persistido inclui SHAs relevantes.
@@ -282,18 +282,18 @@ Não é gate de produto.
 - [x] PASS terminar a tarefa em `WAITING_PRODUCT_AUTHORITY`; ESCALATE ou limite terminar em `BLOCKED` com motivo.
 - [x] Manter `approval = null` e Gate S1 = NOT_RUN.
 
-**Aceite:** ciclo real FAIL → correção → PASS iniciado uma única vez, sem copiar/colar. Evidência em `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. Finding independente sobre troca tardia do handoff no Windows corrigido; reauditoria pendente. M4 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
+**Aceite:** ciclo real FAIL → correção → PASS iniciado uma única vez, sem copiar/colar. Evidência em `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. PASS independente no SHA `9bc00e0df9c105e9ffc10b5cbaf7294244786c5a`. M4 executado; M5 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
 
 
 #### M4 — Fila de tarefas previamente autorizadas
 
-- [ ] Receber fila simples e ordenada; cada tarefa declara objetivo, escopo e critérios de aceite.
-- [ ] Manter a fila fora da máquina de estados da tarefa; cada tarefa recebe seu próprio `run_id`.
-- [ ] Após PASS técnico, iniciar apenas a próxima tarefa autorizada da mesma fase.
-- [ ] Atualizar explicitamente o contrato e os testes afetados pela regra O0-C29, preservando a proibição de avanço automático de fase.
-- [ ] Parar ao terminar a fila ou encontrar gate humano, BLOCKED ou mudança de escopo.
+- [x] Receber fila simples e ordenada; cada tarefa declara objetivo, escopo e critérios de aceite.
+- [x] Manter a fila fora da máquina de estados da tarefa; cada tarefa recebe seu próprio `run_id`.
+- [x] Após PASS técnico, iniciar apenas a próxima tarefa autorizada da mesma fase.
+- [x] Atualizar explicitamente o contrato e os testes afetados pela regra O0-C29, preservando a proibição de avanço automático de fase.
+- [x] Parar ao terminar a fila ou encontrar gate humano, BLOCKED ou mudança de escopo.
 
-**Aceite:** duas tarefas autorizadas executadas em sequência; nenhuma aprovação de produto inferida do PASS técnico.
+**Aceite:** duas tarefas autorizadas executadas em sequência; nenhuma aprovação de produto inferida do PASS técnico. Evidência em `O0_V2_M4_EVIDENCE.json` e pacote persistente `O0_V2_M4_EVIDENCE_PACKAGE/`. M5 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
 
 #### M5 — Prova final com agentes reais
 

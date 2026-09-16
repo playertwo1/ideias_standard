@@ -1,0 +1,22 @@
+{
+  "schema_version": "0.1",
+  "executor_id": "queue-auditor",
+  "role": "AUDITOR",
+  "authority": "INDEPENDENT_AUDIT",
+  "audit_result": "PASS",
+  "audited_sha": "9e4547abfff0cc91f588362527b23c48c02be833",
+  "summary": "Independent audit PASS for task-01-subtract at 9e4547abfff0cc91f588362527b23c48c02be833",
+  "findings": [],
+  "checks": [
+    {
+      "id": "aud-chk-task-01-subtract",
+      "status": "PASS",
+      "evidence": {
+        "evidence_id": "r1-audit-check-1158621ddef024e2",
+        "sha256": "3d675ad9d982a2a00ac5c2432ab9a34c491d6f7bab549c4424e1550f83a3b51f"
+      }
+    }
+  ],
+  "residual_risks": [],
+  "gate_registration": "NOT_AUTHORIZED"
+}

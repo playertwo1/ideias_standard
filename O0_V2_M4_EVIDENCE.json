@@ -1,0 +1,97 @@
+{
+  "schema_version": "0.1",
+  "milestone": "O0_V2_M4",
+  "scenario": "pre-authorized-task-queue-sequential-execution",
+  "description": "Two pre-authorized tasks executed sequentially within phase O0 with distinct run_ids and zero product approval inferred.",
+  "queue_status": "COMPLETED",
+  "queue_duration_seconds": 1.66,
+  "phase": "O0",
+  "gate": "NONE",
+  "total_tasks": 2,
+  "base_sha": "9d21381acb552be7c68cf63fa2319a74a863f24a",
+  "task_1": {
+    "task_id": "task-01-subtract",
+    "run_id": "run-5907e922c6838446050e5ef18233563be80cccfece2e490b6b48987cd91aad48",
+    "goal": "Implement subtract(a, b) in calc.py and unit tests in test_calc.py",
+    "machine_state": "WAITING_PRODUCT_AUTHORITY",
+    "last_audit_result": "PASS",
+    "result_sha": "9e4547abfff0cc91f588362527b23c48c02be833",
+    "approval": null
+  },
+  "task_2": {
+    "task_id": "task-02-multiply",
+    "run_id": "run-0c56354aee495a4ec949a0b542a7875629251a3e6ca936f39498b297ebbe3250",
+    "goal": "Implement multiply(a, b) in calc.py and unit tests in test_calc.py",
+    "machine_state": "WAITING_PRODUCT_AUTHORITY",
+    "last_audit_result": "PASS",
+    "result_sha": "fe0981326567cbd3482a006878a8c833efd4532a",
+    "approval": null
+  },
+  "invariants_verified": [
+    "Task queue remains strictly outside the orchestrator-state.json schema",
+    "Each task in the queue receives its own unique and independent run_id",
+    "Upon technical PASS, only the next authorized task of the same phase starts",
+    "Automatic phase advancement is strictly prohibited by O0-C29 (stops if phase differs)",
+    "Technical PASS never infers product approval (approval remains null across all tasks)",
+    "Gate S1 remains NOT_RUN and S2 remains NOT_STARTED",
+    "builder.bundle is self-sufficient and clones standalone with all passing tests"
+  ],
+  "bundle": {
+    "path": "O0_V2_M4_EVIDENCE_PACKAGE/builder.bundle",
+    "sha256": "65308ae81673b6737a377eb23ba646bdb7e57b29c6724fc3cb2ed484a0069a84",
+    "verified": true,
+    "standalone_clone_test_passed": true
+  },
+  "evidence_references": {
+    "r0-builder-check-5600bd5724a725c5": {
+      "path": "evidence/r0-builder-check-5600bd5724a725c5.json",
+      "sha256": "d5d67537286b9a33b6a7e7461bd76eb76bee62287c59a6bc3a63f3b3b7a40097"
+    },
+    "r0-builder-check-e32b08ccd3b00dcf": {
+      "path": "evidence/r0-builder-check-e32b08ccd3b00dcf.json",
+      "sha256": "6c14280a013c3437f889a044d9edbc7ed14a9d2fe60c3d6dea25e86896576a01"
+    },
+    "r1-audit-check-1158621ddef024e2": {
+      "path": "evidence/r1-audit-check-1158621ddef024e2.json",
+      "sha256": "3d675ad9d982a2a00ac5c2432ab9a34c491d6f7bab549c4424e1550f83a3b51f"
+    },
+    "r1-audit-check-485ded284ff9e7c5": {
+      "path": "evidence/r1-audit-check-485ded284ff9e7c5.json",
+      "sha256": "ec168ecbf3b22eaa945b56d370d536a15a6fc148be1d881b2b8a8c04653dda07"
+    }
+  },
+  "operations_records": {
+    "op-2cf974e34a8858a392b2475fb69d79456817ab50bfe3268f6c2094be1c5c9262.json": {
+      "path": "operations/op-2cf974e34a8858a392b2475fb69d79456817ab50bfe3268f6c2094be1c5c9262.json",
+      "sha256": "05d59ccbc0a82f66b63db6865a8afc311b48dc319d9b0f6a19ad75ecb3ced838"
+    },
+    "op-2cf974e34a8858a392b2475fb69d79456817ab50bfe3268f6c2094be1c5c9262.report.json": {
+      "path": "operations/op-2cf974e34a8858a392b2475fb69d79456817ab50bfe3268f6c2094be1c5c9262.report.json",
+      "sha256": "f9400b5ff8adaf9cadb80b4ec03a53fc1740ccae29f2bd6557983702d41da631"
+    },
+    "op-41407de8016c1495f923f14668e9a2b615b5c3ee111db0fb9940969d7e3c5232.json": {
+      "path": "operations/op-41407de8016c1495f923f14668e9a2b615b5c3ee111db0fb9940969d7e3c5232.json",
+      "sha256": "a973222faa69cd622f563b7570f53e7f2046c3c11840cbbdad233ad9e9807f37"
+    },
+    "op-41407de8016c1495f923f14668e9a2b615b5c3ee111db0fb9940969d7e3c5232.report.json": {
+      "path": "operations/op-41407de8016c1495f923f14668e9a2b615b5c3ee111db0fb9940969d7e3c5232.report.json",
+      "sha256": "36bac94b5b82fa7f8c4117705414023c85d6f43718f07bb9accf5214c034876b"
+    },
+    "op-ecf3839e7a273b3b293743e67a2b4bbea3c105c1911ce3b911e81586315cc86a.json": {
+      "path": "operations/op-ecf3839e7a273b3b293743e67a2b4bbea3c105c1911ce3b911e81586315cc86a.json",
+      "sha256": "879d4633999392db895f32f68bb37d955be2d2df2f9456bf6c6c6a221a29e351"
+    },
+    "op-ecf3839e7a273b3b293743e67a2b4bbea3c105c1911ce3b911e81586315cc86a.report.json": {
+      "path": "operations/op-ecf3839e7a273b3b293743e67a2b4bbea3c105c1911ce3b911e81586315cc86a.report.json",
+      "sha256": "3098edef9755c1f05f9dd7be7d1d4d242b00eeab6c68dee2403ee4dd65c28800"
+    },
+    "op-f28358925881a00e77afc53fbe31289d52cfb1de0b7953ca5a6051e884dc5197.json": {
+      "path": "operations/op-f28358925881a00e77afc53fbe31289d52cfb1de0b7953ca5a6051e884dc5197.json",
+      "sha256": "eeb206765bde6dfa1fd7d58378e03fd35838f7ed5b3b8c3e72b3469f693b22e9"
+    },
+    "op-f28358925881a00e77afc53fbe31289d52cfb1de0b7953ca5a6051e884dc5197.report.json": {
+      "path": "operations/op-f28358925881a00e77afc53fbe31289d52cfb1de0b7953ca5a6051e884dc5197.report.json",
+      "sha256": "f4c07feedbe04ff4f4302e1d31d0a5f45fc47c9b1bde6bf776790e971bda443d"
+    }
+  }
+}
