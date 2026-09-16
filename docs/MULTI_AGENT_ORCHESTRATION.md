@@ -142,6 +142,8 @@ O runner adquire um lock de processo em `<state>.lock` antes de ler o estado e o
 
 Cada execução Builder/Auditor recebe `op-<sha256>` derivado deterministicamente de `run_id`, estado de origem, ator, rodada e SHAs relevantes. O resultado, o relatório imutável e seu digest ficam em `reports/operations/`. Para repetir explicitamente uma chamada, o cliente reutiliza `operation_id` na configuração: payload idêntico retorna o resultado persistido sem executar o ator; identidade desconhecida ou payload divergente é rejeitado dentro do mesmo lock.
 
+Antes de iniciar o ator, o runner grava um journal canônico para a operação. Após receber e validar o relatório, o journal fixa seu digest e o próximo estado antes de aplicar a transição. Se o processo for interrompido, a retomada sob o mesmo lock consome o relatório já produzido ou conclui a transição/`operation-record`; ela não executa novamente o ator quando a execução anterior pode ter produzido resultado. Journal, relatório ou estado divergente são rejeitados.
+
 ## Estados
 
 - `READY_FOR_BUILD`: Builder pode agir.

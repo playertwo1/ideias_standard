@@ -27,6 +27,7 @@ SCHEMAS = {
     "evidence": ROOT / "schemas" / "evidence-envelope.schema.json",
     "reaudit": ROOT / "schemas" / "reaudit-handoff.schema.json",
     "operation": ROOT / "schemas" / "operation-record.schema.json",
+    "operation-journal": ROOT / "schemas" / "operation-journal.schema.json",
 }
 
 NEXT_ACTOR_BY_STATE = {

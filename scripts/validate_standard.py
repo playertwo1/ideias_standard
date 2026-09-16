@@ -33,6 +33,7 @@ SCHEMA_FILES = {
     "orchestrator-state": "orchestrator-state.schema.json",
     "reaudit-handoff": "reaudit-handoff.schema.json",
     "operation-record": "operation-record.schema.json",
+    "operation-journal": "operation-journal.schema.json",
 }
 
 

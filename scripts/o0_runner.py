@@ -192,6 +192,162 @@ def _operation_paths(reports_dir: Path, operation_id: str) -> tuple[Path, Path]:
     return root / f"{operation_id}.json", root / f"{operation_id}.report.json"
 
 
+def _journal_path(reports_dir: Path, operation_id: str) -> Path:
+    return reports_dir / "operations" / f"{operation_id}.journal.json"
+
+
+def _write_bytes_atomic(path: Path, payload: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + f".{os.getpid()}.tmp")
+    try:
+        temporary.write_bytes(payload)
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _write_canonical_atomic(path: Path, payload: dict[str, Any]) -> None:
+    _write_bytes_atomic(path, canonical_json_bytes(payload))
+
+
+def _validate_journal(journal: dict[str, Any], raw: bytes) -> None:
+    validate_with_schema(journal, "operation-journal")
+    validate_with_schema(journal["source_state"], "state")
+    derived_id, derived_source = operation_identity(journal["source_state"], journal["actor"])
+    if (
+        raw != canonical_json_bytes(journal)
+        or derived_id != journal["operation_id"]
+        or derived_source != journal["source"]
+        or journal["actor"] != journal["source"].get("actor")
+    ):
+        raise HandoffError("Persisted operation journal is invalid")
+    ready = journal["phase"] == "REPORT_READY"
+    if ready != (journal["report_sha256"] is not None and journal["result"] is not None):
+        raise HandoffError("Persisted operation journal phase is inconsistent")
+    if ready:
+        validate_with_schema(journal["result"], "state")
+
+
+def load_recovery_journal(reports_dir: Path) -> tuple[Path, dict[str, Any]] | None:
+    root = reports_dir / "operations"
+    journals = sorted(root.glob("op-*.journal.json")) if root.is_dir() else []
+    if not journals:
+        return None
+    if len(journals) != 1:
+        raise HandoffError("Multiple incomplete operation journals require manual resolution")
+    path = journals[0]
+    raw = path.read_bytes()
+    journal = load_json(path)
+    _validate_journal(journal, raw)
+    return path, journal
+
+
+def prepare_operation_journal(
+    reports_dir: Path,
+    operation_id: str,
+    source: dict[str, Any],
+    source_state: dict[str, Any],
+    actor: str,
+    report_path: Path,
+) -> tuple[Path, dict[str, Any]]:
+    path = _journal_path(reports_dir, operation_id)
+    if path.exists():
+        raise HandoffError(f"Operation journal already exists: {operation_id}")
+    journal = {
+        "schema_version": "0.1",
+        "operation_id": operation_id,
+        "source": source,
+        "source_state": source_state,
+        "actor": actor,
+        "phase": "PREPARED",
+        "report_path": str(report_path),
+        "report_sha256": None,
+        "result": None,
+    }
+    validate_with_schema(journal, "operation-journal")
+    _write_canonical_atomic(path, journal)
+    return path, journal
+
+
+def compute_transition(
+    state_path: Path,
+    source_state: dict[str, Any],
+    report_path: Path,
+    actor: str,
+    operation_id: str,
+) -> dict[str, Any]:
+    temporary = state_path.with_suffix(state_path.suffix + f".{operation_id}.next")
+    if temporary.exists():
+        temporary.unlink()
+    write_json(temporary, source_state)
+    try:
+        return (
+            builder_handoff(temporary, report_path)
+            if actor == "BUILDER"
+            else audit_handoff(temporary, report_path)
+        )
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def mark_report_ready(
+    journal_path: Path,
+    journal: dict[str, Any],
+    report_path: Path,
+    result: dict[str, Any],
+) -> dict[str, Any]:
+    ready = {
+        **journal,
+        "phase": "REPORT_READY",
+        "report_sha256": hashlib.sha256(report_path.read_bytes()).hexdigest(),
+        "result": result,
+    }
+    validate_with_schema(ready, "operation-journal")
+    _write_canonical_atomic(journal_path, ready)
+    return ready
+
+
+def finish_recovered_operation(
+    state_path: Path,
+    reports_dir: Path,
+    journal_path: Path,
+    journal: dict[str, Any],
+    current: dict[str, Any],
+    recovered: bool,
+) -> dict[str, Any]:
+    report_path = Path(journal["report_path"])
+    if not report_path.is_file() or hashlib.sha256(report_path.read_bytes()).hexdigest() != journal["report_sha256"]:
+        raise HandoffError("Recovery report is missing or differs from its journal")
+    result = journal["result"]
+    expected = compute_transition(
+        state_path,
+        journal["source_state"],
+        report_path,
+        journal["actor"],
+        journal["operation_id"],
+    )
+    expected_without_time = {key: value for key, value in expected.items() if key != "updated_at"}
+    result_without_time = {key: value for key, value in result.items() if key != "updated_at"}
+    if expected_without_time != result_without_time:
+        raise HandoffError("Persisted operation journal result is not derived from its report")
+    source_matches = current == journal["source_state"]
+    if source_matches:
+        write_json(state_path, result)
+        current = status(state_path)
+    elif current != result:
+        raise HandoffError("Recovery state matches neither operation source nor result")
+    completed = persist_operation(
+        reports_dir,
+        journal["operation_id"],
+        journal["source"],
+        journal["actor"],
+        report_path,
+        current,
+    )
+    journal_path.unlink()
+    return {**completed, "operation_recovered": recovered}
+
+
 def replay_operation(
     reports_dir: Path, operation_id: str, current: dict[str, Any]
 ) -> dict[str, Any] | None:
@@ -238,24 +394,25 @@ def persist_operation(
     record_path.parent.mkdir(parents=True, exist_ok=True)
     report_bytes = report_path.read_bytes()
     report_digest = hashlib.sha256(report_bytes).hexdigest()
-    try:
-        with snapshot_path.open("xb") as stream:
-            stream.write(report_bytes)
-        record = {
-            "schema_version": "0.1",
-            "operation_id": operation_id,
-            "source": source,
-            "actor": actor,
-            "report_path": str(report_path),
-            "report_sha256": report_digest,
-            "result": result,
-        }
-        validate_with_schema(record, "operation")
-        validate_with_schema(result, "state")
-        with record_path.open("xb") as stream:
-            stream.write(canonical_json_bytes(record))
-    except FileExistsError as exc:
-        raise HandoffError(f"Operation identity already exists: {operation_id}") from exc
+    if record_path.exists():
+        replayed = replay_operation(reports_dir, operation_id, result)
+        if replayed is None:
+            raise HandoffError(f"Operation identity already exists: {operation_id}")
+        return replayed
+    if not snapshot_path.exists() or snapshot_path.read_bytes() != report_bytes:
+        _write_bytes_atomic(snapshot_path, report_bytes)
+    record = {
+        "schema_version": "0.1",
+        "operation_id": operation_id,
+        "source": source,
+        "actor": actor,
+        "report_path": str(report_path),
+        "report_sha256": report_digest,
+        "result": result,
+    }
+    validate_with_schema(record, "operation")
+    validate_with_schema(result, "state")
+    _write_canonical_atomic(record_path, record)
     return {**result, "operation_id": operation_id, "operation_replayed": False}
 
 
@@ -281,12 +438,11 @@ def store_evidence(
     root.mkdir(parents=True, exist_ok=True)
     path = root / f"{evidence_id}.json"
     digest = hashlib.sha256(canonical).hexdigest()
-    try:
-        with path.open("xb") as stream:
-            stream.write(canonical)
-    except FileExistsError as exc:
+    if path.exists():
         if path.read_bytes() != canonical:
-            raise HandoffError(f"Evidence ID already exists: {evidence_id}") from exc
+            raise HandoffError(f"Evidence ID already exists: {evidence_id}")
+    else:
+        _write_bytes_atomic(path, canonical)
     return {"evidence_id": evidence_id, "sha256": digest}
 
 
@@ -912,18 +1068,35 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
 
     current = status(state_path)
     requested_operation = config.get("operation_id")
-    if requested_operation is not None:
+    recovery = load_recovery_journal(reports_dir)
+    recovering_report = False
+    if recovery is not None:
+        journal_path, journal = recovery
+        operation_id = journal["operation_id"]
+        actor = journal["actor"]
+        operation_source = journal["source"]
+        if requested_operation is not None and requested_operation != operation_id:
+            raise HandoffError("Requested operation differs from incomplete operation journal")
+        if journal["phase"] == "REPORT_READY":
+            return finish_recovered_operation(
+                state_path, reports_dir, journal_path, journal, current, True
+            )
+        if operation_identity(current, actor)[0] != operation_id:
+            raise HandoffError("Prepared operation journal does not match current state")
+        recovering_report = True
+    elif requested_operation is not None:
         replayed = replay_operation(reports_dir, requested_operation, current)
         if replayed is not None:
             return replayed
-    actor = next_actor(current)
-    if actor in {"BUILDER", "AUDITOR"}:
-        expected_operation, operation_source = operation_identity(current, actor)
-        if requested_operation is not None and requested_operation != expected_operation:
-            raise HandoffError("operation_id does not match the current state transition")
-        operation_id = requested_operation or expected_operation
-    elif requested_operation is not None:
-        raise HandoffError("operation_id is not valid while automation is stopped")
+    if recovery is None:
+        actor = next_actor(current)
+        if actor in {"BUILDER", "AUDITOR"}:
+            expected_operation, operation_source = operation_identity(current, actor)
+            if requested_operation is not None and requested_operation != expected_operation:
+                raise HandoffError("operation_id does not match the current state transition")
+            operation_id = requested_operation or expected_operation
+        elif requested_operation is not None:
+            raise HandoffError("operation_id is not valid while automation is stopped")
     common_env = {
         "IDEAS_STANDARD_PROJECT_ID": current["project_id"],
         "IDEAS_STANDARD_PHASE": current["phase"],
@@ -934,6 +1107,14 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
         if not builder_workspace.is_dir() or not os.access(builder_workspace, os.W_OK):
             raise HandoffError("Builder workspace must exist and be writable")
         report = reports_dir / "builder-report.json"
+        if recovering_report:
+            if Path(journal["report_path"]) != report or not report.is_file():
+                raise HandoffError("Prepared Builder operation has no durable report")
+        else:
+            report.unlink(missing_ok=True)
+            journal_path, journal = prepare_operation_journal(
+                reports_dir, operation_id, operation_source, current, actor, report
+            )
         builder_env = {**common_env, "IDEAS_STANDARD_STATE": str(state_path)}
         findings_handoff = prepare_builder_findings(current, reports_dir)
         findings_before = None
@@ -941,12 +1122,18 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
             validate_builder_findings_handoff(current, findings_handoff)
             builder_env["IDEAS_STANDARD_FINDINGS"] = str(findings_handoff)
             findings_before = findings_handoff.read_bytes()
-        run_actor(
-            config["builder_command"],
-            builder_workspace,
-            report,
-            builder_env,
-        )
+        if not recovering_report:
+            try:
+                run_actor(
+                    config["builder_command"],
+                    builder_workspace,
+                    report,
+                    builder_env,
+                )
+            except (HandoffError, OSError):
+                if not report.is_file():
+                    journal_path.unlink(missing_ok=True)
+                raise
         payload = load_json(report)
         report_context = {**current, "audit_target_sha": payload.get("result_sha")}
         payload = canonicalize_report_evidence(report, "builder", report_context, reports_dir / "evidence")
@@ -966,9 +1153,10 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
                 findings_handoff,
                 reports_dir,
             )
-        result = builder_handoff(state_path, report)
-        return persist_operation(
-            reports_dir, operation_id, operation_source, actor, report, result
+        result = compute_transition(state_path, current, report, actor, operation_id)
+        journal = mark_report_ready(journal_path, journal, report, result)
+        return finish_recovered_operation(
+            state_path, reports_dir, journal_path, journal, current, recovering_report
         )
 
     if actor == "AUDITOR":
@@ -989,20 +1177,35 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
         snapshot = write_state_snapshot(state_path, audit_root, target)
         state_before = state_path.read_bytes()
         report = reports_dir / "audit-report.json"
+        if recovering_report:
+            if Path(journal["report_path"]) != report or not report.is_file():
+                raise HandoffError("Prepared Auditor operation has no durable report")
+        else:
+            report.unlink(missing_ok=True)
+            journal_path, journal = prepare_operation_journal(
+                reports_dir, operation_id, operation_source, current, actor, report
+            )
         auditor_env["IDEAS_STANDARD_STATE_SNAPSHOT"] = str(snapshot)
-        run_actor(
-            config["auditor_command"],
-            workspace,
-            report,
-            auditor_env,
-            write_sandbox=True,
-        )
+        if not recovering_report:
+            try:
+                run_actor(
+                    config["auditor_command"],
+                    workspace,
+                    report,
+                    auditor_env,
+                    write_sandbox=True,
+                )
+            except (HandoffError, OSError):
+                if not report.is_file():
+                    journal_path.unlink(missing_ok=True)
+                raise
         verify_audit_after(workspace, state_path, target, state_before)
         audit_context = {**current, "audit_round": current["audit_round"] + 1}
         canonicalize_report_evidence(report, "audit", audit_context, reports_dir / "evidence")
-        result = audit_handoff(state_path, report)
-        return persist_operation(
-            reports_dir, operation_id, operation_source, actor, report, result
+        result = compute_transition(state_path, current, report, actor, operation_id)
+        journal = mark_report_ready(journal_path, journal, report, result)
+        return finish_recovered_operation(
+            state_path, reports_dir, journal_path, journal, current, recovering_report
         )
 
     return current

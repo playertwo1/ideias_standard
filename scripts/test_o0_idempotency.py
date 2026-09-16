@@ -96,6 +96,7 @@ Path(os.environ['IDEAS_STANDARD_REPORT']).write_text(json.dumps(payload), encodi
         first_result = json.loads(first.stdout)
         self.assertIn("operation_id", first_result)
         self.assertFalse(first_result["operation_replayed"])
+        self.assertFalse(first_result["operation_recovered"])
         operation_id = first_result["operation_id"]
         record = json.loads(
             (self.root / "reports" / "operations" / f"{operation_id}.json").read_text(encoding="utf-8")
