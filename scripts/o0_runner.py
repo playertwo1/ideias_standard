@@ -728,7 +728,7 @@ def _auditor_write_sandbox(allowed_directory: Path):
 
 def _terminate_actor_process(process: subprocess.Popen) -> None:
     if os.name == "nt":
-        subprocess.run(
+        result = subprocess.run(
             ["taskkill", "/F", "/T", "/PID", str(process.pid)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -738,6 +738,8 @@ def _terminate_actor_process(process: subprocess.Popen) -> None:
             process.kill()
         except OSError:
             pass
+        if result.returncode != 0:
+            raise HandoffError(f"Actor process tree termination failed (taskkill exit {result.returncode})")
     else:
         try:
             os.killpg(process.pid, signal.SIGKILL)

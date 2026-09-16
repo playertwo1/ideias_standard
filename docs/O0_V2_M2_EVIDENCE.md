@@ -1,8 +1,9 @@
 # O0 v2 M2 — Conexao dos Adapters ao Runner O0
 
 - **Marco:** O0 v2 M2 (Roadmap v3)
-- **Status:** PASS de reauditoria independente; pronto para homologação
-- **Artefato verificavel de aceite:** [O0_V2_M2_EVIDENCE_REAUDIT.json](../O0_V2_M2_EVIDENCE_REAUDIT.json) e [pacote persistente](../O0_V2_M2_EVIDENCE_REAUDIT_PACKAGE/)
+- **Status:** finding de processo corrigido; reauditoria independente pendente
+- **Artefato verificavel atual:** [O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json](../O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json) e [pacote persistente](../O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE/)
+- **Reauditoria anterior:** `O0_V2_M2_EVIDENCE_REAUDIT.json` e seu pacote permanecem intactos, mas sua prova de encerramento da arvore era insuficiente.
 - **Registro historico substituido:** [O0_V2_M2_EVIDENCE.json](../O0_V2_M2_EVIDENCE.json) e [pacote anterior](../O0_V2_M2_EVIDENCE_PACKAGE/) mantidos preservados para rastreabilidade
 - **Data da reauditoria:** 2026-09-16
 - **Ambiente:** Windows (drive fisico A:\ideias_standard)
@@ -31,12 +32,11 @@ A arquitetura estabelecida preserva a neutralidade de provedores do Standard:
 
 ### Finding 2: Encerramento de Processos Filhos em Timeout e Cancelamento no Windows
 - **Causa anterior:** `process.kill()` no Windows encerrava apenas o processo direto do Python (adapter), deixando `agy.exe` ou `codex.CMD`/`node.exe` em execucao orfa.
-- **Correcao:** Implementado `_terminate_actor_process(process)` em `scripts/o0_runner.py`, executando `taskkill /F /T /PID <actor_pid>`, garantindo a terminacao de toda a arvore de processos.
+- **Correcao:** `_terminate_actor_process(process)` executa `taskkill /F /T /PID <actor_pid>` e agora rejeita explicitamente codigo de saida diferente de zero; a consulta de PIDs tambem falha fechada em vez de interpretar erro como processo morto.
 - **Comprovacao com CLIs reais:**
-  - **Builder Timeout (`agy.exe`):** Timeout de 3.0s interrompe o Builder real. O processo filho `agy.exe` (PID 38136) e todos os seus descendentes sao terminados (`is_pid_alive=False`). Nenhum relatorio parcial e aceito, o estado permanece `READY_FOR_BUILD` e o journal e marcado como `INTERRUPTED` (`TIMEOUT`).
-  - **Builder Cancelamento (`agy.exe`):** Requisiçao de cancelamento via `cancel_path` interrompe o Builder real. O processo filho `agy.exe` (PID 21304) e terminado. Estado permanece `READY_FOR_BUILD` e journal registra `INTERRUPTED` (`CANCELLED`).
-  - **Auditor Timeout (`codex.CMD`):** Timeout de 3.0s interrompe o Auditor real. O processo filho `codex.CMD` / `node.exe` (PID 15284) e terminado. Estado permanece `READY_FOR_AUDIT` e journal registra `INTERRUPTED` (`TIMEOUT`).
-  - **Auditor Cancelamento (`codex.CMD`):** Cancelamento interrompe o Auditor real. Processo filho (PID 42016) e terminado. Estado permanece `READY_FOR_AUDIT` e journal registra `INTERRUPTED` (`CANCELLED`).
+  - Builder timeout/cancelamento: 11/14 PIDs da arvore registrados enquanto vivos; zero sobreviventes apos a interrupcao.
+  - Auditor timeout/cancelamento: 4/4 PIDs registrados enquanto vivos; zero sobreviventes apos a interrupcao.
+  - Cada cenario inclui no novo pacote estado antes/depois, journal `INTERRUPTED`, inventario completo de `reports/` e prova de ausencia de relatorio aceito, com SHA-256 por arquivo. O teste confere os artefatos, nao apenas flags do manifesto.
 
 ---
 
@@ -60,7 +60,7 @@ A arquitetura estabelecida preserva a neutralidade de provedores do Standard:
 | Cancelamento encerra processos filhos | Arvore de processos terminada sem relatorio ou avanco parcial | PASS |
 | Sem avanco parcial em interrupcao | Estado canônico preservado byte a byte | PASS |
 | Evidencia anterior preservada | `O0_V2_M2_EVIDENCE.json` mantido integro | PASS |
-| Testes unitarios automatizados | `scripts/test_o0_m2_runner_integration.py` (5 testes verdes) | PASS |
+| Testes unitarios automatizados | `scripts/test_o0_m2_runner_integration.py` (7 testes verdes) | PASS |
 
 ---
 
@@ -73,6 +73,8 @@ O pacote duravel de aceite contem:
 - `final-orchestrator-state.json`: estado canônico final persistido pelo runner.
 - `evidence/`: colecao de envelopes canônicos de evidencias validados por schema e SHA-256.
 - `operations/`: journals atomicos das operacoes `op-*` executadas pelo runner.
+
+O pacote de prova atual acrescenta `interruptions/{builder_timeout,builder_cancel,auditor_timeout,auditor_cancel}/` com os snapshots, journals e inventarios verificaveis. O pacote anterior nao foi reescrito.
 
 ---
 

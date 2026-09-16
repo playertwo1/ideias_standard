@@ -3,9 +3,9 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** O0 v2 M2 implementado e validado com ciclo real no runner; submetido para auditoria independente
-- **Última implementada:** O0 v2 M2 — conexão dos adapters Antigravity e Codex aos comandos configuráveis do `scripts/o0_runner.py`, validação de relatórios canônicos e empacotamento de evidências
-- **Próxima:** O0 v2 M3 — fechar o ciclo de correção; M3 não iniciado nesta atualização
+- **Objetivo atual:** reauditoria independente do finding de encerramento da árvore de processos em O0 v2 M2
+- **Última implementada:** O0 v2 M2 — prova de interrupção corrigida; auditoria independente pendente
+- **Próxima:** reauditoria independente de O0 v2 M2; M3 não iniciado
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
@@ -16,7 +16,7 @@
 
 ## Evidência atual
 
-- O0 v2 M2 reauditado e validado: adapters `scripts/o0_antigravity_adapter.py` e `scripts/o0_codex_adapter.py` conectados aos comandos configuráveis do `scripts/o0_runner.py`. Execução de ciclo real com `builder.bundle` autossuficiente (validado com `git bundle verify` com histórico completo e `git clone` isolado com testes passando) e comprovação das 4 rotinas de timeout e cancelamento com as CLIs reais no Windows (`agy.exe` e `codex.CMD`), garantindo encerramento da árvore completa de processos filhos via `_terminate_actor_process`, sem relatório aceito, estado preservado e journal `INTERRUPTED`. Evidência canônica de aceite em `O0_V2_M2_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M2_EVIDENCE_REAUDIT_PACKAGE/` (`O0_V2_M2_EVIDENCE.json` mantido como registro histórico substituído). Testes automatizados em `scripts/test_o0_m2_runner_integration.py` (5 testes verdes). Nenhum gate humano registrado; M3 e S2 não iniciados.
+- O0 v2 M2: finding de processo corrigido em `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote novo. Quatro interrupções reais registram PIDs vivos antes (11, 14, 4, 4), zero sobreviventes, estados antes/depois, journals e inventários de relatórios com SHA-256. Falha de `taskkill` é rejeitada. Evidência anterior e bundle preservados; reauditoria independente pendente. Gate S1 = NOT_RUN; M3 e S2 não iniciados.
 
 - Auditoria independente de O0 v2 M1: PASS no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`. Evidência canônica de aceite: `O0_V2_M1_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M1_EVIDENCE_REAUDIT_PACKAGE/` (com bundle Git do Builder `builder.bundle`, saídas completas e relatório JSON validado do Codex `codex_audit_report.json`). O registro `O0_V2_M1_EVIDENCE.json` permanece identificado como histórico substituído. Nenhum gate humano registrado; M2 e S2 não iniciados.
 
@@ -102,4 +102,4 @@ A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um ada
 
 ## Próxima ação
 
-Preparar O0 v2 M2 (conectar os adapters ao runner) conforme o `ROADMAP.md`. S1 permanece ACTIVE com implementação pausada até D-C02; Gate S1 = NOT_RUN e S2 permanece não iniciada. Nenhum gate humano registrado; M2 e S2 não iniciados.
+Submeter somente o finding corrigido de O0 v2 M2 à reauditoria independente. S1 permanece ACTIVE; Gate S1 = NOT_RUN, M3 e S2 não iniciados.

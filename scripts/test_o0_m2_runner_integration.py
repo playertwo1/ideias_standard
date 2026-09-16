@@ -6,8 +6,11 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from scripts.orchestrate_handoffs import validate_with_schema
+from scripts.orchestrate_handoffs import HandoffError
+from scripts.o0_runner import _terminate_actor_process
 
 
 class O0V2M2Test(unittest.TestCase):
@@ -23,8 +26,9 @@ class O0V2M2Test(unittest.TestCase):
         self.assertEqual("O0-v2-M2-runner-adapters", history.get("scenario"))
 
     def test_m2_reaudit_evidence_artifact_and_package(self):
-        self.assertTrue(self.evidence_reaudit_path.is_file(), f"Missing reaudit evidence at {self.evidence_reaudit_path}")
-        evidence = json.loads(self.evidence_reaudit_path.read_text(encoding="utf-8"))
+        proof_path = self.root / "O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json"
+        self.assertTrue(proof_path.is_file(), f"Missing process proof at {proof_path}")
+        evidence = json.loads(proof_path.read_text(encoding="utf-8"))
 
         self.assertEqual("0.1", evidence.get("schema_version"))
         self.assertEqual("O0-v2-M2-runner-adapters", evidence.get("scenario"))
@@ -71,6 +75,8 @@ class O0V2M2Test(unittest.TestCase):
 
         artifacts = evidence["artifacts"]
         for key, entry in artifacts.items():
+            if key == "interruptions":
+                continue
             if key in {"evidence", "operations"}:
                 for item_name, item_meta in entry.items():
                     item_path = package_root / item_meta["path"]
@@ -95,12 +101,50 @@ class O0V2M2Test(unittest.TestCase):
         proofs = runner_exec["interruption_proofs"]
         for name in ("builder_timeout", "builder_cancel", "auditor_timeout", "auditor_cancel"):
             proof = proofs[name]
+            self.assertTrue(proof["observed_tree_pids_before"], name)
+            self.assertIn(proof["child_pid"], proof["observed_tree_pids_before"])
+            self.assertEqual([], proof["alive_tree_pids_after"])
             self.assertTrue(proof["pass"], f"Proof {name} did not pass: {proof}")
             self.assertEqual(proof["expected_reason"], proof["interrupted_reason"])
             self.assertTrue(proof["all_child_processes_terminated"], f"Child processes not terminated in {name}")
             self.assertFalse(proof["report_accepted"], f"Report was accepted in {name}")
             self.assertTrue(proof["canonical_state_preserved"], f"State not preserved in {name}")
             self.assertTrue(proof["journal_marked_interrupted"], f"Journal not marked interrupted in {name}")
+            refs = evidence["artifacts"]["interruptions"][name]
+            for key in ("state_before", "state_after", "journal", "absence_proof"):
+                ref = refs[key]
+                path = package_root / ref["path"]
+                self.assertTrue(path.is_file(), str(path))
+                self.assertEqual(ref["sha256"], hashlib.sha256(path.read_bytes()).hexdigest())
+            before = json.loads((package_root / refs["state_before"]["path"]).read_text())
+            after = json.loads((package_root / refs["state_after"]["path"]).read_text())
+            journal = json.loads((package_root / refs["journal"]["path"]).read_text())
+            absence = json.loads((package_root / refs["absence_proof"]["path"]).read_text())
+            self.assertEqual(before, after)
+            self.assertEqual("INTERRUPTED", journal["phase"])
+            self.assertEqual(proof["expected_reason"], journal["interruption_reason"])
+            self.assertFalse(absence["report_exists"])
+            report_dir = package_root / refs["reports_dir"]
+            files = sorted(p.relative_to(report_dir).as_posix() for p in report_dir.rglob("*") if p.is_file())
+            self.assertEqual(absence["reports_inventory"], files)
+            self.assertNotIn(absence["report_path"], files)
+
+    @unittest.skipUnless(sys.platform == "win32", "Windows taskkill contract")
+    def test_taskkill_failure_is_not_silently_accepted(self):
+        process = Mock(pid=424242)
+        with patch("scripts.o0_runner.subprocess.run", return_value=Mock(returncode=1)):
+            with self.assertRaises(HandoffError):
+                _terminate_actor_process(process)
+        process.kill.assert_called_once()
+
+    def test_process_query_failure_cannot_count_as_termination(self):
+        from scripts.o0_m2_runner_integration import _get_descendants, _is_pid_alive
+        failure = subprocess.CalledProcessError(1, "tasklist")
+        with patch("scripts.o0_m2_runner_integration.subprocess.check_output", side_effect=failure):
+            with self.assertRaises(subprocess.CalledProcessError):
+                _is_pid_alive(424242)
+            with self.assertRaises(subprocess.CalledProcessError):
+                _get_descendants(424242)
 
     def test_standalone_builder_bundle(self):
         bundle_path = self.root / "O0_V2_M2_EVIDENCE_REAUDIT_PACKAGE" / "builder.bundle"

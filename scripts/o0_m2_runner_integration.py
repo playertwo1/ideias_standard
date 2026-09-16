@@ -48,27 +48,30 @@ def _clean_dir(path: Path) -> None:
 
 
 def _get_descendants(parent_pid: int) -> list[int]:
-    try:
-        out = subprocess.check_output(
-            ["powershell", "-NoProfile", "-Command", f"(Get-CimInstance Win32_Process -Filter 'ParentProcessId = {parent_pid}').ProcessId"],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
-        direct = [int(x.strip()) for x in out.splitlines() if x.strip().isdigit()]
-        descendants = list(direct)
-        for child_pid in direct:
-            descendants.extend(_get_descendants(child_pid))
-        return descendants
-    except Exception:
-        return []
+    out = subprocess.check_output(
+        ["powershell", "-NoProfile", "-Command", f"(Get-CimInstance Win32_Process -Filter 'ParentProcessId = {parent_pid}').ProcessId"],
+        text=True, stderr=subprocess.DEVNULL,
+    )
+    direct = [int(x.strip()) for x in out.splitlines() if x.strip().isdigit()]
+    descendants = list(direct)
+    for child_pid in direct:
+        descendants.extend(_get_descendants(child_pid))
+    return descendants
 
 
 def _is_pid_alive(pid: int) -> bool:
-    try:
-        out = subprocess.check_output(["tasklist", "/FI", f"PID eq {pid}"], text=True, stderr=subprocess.DEVNULL)
-        return str(pid) in out
-    except Exception:
-        return False
+    out = subprocess.check_output(["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"], text=True, stderr=subprocess.DEVNULL)
+    return any(line.split(',')[1].strip('"') == str(pid) for line in out.splitlines() if line.startswith('"') and len(line.split(',')) > 1)
+
+
+def _get_parent_pid(pid: int) -> int:
+    out = subprocess.check_output(
+        ["powershell", "-NoProfile", "-Command", f"(Get-CimInstance Win32_Process -Filter 'ProcessId = {pid}').ParentProcessId"],
+        text=True, stderr=subprocess.DEVNULL,
+    ).strip()
+    if not out.isdigit():
+        raise RuntimeError(f"Cannot identify parent of actor PID {pid}")
+    return int(out)
 
 
 def _prove_interruption(
@@ -106,6 +109,9 @@ def _prove_interruption(
         st["builder_head_sha"] = target_sha
         state_path.write_text(json.dumps(st, indent=2), encoding="utf-8")
 
+    state_before = state_path.read_bytes()
+    (work_dir / "state-before.json").write_bytes(state_before)
+
     config = {
         "repository": str(repo_dir),
         "state_path": str(state_path),
@@ -126,19 +132,29 @@ def _prove_interruption(
     env_backup = os.environ.get("IDEAS_STANDARD_CHILD_PID_FILE")
     os.environ["IDEAS_STANDARD_CHILD_PID_FILE"] = str(child_pid_file)
 
-    def trigger_cancel_when_ready():
+    observed_tree_pids_before: list[int] = []
+    observation_error: list[str] = []
+
+    def observe_tree_when_ready():
         deadline = time.monotonic() + 15
         while time.monotonic() < deadline:
             if child_pid_file.is_file() and child_pid_file.read_text().strip():
                 break
             time.sleep(0.05)
-        time.sleep(1.0)
-        cancel_file.write_text("CANCEL", encoding="utf-8")
+        try:
+            child_pid = int(child_pid_file.read_text().strip())
+            assert _is_pid_alive(child_pid), "CLI process was not alive before interruption"
+            adapter_pid = _get_parent_pid(child_pid)
+            assert _is_pid_alive(adapter_pid), "Adapter process was not alive before interruption"
+            observed_tree_pids_before.extend([adapter_pid, child_pid, *_get_descendants(child_pid)])
+        except Exception as exc:
+            observation_error.append(type(exc).__name__)
+        if mode == "cancel":
+            time.sleep(0.25)
+            cancel_file.write_text("CANCEL", encoding="utf-8")
 
-    trigger_thread = None
-    if mode == "cancel":
-        trigger_thread = threading.Thread(target=trigger_cancel_when_ready, daemon=True)
-        trigger_thread.start()
+    trigger_thread = threading.Thread(target=observe_tree_when_ready, daemon=True)
+    trigger_thread.start()
 
     interrupted_reason = None
     t0 = time.monotonic()
@@ -151,8 +167,7 @@ def _prove_interruption(
             os.environ["IDEAS_STANDARD_CHILD_PID_FILE"] = env_backup
         else:
             os.environ.pop("IDEAS_STANDARD_CHILD_PID_FILE", None)
-        if trigger_thread is not None:
-            trigger_thread.join(timeout=2.0)
+        trigger_thread.join(timeout=2.0)
     elapsed = round(time.monotonic() - t0, 2)
 
     time.sleep(1.0)
@@ -163,16 +178,23 @@ def _prove_interruption(
             child_pid = int(raw_pid)
 
     child_alive = _is_pid_alive(child_pid) if child_pid is not None else False
-    child_descendants = _get_descendants(child_pid) if child_pid is not None else []
-    descendants_status = {d: _is_pid_alive(d) for d in child_descendants}
-    all_terminated = (child_pid is not None and not child_alive and all(not alive for alive in descendants_status.values()))
+    alive_tree_pids_after = [pid for pid in observed_tree_pids_before if _is_pid_alive(pid)]
+    descendants_status = {pid: _is_pid_alive(pid) for pid in observed_tree_pids_before if pid != child_pid}
+    all_terminated = (len(set(observed_tree_pids_before)) >= 2 and not observation_error and not alive_tree_pids_after)
 
     report_file = reports_dir / ("builder-report.json" if actor_role == "BUILDER" else "audit-report.json")
     report_accepted = report_file.is_file()
+    (work_dir / "state-after.json").write_bytes(state_path.read_bytes())
+    reports_inventory = sorted(p.relative_to(reports_dir).as_posix() for p in reports_dir.rglob("*") if p.is_file())
+    (work_dir / "absence-proof.json").write_text(json.dumps({
+        "report_exists": report_accepted,
+        "report_path": report_file.relative_to(reports_dir).as_posix(),
+        "reports_inventory": reports_inventory,
+    }, indent=2) + "\n", encoding="utf-8")
 
     final_st = status(state_path)
     expected_state = "READY_FOR_BUILD" if actor_role == "BUILDER" else "READY_FOR_AUDIT"
-    state_preserved = (final_st["machine_state"] == expected_state and final_st["approval"] is None)
+    state_preserved = (state_path.read_bytes() == state_before and final_st["machine_state"] == expected_state and final_st["approval"] is None)
 
     expected_reason = "TIMEOUT" if mode == "timeout" else "CANCELLED"
     journals = list((reports_dir / "operations").glob("*.journal.json"))
@@ -188,6 +210,9 @@ def _prove_interruption(
         "interrupted_reason": interrupted_reason,
         "expected_reason": expected_reason,
         "child_pid": child_pid,
+        "observed_tree_pids_before": sorted(set(observed_tree_pids_before)),
+        "observation_error": observation_error,
+        "alive_tree_pids_after": alive_tree_pids_after,
         "child_alive_after_interruption": child_alive,
         "descendants_alive_after_interruption": descendants_status,
         "all_child_processes_terminated": all_terminated,
@@ -200,9 +225,11 @@ def _prove_interruption(
 
 def execute_m2_integration(work_root: Path, output_json: Path, package_dir: Path) -> dict[str, Any]:
     work_root = work_root.resolve()
-    _clean_dir(work_root)
     package_dir = package_dir.resolve()
-    _clean_dir(package_dir)
+    if work_root.exists() or package_dir.exists() or output_json.exists():
+        raise FileExistsError("M2 execution or evidence already exists; use new paths")
+    work_root.mkdir(parents=True)
+    package_dir.mkdir(parents=True)
 
     source_root = Path(__file__).resolve().parents[1]
     policy_path = source_root / "orchestration" / "builder-auditor-policy.json"
@@ -413,6 +440,30 @@ def execute_m2_integration(work_root: Path, output_json: Path, package_dir: Path
             "sha256": hashlib.sha256(j.read_bytes()).hexdigest(),
         }
 
+    interruption_artifacts = {}
+    for name in ("builder_timeout", "builder_cancel", "auditor_timeout", "auditor_cancel"):
+        source_dir = interruption_root / name
+        dest_dir = package_dir / "interruptions" / name
+        dest_dir.mkdir(parents=True)
+        refs = {}
+        for key, filename in (("state_before", "state-before.json"),
+                              ("state_after", "state-after.json"),
+                              ("absence_proof", "absence-proof.json")):
+            source = source_dir / filename
+            dest = dest_dir / filename
+            shutil.copyfile(source, dest)
+            refs[key] = {"path": dest.relative_to(package_dir).as_posix(),
+                         "sha256": hashlib.sha256(dest.read_bytes()).hexdigest()}
+        journals = list((source_dir / "reports" / "operations").glob("*.journal.json"))
+        assert len(journals) == 1, f"Expected one interruption journal for {name}"
+        dest = dest_dir / "journal.json"
+        shutil.copyfile(journals[0], dest)
+        refs["journal"] = {"path": dest.relative_to(package_dir).as_posix(),
+                           "sha256": hashlib.sha256(dest.read_bytes()).hexdigest()}
+        shutil.copytree(source_dir / "reports", dest_dir / "reports")
+        refs["reports_dir"] = (dest_dir / "reports").relative_to(package_dir).as_posix()
+        interruption_artifacts[name] = refs
+
     evidence_artifact = {
         "schema_version": "0.1",
         "scenario": "O0-v2-M2-runner-adapters",
@@ -484,6 +535,7 @@ def execute_m2_integration(work_root: Path, output_json: Path, package_dir: Path
             },
             "evidence": evidence_files,
             "operations": operations_journals,
+            "interruptions": interruption_artifacts,
         },
     }
 
@@ -497,9 +549,9 @@ def execute_m2_integration(work_root: Path, output_json: Path, package_dir: Path
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--work-root", type=Path, default=Path(".tmp_o0_m2_run"))
-    parser.add_argument("--output", type=Path, default=Path("O0_V2_M2_EVIDENCE_REAUDIT.json"))
-    parser.add_argument("--package", type=Path, default=Path("O0_V2_M2_EVIDENCE_REAUDIT_PACKAGE"))
+    parser.add_argument("--work-root", type=Path, default=Path(".tmp_o0_m2_process_proof_final_run"))
+    parser.add_argument("--output", type=Path, default=Path("O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json"))
+    parser.add_argument("--package", type=Path, default=Path("O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE"))
     args = parser.parse_args()
 
     execute_m2_integration(args.work_root, args.output, args.package)
