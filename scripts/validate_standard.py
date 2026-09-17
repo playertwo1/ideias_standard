@@ -229,7 +229,15 @@ def check_project_composition(checks: list[dict[str, Any]], project_dir: Path, m
 
     packs = manifest.get("packs", [])
     pack_catalog = {item["id"]: item for item in catalog_items(ROOT / "packs" / "catalog.yaml", "packs")}
+    project_type = manifest.get("project", {}).get("type")
     invalid_packs = [pack for pack in packs if pack not in pack_catalog or not (ROOT / pack_catalog[pack]["path"]).exists()]
+    for pack in packs:
+        if pack in pack_catalog:
+            pack_data = load_yaml(ROOT / pack_catalog[pack]["path"])
+            predicates = pack_data.get("applies_when", [])
+            typed = [str(predicate).split("==", 1)[1].strip() for predicate in predicates if "project.type ==" in str(predicate)]
+            if typed and project_type not in typed:
+                invalid_packs.append(pack)
     add_check(checks, "IS-SEM-031", "PASS" if not invalid_packs else "FAIL", "INFO" if not invalid_packs else "HIGH",
               "All declared packs are applicable and available" if not invalid_packs else f"Unavailable applicable packs: {', '.join(sorted(invalid_packs))}", "/packs")
 
