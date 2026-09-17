@@ -1,460 +1,405 @@
-# ROADMAP V4 — IDEIAS STANDARD
+# ROADMAP V5 — IDEIAS STANDARD GOLD
 
-## 1. OBJETIVO
+## 1. VISÃO
 
-O **Ideias Standard** é um template opinativo e reutilizável para iniciar projetos com uma base profissional, simples e preparada para desenvolvimento humano e assistido por IA.
+O **Ideias Standard** define uma base Gold simples e reutilizável para projetos desenvolvidos por humanos e agentes de IA.
 
-A prioridade é entregar **boas práticas úteis por padrão**, sem transformar cada projeto em um sistema de governança complexo.
+O objetivo não é criar um framework de governança. O objetivo é tornar qualquer projeto fácil de entender, alterar, validar, auditar e manter.
 
-Princípio:
+Princípios:
 
-> Bom por padrão. Simples por padrão. Extensível quando necessário.
+> Pequeno por padrão. Contexto sob demanda. Verificação executável. Auditoria independente. Extensão somente quando necessária.
 
-Regra contra overengineering:
-
-> Toda nova abstração, regra, arquivo, teste ou camada precisa justificar qual problema concreto resolve e por que uma solução mais simples não é suficiente.
+> Toda nova regra, arquivo, abstração, teste ou camada deve justificar o problema concreto que resolve.
 
 ---
 
-## 2. ESCOPO
+## 2. O QUE É UM PROJETO GOLD
 
-O Standard deve ajudar um projeto a começar com:
+Um projeto está no padrão Gold quando:
 
-- estrutura clara;
-- `README.md` útil;
-- `AGENTS.md` com instruções para agentes de IA;
-- configuração básica de Git e editor;
-- CI simples;
-- testes essenciais;
-- documentação mínima;
-- boas práticas de segurança proporcionais ao projeto;
-- packs opcionais para tecnologias ou necessidades específicas.
+- é fácil entender o que ele faz;
+- possui `README.md` útil;
+- possui `AGENTS.md` pequeno e operacional;
+- a estrutura principal é clara;
+- existe uma forma objetiva de validar alterações;
+- build, testes e lint/typecheck aplicáveis funcionam;
+- CI executa as verificações importantes;
+- contexto específico é carregado somente quando necessário;
+- alterações relevantes podem ser auditadas de forma independente;
+- segurança básica é proporcional ao risco;
+- não existe burocracia sem utilidade prática.
 
-O Standard **não precisa**, por padrão, controlar todo o ciclo de vida do projeto, todas as decisões humanas ou cada mudança realizada por um agente.
+Gold padroniza **qualidade e operação**, não obriga todos os projetos a terem a mesma arquitetura.
 
-O Runner Builder ↔ Auditor continua sendo uma ferramenta externa e opcional:
+---
 
+## 3. CONTEXTO PROGRESSIVO
+
+`AGENTS.md` é o contexto universal mínimo.
+
+Ele deve permanecer curto e conter apenas:
+
+- objetivo do projeto;
+- regras essenciais;
+- comandos principais;
+- mapa mínimo da estrutura;
+- referências para contexto adicional.
+
+Informação específica deve ficar fora do `AGENTS.md` e ser consultada somente quando relevante:
+
+```text
+AGENTS.md
+   ↓
+contexto mínimo
+   ├─ docs/architecture.md      quando necessário
+   ├─ docs/testing.md           quando necessário
+   ├─ docs/security.md          quando necessário
+   ├─ packs/<stack>/            quando necessário
+   └─ skills/<procedimento>/    quando necessário
+```
+
+Regra:
+
+> Se uma instrução não é útil para a maioria das tarefas, ela não pertence ao `AGENTS.md`.
+
+Evitar duplicar as mesmas instruções em `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` ou arquivos equivalentes. Quando um fornecedor exigir arquivo próprio, usar um adaptador mínimo que aponte para a fonte canônica sempre que possível.
+
+---
+
+## 4. FLUXO DE TRABALHO GOLD
+
+### Tarefa pequena
+
+```text
+entender → alterar → check → auditoria → concluir
+```
+
+### Tarefa complexa
+
+```text
+entender → plano curto → alterar → check → auditoria → concluir
+```
+
+Planejamento deve ser proporcional à tarefa.
+
+---
+
+## 5. BUILDER E AUDITOR
+
+O Builder implementa e valida o próprio trabalho.
+
+O Auditor verifica de forma independente alterações relevantes.
+
+O Auditor começa pelo delta, não pelo repositório inteiro.
+
+Contexto inicial recomendado:
+
+- pedido original;
+- critério de aceite;
+- diff;
+- arquivos alterados;
+- resultado do `check`;
+- erros ou warnings relevantes.
+
+O Auditor expande contexto somente quando existir uma razão concreta.
+
+Perguntas principais:
+
+- o pedido foi atendido?
+- a alteração funciona?
+- existe regressão provável?
+- há mudança fora do escopo?
+- existe atalho, hardcode ou erro escondido?
+- a solução ficou mais complexa do que precisava?
+- os testes/verificações são suficientes para o comportamento alterado?
+
+Resultado mínimo:
+
+```text
+AUDIT: PASS
+```
+
+ou:
+
+```text
+AUDIT: FAIL
+- arquivo/local
+- problema
+- impacto
+- correção esperada
+```
+
+O Runner pode automatizar Builder ↔ Auditor, mas continua externo e opcional:
 https://github.com/playertwo1/runner
 
 ---
 
-## 3. REGRAS DE SIMPLICIDADE
-
-1. Começar sempre pela solução mais simples que atende o problema.
-2. Não criar arquivo, schema, estado ou camada sem uso concreto.
-3. Não duplicar informação em múltiplos lugares.
-4. Não criar gates humanos para tarefas técnicas comuns.
-5. Não exigir auditoria em cada pequeno critério.
-6. Não testar detalhes internos sem valor prático.
-7. Bugs relevantes corrigidos devem receber teste de regressão quando fizer sentido.
-8. Recursos opcionais devem permanecer opcionais.
-9. O template deve continuar compreensível para uma pessoa nova no projeto.
-10. Segurança deve ser proporcional ao risco real do projeto.
-
----
-
-## 4. COMO UMA FASE É CONCLUÍDA
-
-Cada fase possui apenas três passos:
-
-1. **Implementar** o objetivo da fase.
-2. **Validar** com os testes essenciais.
-3. **Auditar** o resultado final para confirmar que está correto, simples e sem regressões importantes.
-
-Não existem gates adicionais por padrão.
-
-A auditoria deve responder somente:
-
-- funciona como planejado?
-- existe erro ou regressão importante?
-- algo ficou desnecessariamente complexo?
-- a documentação necessária está coerente?
-
-Se a resposta estiver satisfatória, a fase é considerada concluída.
-
----
-
-# F0 — GOLDEN TEMPLATE
+# F0 — GOLDEN STANDARD
 
 **Status:** ACTIVE
 
 ## Objetivo
 
-Definir a melhor base reutilizável possível para novos projetos.
+Definir e provar a menor base que torna um projeto Gold.
 
 ## Entregas
 
-- [ ] definir a estrutura mínima do template;
-- [ ] consolidar `README.md`;
-- [ ] consolidar `AGENTS.md`;
-- [ ] manter `PROJECT_STATE.md` simples e opcional para projetos que precisem dele;
-- [ ] fornecer `.gitignore` adequado;
-- [ ] fornecer `.editorconfig`;
-- [ ] fornecer CI básico;
+- [ ] consolidar este Standard Gold;
+- [ ] reduzir `AGENTS.md` ao contexto mínimo universal;
+- [ ] consolidar `README.md` do template;
+- [ ] definir estrutura mínima recomendada;
+- [ ] definir comando/mecanismo único de `check`;
+- [ ] manter CI simples;
 - [ ] definir padrão mínimo de testes;
-- [ ] definir documentação mínima recomendada;
-- [ ] revisar o conteúdo existente e remover estruturas que não tenham utilidade no novo modelo;
-- [ ] criar pelo menos um projeto de exemplo usando o template completo.
+- [ ] definir segurança básica;
+- [ ] remover ou arquivar estruturas legadas que não agregam ao modelo Gold;
+- [ ] criar pelo menos um exemplo Gold completo;
+- [ ] executar auditoria independente da fase.
 
-## Reaproveitar do trabalho atual
+## Validação
 
-Sempre que continuar útil, reaproveitar:
-
-- `AGENTS.md`;
-- `README.md`;
-- validadores já existentes;
-- schemas simples que ainda tenham função prática;
-- packs existentes que representem necessidades reais;
-- fixtures que protejam comportamentos importantes;
-- CI já funcional.
-
-Nada deve ser mantido apenas porque já foi implementado.
-
-## Validação mínima
-
-- o exemplo criado a partir do template é compreensível;
-- os arquivos essenciais existem;
-- CI executa corretamente;
-- testes essenciais passam;
-- um agente de IA consegue identificar como trabalhar no projeto lendo as instruções principais.
-
-## Auditoria
-
-Uma única auditoria da fase confirma se o Golden Template está correto e simples.
+O exemplo Gold deve ser compreensível, verificável e utilizável sem documentação excessiva.
 
 ---
 
-# F1 — GENERATOR
+# F1 — CREATE
 
 **Status:** NOT_STARTED
 
 ## Objetivo
 
-Permitir criar um novo projeto a partir do Standard sem copiar arquivos manualmente.
+Criar novos projetos Gold da forma mais simples possível.
 
-Exemplo de uso desejado:
+## Estratégia
 
-```powershell
-ideias-standard init meu-app
-```
+Começar por **GitHub Template Repository**.
 
-Ou, quando houver packs:
+Adicionar gerador próprio somente se houver necessidade real que o template não resolva.
 
-```powershell
-ideias-standard init meu-app --android --ai
-```
+Se parametrização mais rica for necessária, avaliar ferramenta existente antes de criar engine própria.
 
 ## Entregas
 
-- [ ] implementar comando `init`;
-- [ ] receber nome e opções principais do projeto;
-- [ ] copiar/renderizar o template base;
-- [ ] aplicar somente os packs escolhidos;
-- [ ] evitar sobrescrever destino existente sem confirmação explícita;
-- [ ] gerar projeto pronto para abrir e desenvolver;
-- [ ] emitir mensagem simples de sucesso ou erro.
-
-## Validação mínima
-
-Testar apenas os cenários essenciais:
-
-- projeto básico é criado corretamente;
-- projeto com pack é criado corretamente;
-- entrada inválida falha de forma compreensível;
-- destino que já contém arquivos não é sobrescrito silenciosamente;
-- projeto gerado passa no CI básico.
-
-## Auditoria
-
-Uma única auditoria confirma que o gerador produz corretamente o template esperado.
+- [ ] disponibilizar template Gold utilizável;
+- [ ] permitir criação de projeto base em poucos passos;
+- [ ] permitir escolha simples de packs quando aplicável;
+- [ ] garantir que o projeto criado passa no `check`;
+- [ ] documentar fluxo de criação em poucas linhas.
 
 ---
 
-# F2 — QUALITY CHECK
+# F2 — CHECK + AUDIT
 
 **Status:** NOT_STARTED
 
 ## Objetivo
 
-Fornecer uma verificação simples para saber se um projeto continua compatível com o Standard.
+Dar ao projeto uma resposta objetiva para:
 
-Uso desejado:
+> Como eu provo que esta alteração não quebrou o projeto?
 
-```powershell
-ideias-standard check
-```
+## `check`
 
-## O `check` deve verificar
-
-- [ ] arquivos essenciais presentes;
-- [ ] configuração principal válida;
-- [ ] `AGENTS.md` presente quando aplicável;
-- [ ] packs declarados existem e são compatíveis;
-- [ ] CI básico configurado quando esperado;
-- [ ] inconsistências óbvias que realmente impeçam o uso do template.
-
-## Resultado esperado
-
-Saída humana curta:
+O projeto deve possuir um comando ou mecanismo conhecido que execute apenas as verificações aplicáveis, por exemplo:
 
 ```text
-✓ configuração válida
-✓ arquivos essenciais presentes
-✓ AGENTS.md encontrado
-✓ packs válidos
-✓ CI configurado
-
-PASS
+check
+ ├─ format/lint
+ ├─ typecheck
+ ├─ tests
+ └─ build
 ```
 
-Quando houver problema:
+Nem toda stack exige todas as etapas.
 
-```text
-FAIL
-- arquivo obrigatório ausente: AGENTS.md
-```
+## Entregas
 
-Pode existir saída JSON se ela for útil para automação, mas ela não deve tornar a implementação mais complexa que o necessário.
+- [ ] `check` simples e reproduzível;
+- [ ] saída clara de sucesso ou falha;
+- [ ] CI utiliza as mesmas verificações importantes;
+- [ ] bug relevante recebe teste de regressão quando fizer sentido;
+- [ ] auditoria independente começa pelo diff;
+- [ ] auditor amplia contexto somente sob necessidade.
 
-## Reaproveitar do S1 antigo
+## Regra
 
-O trabalho já feito em `check`, manifests, ownership, packs e workflows pode ser reaproveitado **somente onde simplificar esta fase**.
-
-Não continuar automaticamente a antiga lista S1-C10–C33.
-
-## Validação mínima
-
-- projeto válido → PASS;
-- projeto claramente inválido → FAIL com mensagem útil;
-- execuções repetidas no mesmo projeto não produzem resultados contraditórios.
-
-## Auditoria
-
-Uma única auditoria confirma que o `check` detecta os problemas importantes sem criar burocracia.
+Testar comportamento importante, não detalhes internos apenas para aumentar cobertura.
 
 ---
 
-# F3 — PACKS E ECOSSISTEMA
+# F3 — PACKS + SKILLS
 
 **Status:** NOT_STARTED
 
 ## Objetivo
 
-Adicionar extensões reutilizáveis somente quando houver necessidade real.
+Adicionar capacidade sem inflar o Core.
 
-## Packs iniciais candidatos
+## Packs candidatos
 
 - `android`;
 - `python`;
 - `web`;
 - `ai`;
 - `multi-agent`;
-- `sensitive-data`.
+- `sensitive-data`;
+- `agent-guardrails`.
 
-A lista não é uma obrigação. Um pack deve existir somente quando houver projeto real que justifique sua criação.
+Um pack existe somente quando um projeto real justifica sua existência.
 
-## Cada pack deve conter somente o necessário
+Packs não devem despejar grandes blocos no `AGENTS.md`. Devem manter contexto específico próximo do domínio e adicionar apenas referências mínimas quando necessário.
 
-Exemplos:
+## Skills
 
-### Android
+Procedimentos reutilizáveis e especializados podem virar Skills carregadas sob demanda, por exemplo:
 
-- estrutura/recomendações Android;
+- `code-review`;
+- `release`;
+- `migration`;
+- `android-build`.
+
+Cada Skill deve fazer uma coisa bem e permanecer pequena.
+
+## Guardrails
+
+As melhores ideias do projeto `playertwo1/guardrail` entram em duas camadas:
+
+- Core: poucas regras essenciais no `AGENTS.md`;
+- Pack `agent-guardrails`: `WATCHDOG.md`/auditoria ampliada apenas quando o risco justificar.
+
+---
+
+# F4 — ADOPT / GOLDIFY
+
+**Status:** NOT_STARTED
+
+## Objetivo
+
+Elevar projetos existentes ao padrão Gold sem reescrever o produto nem destruir trabalho válido.
+
+Fluxo:
+
+```text
+projeto existente
+      ↓
+inventário leve
+      ↓
+comparação com Gold
+      ↓
+Golden Diff
+      ↓
+plano curto
+      ↓
+preview das mudanças
+      ↓
+aplicar somente o necessário
+      ↓
+check
+      ↓
+auditoria independente
+      ↓
+GOLD
+```
+
+## Golden Diff
+
+O relatório deve separar:
+
+```text
+NECESSÁRIO
+- itens que impedem o padrão Gold
+
+RECOMENDADO
+- melhorias úteis, não obrigatórias
+```
+
+Sem nota arbitrária ou sistema complexo de pontuação.
+
+## Proteção do projeto existente
+
+Antes de alterar:
+
+- examinar estado atual;
+- preservar mudanças locais e trabalho válido;
+- não reorganizar arquitetura sem necessidade;
+- preferir adicionar infraestrutura Gold ao redor do código existente;
+- mostrar diff antes de mudanças relevantes quando aplicável.
+
+---
+
+# F5 — SYNC
+
+**Status:** FUTURE
+
+## Objetivo
+
+Permitir que projetos Gold existentes recebam melhorias futuras do Standard sem reescrever o projeto.
+
+Só implementar após Create, Check e Adopt estarem comprovados em uso real.
+
+---
+
+## 6. SEGURANÇA
+
+Baseline Gold:
+
+- não versionar secrets;
 - `.gitignore` adequado;
-- CI adequado;
-- instruções relevantes para agentes.
+- dependências atualizáveis;
+- CI sem exposição de credenciais;
+- validação de entradas externas quando aplicável;
+- nenhuma operação destrutiva silenciosa.
 
-### Python
-
-- estrutura Python;
-- dependências e ambiente;
-- lint/test básico;
-- CI adequado.
-
-### AI
-
-- instruções para uso de modelos;
-- tratamento de secrets;
-- configuração de avaliação somente quando o projeto realmente precisar.
-
-### Multi-agent
-
-- regras básicas de papéis;
-- integração opcional com o Runner;
-- sem obrigar todos os projetos a usar Builder/Auditor.
-
-## Validação mínima
-
-Para cada pack mantido:
-
-- pode ser aplicado a um projeto novo;
-- não quebra o template base;
-- possui pelo menos um exemplo ou teste que prove seu funcionamento principal.
-
-## Auditoria
-
-Auditar cada pack quando ele estiver pronto para uso real, sem criar uma fase independente de governança para cada detalhe interno.
+Projetos de maior risco recebem packs específicos. O Core não carrega controles de sistemas críticos que a maioria dos projetos não precisa.
 
 ---
 
-# 5. BACKLOG — SOMENTE SE HOUVER NECESSIDADE REAL
+## 7. ANTI-OVERENGINEERING
 
-Os itens abaixo **não fazem parte do roadmap obrigatório**. Só devem ser promovidos para uma fase quando um problema real justificar a complexidade.
+Regras permanentes:
 
-- adoção automática de projetos antigos (`adopt`);
-- atualização automática de templates já aplicados (`upgrade`);
-- migrations complexas;
-- fingerprints de arquivos;
-- provenance detalhada;
-- three-way merge;
-- gerenciamento avançado de ownership;
-- bundles;
-- múltiplos profiles de governança;
-- lifecycle formal de mudanças;
-- sistema avançado de contexto/token budget;
-- métricas de critical recall;
-- integração automática Idea → Standard;
-- adapters específicos por fornecedor;
-- validações extensivas multi-provider.
-
-Regra:
-
-> Primeiro provar que precisamos. Depois construir.
+1. Faça a menor mudança coerente que resolva o pedido.
+2. Não crie abstrações para necessidades hipotéticas.
+3. Não duplique contexto.
+4. Não transforme documentação em burocracia.
+5. Não crie schema quando texto simples resolve.
+6. Não crie ferramenta própria quando uma solução madura e simples já atende.
+7. Não leia o repositório inteiro sem necessidade objetiva.
+8. Não adicione testes sem comportamento útil a proteger.
+9. Não imponha pack opcional ao Core.
+10. Remova complexidade que deixou de justificar sua existência.
 
 ---
 
-# 6. TESTES
-
-Testar comportamento importante, não o roadmap.
-
-Base mínima:
-
-1. template válido funciona;
-2. gerador cria projeto válido;
-3. `check` aprova projeto válido;
-4. `check` rejeita erro importante;
-5. packs principais não quebram o template;
-6. bug relevante corrigido recebe regressão quando aplicável.
-
-Não existe meta de quantidade de testes.
-
-Cobertura é ferramenta de diagnóstico, não objetivo do produto.
-
----
-
-# 7. SEGURANÇA
-
-Segurança deve seguir boas práticas proporcionais ao risco.
-
-Baseline:
-
-- secrets nunca entram no repositório;
-- dependências devem poder ser atualizadas;
-- CI não deve expor credenciais;
-- entradas externas devem ser validadas quando aplicável;
-- operações destrutivas importantes não devem ocorrer silenciosamente.
-
-Projetos sensíveis podem adicionar controles extras por meio de um pack específico.
-
-O projeto base não deve carregar controles de sistemas críticos que não precisa.
-
----
-
-# 8. RELAÇÃO COM AGENTES DE IA
-
-O Standard deve facilitar o trabalho de Codex, Claude, Gemini, Antigravity e outros agentes sem depender de um fornecedor específico.
-
-O principal mecanismo é documentação clara e instruções persistentes no projeto.
-
-Fluxo esperado:
+## 8. ORDEM DE EXECUÇÃO
 
 ```text
-Golden Template
-      ↓
-Novo Projeto
-      ↓
-AGENTS.md + README + estrutura clara
-      ↓
-Builder / agente de desenvolvimento
-      ↓
-Testes + CI
-      ↓
-Auditoria quando necessária
-```
-
-Para projetos que desejarem automação Builder ↔ Auditor:
-
-```text
-Ideias Standard
-      ↓
-projeto preparado
-      ↓
-Runner opcional
-      ↓
-Builder ↔ Auditor
-```
-
-O Runner não é requisito para usar o Standard.
-
----
-
-# 9. IDEIA FUTURA
-
-O projeto `Idea` poderá futuramente gerar a configuração inicial usada pelo Ideias Standard.
-
-Fluxo desejado:
-
-```text
-Idea
-  ↓
-Definição do projeto
-  ↓
-Ideias Standard
-  ↓
-Template + packs
-  ↓
-Projeto pronto para desenvolvimento
-```
-
-Essa integração só deve ser construída depois que o próprio Standard estiver simples e estável.
-
----
-
-# 10. DEFINIÇÃO DE SUCESSO
-
-O Ideias Standard estará cumprindo sua função quando for possível criar um projeto novo e, em poucos minutos, obter:
-
-- estrutura profissional;
-- instruções claras para agentes;
-- documentação mínima útil;
-- CI funcionando;
-- testes essenciais;
-- packs adequados à tecnologia escolhida;
-- baixa quantidade de configuração manual;
-- pouca burocracia.
-
-A pergunta principal não será:
-
-> Quantos controles o Standard possui?
-
-Será:
-
-> Ele me ajuda a começar um projeto melhor e mais rápido?
-
----
-
-# 11. ORDEM DE EXECUÇÃO
-
-```text
-F0 Golden Template
+F0 Golden Standard
         ↓
-F1 Generator
+F1 Create
         ↓
-F2 Quality Check
+F2 Check + Audit
         ↓
-F3 Packs e Ecossistema
+F3 Packs + Skills
+        ↓
+F4 Adopt / Goldify
+        ↓
+F5 Sync (futuro)
 ```
 
-Qualquer capacidade além disso entra primeiro no backlog.
+As fases organizam construção; não são gates burocráticos.
 
-**Não construir antecipadamente.**
+---
+
+## 9. DEFINIÇÃO FINAL
+
+O Ideias Standard terá cumprido sua função quando um humano ou agente puder:
+
+1. entender rapidamente um projeto;
+2. carregar somente o contexto necessário;
+3. fazer uma mudança pequena e correta;
+4. provar que ela funciona;
+5. submetê-la a uma revisão independente;
+6. criar projetos novos no mesmo padrão;
+7. elevar projetos antigos ao Gold sem reconstruí-los.
