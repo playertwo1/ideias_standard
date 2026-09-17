@@ -97,9 +97,10 @@ def _build_audit_prompt(
     changed = _diff_summary(audit_workspace, target_sha, base_sha)
     diff_context = f"Delta {base_sha or 'parent'}..{target_sha}:\n{changed or '(no changed paths)'}"
     prompt_rules = (
-        "Report rules: If audit_result is PASS, findings must be empty and every check status must be PASS or NOT_APPLICABLE (never FAIL or NOT_RUN). "
+        "Report rules: Be concise and direct. Do not output conversational filler or chat explanations. "
+        "If audit_result is PASS, findings must be empty and every check status must be PASS or NOT_APPLICABLE (never FAIL or NOT_RUN). "
         "If any check fails, audit_result must be FAIL and findings must have at least one finding. "
-        "IMPORTANT SANDBOX RULES: The audit checkout is strictly READ-ONLY. When running Python tests or commands, always use `python -B` so Python does not attempt to write .pyc files to __pycache__. Never attempt to write temporary files or compile caches into the repository checkout."
+        "IMPORTANT SANDBOX RULES: The audit checkout is strictly READ-ONLY. When running Python tests or commands, always use `python -B -m unittest -q` so Python does not attempt to write .pyc files to __pycache__. Never attempt to write temporary files or compile caches into the repository checkout."
     )
     if reaudit_payload is not None:
         return (
@@ -229,6 +230,7 @@ def main() -> int:
         "--skip-git-repo-check",
         "-C", str(audit_workspace),
         "--sandbox", "read-only",
+        "--color", "never",
         "--json",
         "--output-schema", str(temp_schema_file),
         "-o", str(temp_report_file),

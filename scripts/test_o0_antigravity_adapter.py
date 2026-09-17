@@ -221,6 +221,56 @@ class TestO0AntigravityAdapter(unittest.TestCase):
             finally:
                 os.chdir(old_cwd)
 
+    @patch("scripts.o0_antigravity_adapter.subprocess.run")
+    @patch("scripts.o0_antigravity_adapter._find_agy_binary")
+    def test_token_optimization_flags_and_scoping(self, mock_find_bin, mock_subproc_run):
+        """Adapter passes --disable-slash-commands and scopes --add-dir to task scope."""
+        mock_find_bin.return_value = Path("agy.exe")
+        src_dir = self.workspace / "src"
+        src_dir.mkdir(parents=True, exist_ok=True)
+        target_file = src_dir / "app.py"
+        target_file.write_text("print('hello')", encoding="utf-8")
+
+        executed_commands = []
+
+        def subproc_side_effect(*args, **kwargs):
+            cmd = args[0] if args else kwargs.get("args")
+            executed_commands.append(cmd)
+            if isinstance(cmd, list) and cmd and cmd[0] == "git":
+                return REAL_SUBPROCESS_RUN(*args, **kwargs)
+            if isinstance(cmd, list) and "agy.exe" in str(cmd[0]):
+                (self.workspace / "src" / "app.py").write_text("print('updated')", encoding="utf-8")
+                return subprocess.CompletedProcess(
+                    args=cmd, returncode=0, stdout=json.dumps({"status": "SUCCESS"}), stderr=""
+                )
+            return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="test pass", stderr="")
+
+        mock_subproc_run.side_effect = subproc_side_effect
+
+        env = {
+            "IDEAS_STANDARD_REPORT": str(self.report_path),
+            "IDEAS_STANDARD_TEST_CMD": f'"{sys.executable}" -c "print(\'tests passed\')"',
+            "IDEAS_STANDARD_TASK_SCOPE": json.dumps(["src/app.py"]),
+        }
+
+        with patch.dict(os.environ, env, clear=False), patch("sys.argv", ["o0_antigravity_adapter.py"]):
+            old_cwd = Path.cwd()
+            try:
+                os.chdir(self.workspace)
+                ret = main()
+                self.assertEqual(0, ret)
+                # Inspect agy call
+                agy_call = next(c for c in executed_commands if isinstance(c, list) and "agy.exe" in str(c[0]))
+                self.assertIn("--disable-slash-commands", agy_call)
+                # Verify targeted scope directory
+                expected_dir_flag = f"--add-dir={src_dir.resolve()}"
+                self.assertIn(expected_dir_flag, agy_call)
+                # Ensure the root workspace was not added when specific scope exists
+                self.assertNotIn(f"--add-dir={self.workspace.resolve()}", agy_call)
+            finally:
+                os.chdir(old_cwd)
+
 
 if __name__ == "__main__":
     unittest.main()
+

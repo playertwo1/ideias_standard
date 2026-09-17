@@ -878,7 +878,7 @@ def run_actor(
     findings_path = env.get("IDEAS_STANDARD_FINDINGS")
     findings_fd = None
     findings_handle = None
-    actor_env = {**os.environ, **env, "IDEAS_STANDARD_REPORT": str(report)}
+    actor_env = {**os.environ, **env, "IDEAS_STANDARD_REPORT": str(report), "PYTHONDONTWRITEBYTECODE": "1"}
     if findings_path is not None:
         state_path = env.get("IDEAS_STANDARD_STATE")
         if state_path is None:

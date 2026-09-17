@@ -104,18 +104,54 @@ def main() -> int:
     else:
         prompt_task = "Implement the requested changes in the active workspace and ensure tests pass."
 
+    # Scope directories to avoid indexing unrelated trees (e.g. reports/, fixtures/)
+    scoped_dirs: list[str] = []
+    scope_env = os.environ.get("IDEAS_STANDARD_TASK_SCOPE")
+    if scope_env:
+        try:
+            for s in json.loads(scope_env):
+                p = (workspace / s).resolve()
+                if p.is_dir():
+                    scoped_dirs.append(str(p))
+                elif p.is_file():
+                    scoped_dirs.append(str(p.parent))
+        except Exception:
+            pass
+    if findings_path and Path(findings_path).is_file():
+        try:
+            findings_data = json.loads(Path(findings_path).read_text(encoding="utf-8"))
+            for f in findings_data.get("findings", []):
+                for s in f.get("files", []):
+                    p = (workspace / s).resolve()
+                    if p.is_dir():
+                        scoped_dirs.append(str(p))
+                    elif p.is_file():
+                        scoped_dirs.append(str(p.parent))
+        except Exception:
+            pass
+
+    scoped_dirs = sorted(set(scoped_dirs))
+    add_dir_args: list[str] = []
+    if scoped_dirs:
+        for d in scoped_dirs:
+            add_dir_args.append(f"--add-dir={d}")
+    else:
+        add_dir_args.append(f"--add-dir={workspace}")
+
     builder_prompt = (
-        f"In the active workspace {workspace}, {prompt_task} "
-        "Run unit tests if present. When tests pass, stage the modified files with 'git add' "
-        "and commit with a semantic commit message. "
+        f"{prompt_task}\n"
+        "Instructions: Be direct and concise. Do not output conversational explanations. "
+        "Make only the necessary edits in the active workspace. Run unit tests if present. "
+        "When tests pass, stage files with 'git add' and commit with a concise semantic commit message. "
         "Reply with only the word DONE."
     )
 
     cmd = [
         str(agy_bin),
-        f"--add-dir={workspace}",
+        *add_dir_args,
         f"--model={args.model}",
         "--dangerously-skip-permissions",
+        "--disable-slash-commands",
         "--output-format", "json",
         f"--print={builder_prompt}",
     ]
@@ -184,18 +220,21 @@ def main() -> int:
     if not test_cmd:
         # Auto-detect test suite from repository workspace
         if (workspace / "scripts" / "test_check.py").exists() and (workspace / "scripts" / "validate_standard.py").exists():
-            test_cmd = f'"{sys.executable}" -m unittest scripts/test_check.py && "{sys.executable}" scripts/validate_standard.py --self-check'
+            test_cmd = f'"{sys.executable}" -m unittest -q scripts/test_check.py && "{sys.executable}" scripts/validate_standard.py --self-check'
         elif (workspace / "scripts" / "validate_standard.py").exists():
             test_cmd = f'"{sys.executable}" scripts/validate_standard.py --self-check'
         elif (workspace / "tests").is_dir():
-            test_cmd = f'"{sys.executable}" -m unittest discover -s tests'
+            test_cmd = f'"{sys.executable}" -m unittest discover -q -s tests'
         else:
             print("ERROR: No test command configured or detected; tests are required for READY_FOR_AUDIT", file=sys.stderr)
             return 1
 
     p_test = subprocess.run(test_cmd, shell=True, cwd=workspace, capture_output=True, text=True)
     if p_test.returncode != 0:
-        print(f"ERROR: Builder tests failed: {p_test.stderr}", file=sys.stderr)
+        err_msg = p_test.stderr or p_test.stdout or "unknown test failure"
+        lines = err_msg.strip().splitlines()
+        truncated_err = "\n".join(lines[-25:]) if len(lines) > 25 else err_msg
+        print(f"ERROR: Builder tests failed: {truncated_err}", file=sys.stderr)
         return 1
 
     test_check = {
