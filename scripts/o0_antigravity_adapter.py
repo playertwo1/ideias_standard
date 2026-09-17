@@ -166,21 +166,20 @@ def main() -> int:
         except Exception:
             pass
 
-    if result_sha == base_sha and is_fix_required:
-        print("ERROR: Builder correction must produce a new SHA", file=sys.stderr)
+    if result_sha == base_sha:
+        if is_fix_required:
+            print("ERROR: Builder correction must produce a new SHA", file=sys.stderr)
+        else:
+            print("ERROR: Builder execution did not produce a new commit (result_sha == base_sha)", file=sys.stderr)
         return 1
 
     # Get changed paths
-    if base_sha != result_sha:
-        diff_proc = _run_git(["diff", "--name-only", f"{base_sha}..{result_sha}"], cwd=workspace)
-    else:
-        diff_proc = _run_git(["diff", "--name-only", "HEAD^..HEAD"], cwd=workspace)
+    diff_proc = _run_git(["diff", "--name-only", f"{base_sha}..{result_sha}"], cwd=workspace)
     changed_paths = [line.strip() for line in diff_proc.stdout.splitlines() if line.strip()]
     if not changed_paths:
         changed_paths = ["."]
 
     # Run optional or detected unit tests
-    test_evidence = "Unit tests verified by Antigravity Builder"
     test_cmd = args.test_cmd or os.environ.get("IDEAS_STANDARD_TEST_CMD")
     if test_cmd:
         p_test = subprocess.run(test_cmd, shell=True, cwd=workspace, capture_output=True, text=True)
@@ -188,7 +187,8 @@ def main() -> int:
             print(f"ERROR: Builder tests failed: {p_test.stderr}", file=sys.stderr)
             return 1
         test_evidence = f"Test command '{test_cmd}' passed successfully"
-
+    else:
+        test_evidence = f"Builder produced commit {result_sha} modifying {len(changed_paths)} path(s)"
 
     # Assemble canonical builder-report.json
     report_payload: dict[str, Any] = {
