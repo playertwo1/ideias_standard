@@ -3,9 +3,9 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** implementação de S1 — Conformance First (S1-C04 em diante)
-- **Última implementada:** S1-C03 — validação de standard.lock / standard-lock.json no comando check e scripts/validate_standard.py, cobrindo conformidade estrutural contra schemas/standard-lock.schema.json (IS-SCHEMA-001) e todas as regras semânticas (IS-SEM-001, IS-SEM-002, IS-SEM-004, IS-SEM-005, IS-SEM-006, IS-WARN-001) e testes unitários dedicados em `scripts/test_check.py`
-- **Próxima:** S1-C04 (validar contexto aplicável)
+- **Objetivo atual:** implementação de S1 — Conformance First (S1-C05 em diante)
+- **Última implementada:** S1-C04 — validação de context-manifest.json / context.json no comando check e scripts/validate_standard.py, cobrindo conformidade estrutural contra schemas/context-manifest.schema.json (IS-SCHEMA-001) e todas as regras semânticas (IS-SEM-021, IS-SEM-022, IS-SEM-023) e testes unitários dedicados em `scripts/test_check.py`
+- **Próxima:** S1-C05 (validar ownership)
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
@@ -15,6 +15,8 @@
 - **Validação atual:** PASS no self-check e testes unitários de `check.py` e `validate_standard.py`
 
 ## Evidência atual
+
+- S1-C04: validação de `context-manifest.json` / `context.json` consolidada no comando `check` (`scripts/check.py`) e validador (`scripts/validate_standard.py`), cobrindo conformidade estrutural contra `schemas/context-manifest.schema.json` (IS-SCHEMA-001) e todas as regras semânticas de contexto: IS-SEM-021 (proibição de path traversal `..` ou caminhos absolutos em rotas), IS-SEM-022 (disjunção estrita entre categorias `required`, `conditional` e `discovery` na mesma rota) e IS-SEM-023 (coerência de orçamentos de contexto onde `bootstrap_target_max_bytes <= task_target_max_bytes`). Coberto por testes unitários dedicados em `scripts/test_check.py` (47/47 testes passando). Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
 
 - S1-C03: validação de `standard.lock` / `standard-lock.json` consolidada no comando `check` (`scripts/check.py`) e validador (`scripts/validate_standard.py`), cobrindo conformidade estrutural contra `schemas/standard-lock.schema.json` (IS-SCHEMA-001) e todas as regras semânticas: IS-SEM-001 (packs válidos no catálogo), IS-SEM-002 (caminhos de artefatos duplicados rejeitados), IS-SEM-004 (workflow válido no catálogo), IS-SEM-005 (adapters ativos no catálogo de adapters), IS-SEM-006 (versão do standard compatível com VERSION) e IS-WARN-001 (aviso sobre local_override em artefatos MANAGED). Coberto por testes unitários dedicados em `scripts/test_check.py` (38/38 testes passando). Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
 
@@ -117,4 +119,4 @@ A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um ada
 
 ## Próxima ação
 
-Avançar na implementação de S1 (S1-C04: validar contexto aplicável). S1 permanece ACTIVE; Gate S1 = NOT_RUN, approval = null, S2 = NOT_STARTED e S1-C03 aceito tecnicamente.
+Avançar na implementação de S1 (S1-C05: validar ownership). S1 permanece ACTIVE; Gate S1 = NOT_RUN, approval = null, S2 = NOT_STARTED e S1-C04 aceito tecnicamente.
