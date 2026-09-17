@@ -4,7 +4,14 @@
 
 O **Ideias Standard** define uma base Gold simples e reutilizável para projetos desenvolvidos por humanos e agentes de IA.
 
-O objetivo não é criar um framework de governança. O objetivo é tornar qualquer projeto fácil de entender, alterar, validar, auditar e manter.
+A missão possui dois caminhos:
+
+```text
+NOVO PROJETO → CREATE → TEMPLATE GOLD → PROJETO GOLD
+PROJETO EXISTENTE → GOLDIFY → GOLDEN DIFF → CHECK + AUDIT → PROJETO GOLD
+```
+
+O objetivo não é criar um framework de governança. É tornar projetos fáceis de entender, alterar, validar, auditar e manter.
 
 Princípios:
 
@@ -12,26 +19,54 @@ Princípios:
 
 > Toda nova regra, arquivo, abstração, teste ou camada deve justificar o problema concreto que resolve.
 
+### Duas regras de execução
+
+**Dogfooding obrigatório**
+
+> O próprio `ideias_standard` deve seguir o Gold que define. Antes de recomendar uma prática aos próximos projetos, devemos conseguir usá-la de forma simples neste repositório ou em um exemplo Gold representativo.
+
+**Provar antes de expandir**
+
+> Nova Skill, pack, regra, arquivo, abstração ou capacidade não entra no Core apenas porque parece útil. Primeiro deve resolver um problema real, ser testada e demonstrar valor. Se a necessidade for local, permanece local.
+
+Fluxo:
+
+```text
+ideia nova
+   ↓
+resolve problema real?
+   ├─ não → ignorar/backlog
+   └─ sim
+        ↓
+solução mais simples?
+        ↓
+testar no próprio Standard ou projeto real
+        ↓
+funcionou e tende a se repetir?
+   ├─ não → manter local
+   └─ sim → considerar no Gold
+```
+
 ---
 
 ## 2. O QUE É UM PROJETO GOLD
 
-Um projeto está no padrão Gold quando:
+Um projeto Gold, quando aplicável:
 
-- é fácil entender o que ele faz;
+- explica claramente o que faz;
 - possui `README.md` útil;
 - possui `AGENTS.md` pequeno e operacional;
-- a estrutura principal é clara;
-- existe uma forma objetiva de validar alterações;
-- build, testes e lint/typecheck aplicáveis funcionam;
-- CI executa as verificações importantes;
-- contexto específico é carregado somente quando necessário;
-- outputs grandes são filtrados ou resumidos antes de entrar no contexto;
-- alterações relevantes podem ser auditadas de forma independente;
-- segurança básica é proporcional ao risco;
-- não existe burocracia sem utilidade prática.
+- tem estrutura compreensível;
+- possui uma forma conhecida de verificar alterações;
+- executa build/test/lint/typecheck aplicáveis;
+- executa verificações importantes no CI;
+- carrega contexto específico somente quando necessário;
+- filtra ou resume outputs grandes antes de colocá-los no contexto;
+- pode ser auditado pelo diff sem exigir leitura integral do repositório;
+- usa segurança proporcional ao risco;
+- não carrega burocracia sem utilidade prática.
 
-Gold padroniza **qualidade e operação**, não obriga todos os projetos a terem a mesma arquitetura.
+Gold padroniza **qualidade e operação**, não arquitetura interna obrigatória.
 
 ---
 
@@ -39,15 +74,7 @@ Gold padroniza **qualidade e operação**, não obriga todos os projetos a terem
 
 `AGENTS.md` é o contexto universal mínimo.
 
-Ele deve permanecer curto e conter apenas:
-
-- objetivo do projeto;
-- regras essenciais;
-- comandos principais;
-- mapa mínimo da estrutura;
-- referências para contexto adicional.
-
-O bootstrap padrão é:
+Bootstrap padrão:
 
 ```text
 AGENTS.md + pedido atual
@@ -55,7 +82,7 @@ AGENTS.md + pedido atual
 
 `PROJECT_STATE.md`, `STANDARD.md`, `ROADMAP.md`, documentação, packs, Skills e dependências são carregados somente quando a tarefa justificar.
 
-Fluxo recomendado:
+Fluxo:
 
 ```text
 pedido
@@ -67,48 +94,34 @@ menor trecho suficiente
 expandir somente se necessário
 ```
 
-Informação específica deve ficar fora do `AGENTS.md`:
-
-```text
-AGENTS.md
-   ↓
-contexto mínimo
-   ├─ docs/...                 quando necessário
-   ├─ packs/...                quando necessário
-   ├─ skills/...               quando necessário
-   └─ dependências diretas     quando necessário
-```
-
 Regras de Token Discipline:
 
 1. maximizar sinal por token, não apenas minimizar tokens;
 2. localizar antes de carregar;
 3. preferir trechos a arquivos completos;
-4. limitar ou filtrar logs e outputs potencialmente grandes;
+4. limitar ou filtrar logs e outputs grandes;
 5. usar `check` como resumo executável das validações;
 6. carregar docs, packs e Skills somente sob demanda;
-7. ativar somente ferramentas/MCPs úteis à tarefa quando isso for controlável;
+7. ativar somente ferramentas/MCPs úteis quando isso for controlável;
 8. Auditor começa pelo delta;
 9. tarefa materialmente nova prefere contexto novo a histórico irrelevante;
 10. contexto crítico nunca é cortado apenas para economizar tokens.
 
-Regra:
+Regra do `AGENTS.md`:
 
 > Se uma instrução não é útil para a maioria das tarefas, ela não pertence ao `AGENTS.md`.
-
-Evitar duplicar as mesmas instruções em `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` ou arquivos equivalentes. Quando um fornecedor exigir arquivo próprio, usar um adaptador mínimo para a fonte canônica sempre que possível.
 
 ---
 
 ## 4. FLUXO DE TRABALHO GOLD
 
-### Tarefa pequena
+Tarefa pequena:
 
 ```text
 entender → alterar → check → auditoria → concluir
 ```
 
-### Tarefa complexa
+Tarefa complexa:
 
 ```text
 entender → plano curto → alterar → check → auditoria → concluir
@@ -116,36 +129,26 @@ entender → plano curto → alterar → check → auditoria → concluir
 
 Planejamento deve ser proporcional à tarefa.
 
----
+### Builder
 
-## 5. BUILDER E AUDITOR
+- entende o pedido antes de editar;
+- faz a menor mudança correta;
+- preserva comportamento e trabalho existentes;
+- não trata suposição como fato;
+- não cria abstrações para necessidades hipotéticas;
+- valida antes de concluir.
 
-O Builder implementa e valida o próprio trabalho.
+### Auditor
 
-O Auditor verifica de forma independente alterações relevantes.
+Começa por:
 
-O Auditor começa pelo delta, não pelo repositório inteiro.
-
-Contexto inicial recomendado:
-
-- pedido original;
-- critério de aceite;
+- pedido e critérios de aceite;
 - diff;
 - arquivos alterados;
 - resultado resumido do `check`;
-- erros ou warnings relevantes.
+- erros/warnings relevantes.
 
-O Auditor expande contexto somente quando existir uma razão concreta.
-
-Perguntas principais:
-
-- o pedido foi atendido?
-- a alteração funciona?
-- existe regressão provável?
-- há mudança fora do escopo?
-- existe atalho, hardcode ou erro escondido?
-- a solução ficou mais complexa do que precisava?
-- os testes/verificações são suficientes para o comportamento alterado?
+Amplia contexto somente quando existir razão concreta.
 
 Resultado mínimo:
 
@@ -178,64 +181,47 @@ Definir e provar a menor base que torna um projeto Gold.
 
 ## Entregas
 
-- [ ] consolidar este Standard Gold;
+- [ ] consolidar o Standard Gold;
 - [ ] manter `AGENTS.md` como contexto mínimo universal;
 - [ ] consolidar `README.md` do template;
 - [ ] definir estrutura mínima recomendada;
 - [ ] formalizar Token Discipline;
-- [ ] definir comando/mecanismo único de `check` com saída curta;
-- [ ] manter CI simples;
-- [ ] definir padrão mínimo de testes;
+- [ ] definir `check` com saída curta e detalhes sob demanda;
+- [ ] manter CI simples e testes essenciais;
 - [ ] definir segurança básica;
-- [ ] executar a trilha de pesquisa de Skills Gold descrita abaixo;
-- [ ] selecionar e adaptar somente Skills que reduzam contexto ou aumentem confiabilidade de forma clara;
-- [ ] remover ou arquivar estruturas legadas que não agregam ao modelo Gold;
+- [ ] executar a trilha F0-SK de Skills Gold;
+- [ ] revisar ativos legados e remover complexidade sem função prática;
+- [ ] aplicar o Gold ao próprio `ideias_standard` como dogfood;
 - [ ] criar pelo menos um exemplo Gold completo;
-- [ ] executar auditoria independente da fase.
+- [ ] executar auditoria independente final da fase.
 
-## F0-SK — TRILHA DE PESQUISA DE SKILLS GOLD
+### Critério adicional de F0
 
-A pesquisa de Skills faz parte da construção do próprio Template Gold. O objetivo não é montar uma coleção grande: é descobrir padrões maduros que possam ser reaproveitados com **progressive disclosure, baixo custo de contexto e responsabilidade única**.
+Uma prática não deve ser promovida para os templates futuros apenas por ter sido documentada. Ela precisa ser exercitada no próprio Standard, em fixture, exemplo Gold ou projeto real adequado.
+
+---
+
+## F0-SK — PESQUISA DE SKILLS GOLD
+
+A pesquisa de Skills faz parte da construção do Template Gold. O objetivo não é montar uma coleção grande, mas reaproveitar padrões maduros com **progressive disclosure, baixo custo de contexto e responsabilidade única**.
 
 ### Fontes prioritárias estudadas
 
-1. **Agent Skills specification** — formato aberto e progressive disclosure:
-   - https://github.com/agentskills/agentskills
-2. **Anthropic / Claude Code skill-development** — estrutura, scripts e referências sob demanda:
-   - https://github.com/anthropics/claude-code/tree/main/plugins/plugin-dev/skills/skill-development
-3. **OpenAI Codex `code-review`** — revisão de mudanças com foco em findings:
-   - https://github.com/openai/codex/tree/main/.codex/skills/code-review
-4. **Trail of Bits `second-opinion`** — revisão de diff/commit por outro modelo e controle de diffs grandes:
-   - https://github.com/trailofbits/skills/tree/main/plugins/second-opinion/skills/second-opinion
-5. **Trail of Bits `audit-context-building`** — ampliar contexto de auditoria somente conforme hipóteses concretas:
-   - https://github.com/trailofbits/skills/tree/main/plugins/audit-context-building/skills/audit-context-building
-6. **GitHub Awesome Copilot `ai-ready`** — preparar repositórios para trabalho assistido por IA:
-   - https://github.com/github/awesome-copilot/tree/main/skills/ai-ready
-7. **GitHub Awesome Copilot `acquire-codebase-knowledge`** — identificar stack, estrutura, CI e testes:
-   - https://github.com/github/awesome-copilot/tree/main/skills/acquire-codebase-knowledge
-8. **GitHub Awesome Copilot `agent-skill-stack`** — selecionar o menor conjunto compatível de Skills:
-   - https://github.com/github/awesome-copilot/tree/main/skills/agent-skill-stack
-9. **GitHub Awesome Copilot `security-review`** — referência para futuro pack de segurança:
-   - https://github.com/github/awesome-copilot/tree/main/skills/security-review
-10. **GitHub Awesome Copilot `secret-scanning`** — referência para proteção de secrets:
-    - https://github.com/github/awesome-copilot/tree/main/skills/secret-scanning
-11. **GitHub Awesome Copilot `agentic-eval`** — referência para projetos de IA que realmente precisem de evals:
-    - https://github.com/github/awesome-copilot/tree/main/skills/agentic-eval
+1. Agent Skills specification — https://github.com/agentskills/agentskills
+2. Anthropic / Claude Code `skill-development` — https://github.com/anthropics/claude-code/tree/main/plugins/plugin-dev/skills/skill-development
+3. OpenAI Codex `code-review` — https://github.com/openai/codex/tree/main/.codex/skills/code-review
+4. Trail of Bits `second-opinion` — https://github.com/trailofbits/skills/tree/main/plugins/second-opinion/skills/second-opinion
+5. Trail of Bits `audit-context-building` — https://github.com/trailofbits/skills/tree/main/plugins/audit-context-building/skills/audit-context-building
+6. GitHub Awesome Copilot `ai-ready` — https://github.com/github/awesome-copilot/tree/main/skills/ai-ready
+7. GitHub Awesome Copilot `acquire-codebase-knowledge` — https://github.com/github/awesome-copilot/tree/main/skills/acquire-codebase-knowledge
+8. GitHub Awesome Copilot `agent-skill-stack` — https://github.com/github/awesome-copilot/tree/main/skills/agent-skill-stack
+9. GitHub Awesome Copilot `security-review` — referência para futuro pack de segurança
+10. GitHub Awesome Copilot `secret-scanning` — referência para proteção de secrets
+11. GitHub Awesome Copilot `agentic-eval` — referência para projetos de IA que realmente precisem de evals
 
-### Sinais da comunidade estudados
+Discussões em Reddit são sinal complementar, não fonte canônica. O aprendizado principal é evitar stacks enormes de Skills/plugins, usar catálogos para descoberta e testar Skills importantes contra pequenos fixtures.
 
-Discussões no Reddit foram usadas como sinal prático, não como contrato canônico. Os padrões recorrentes foram:
-
-- coleções muito grandes de Skills/plugins aumentam descoberta, contexto e manutenção;
-- instalar uma Skill só porque parece útil tende a gerar sobreposição e drift;
-- Skills importantes precisam de pequenos casos de teste/fixtures para detectar regressões após mudanças de ferramentas/modelos;
-- catálogos grandes são melhores como fontes de pesquisa do que como conjuntos instalados por padrão.
-
-Referências comunitárias avaliadas incluem discussões em `r/ClaudeCode`, `r/claudeskills`, `r/codex` e `r/vibecoding` sobre stacks de Skills, excesso de plugins, revisão independente e testes de Skills.
-
-### Método obrigatório de avaliação
-
-Para cada Skill candidata:
+### Método obrigatório para Skill externa
 
 ```text
 DISCOVER
@@ -250,29 +236,29 @@ TRIM
    ↓
 ADAPT PROVIDER-NEUTRAL
    ↓
-TEST ON FIXTURE
+TEST ON FIXTURE / REAL USE
    ↓
 KEEP or REJECT
 ```
 
-A Skill só entra no Gold quando houver resposta clara para:
+Antes de incorporar, responder:
 
-- qual problema repetitivo ela resolve;
-- por que isso não deve ficar no `AGENTS.md`;
-- por que um script simples sozinho não resolve melhor;
-- quais tokens/contexto ela evita ou quais erros ela previne;
-- se existe sobreposição com Skill já adotada;
-- se a licença permite o reaproveitamento pretendido;
-- se os scripts e instruções foram revisados por segurança;
-- se funciona em pelo menos um fixture ou projeto de exemplo.
+- qual problema repetitivo resolve?
+- por que não pertence ao `AGENTS.md`?
+- por que um script simples não resolve melhor?
+- que contexto evita ou que erro previne?
+- existe sobreposição com Skill já adotada?
+- a licença permite o reaproveitamento?
+- scripts/instruções foram revisados por segurança?
+- foi testada em fixture, exemplo ou projeto real?
 
-### Skills Gold prioritárias para construir
+### Skills Gold prioritárias
 
 #### 1. `gold-audit` — PRIORIDADE 1
 
-Estudar e combinar somente os padrões úteis de:
+Combinar somente os padrões úteis de:
 
-- OpenAI Codex `code-review`;
+- Codex `code-review`;
 - Trail of Bits `second-opinion`;
 - Trail of Bits `audit-context-building`.
 
@@ -289,21 +275,16 @@ pedido + aceite + diff + check
 Requisitos:
 
 - começar pelo delta;
-- não exigir leitura global do repositório;
 - ampliar contexto somente por hipótese concreta;
-- limitar diffs/logs muito grandes antes de carregá-los;
+- limitar diffs/logs grandes;
 - saída curta e acionável;
-- funcionar sem depender de um provedor específico;
-- ter fixture com alteração correta e fixture com bug proposital.
-
-O `gold-audit` servirá tanto ao próprio Ideias Standard quanto aos projetos futuros gerados pelo Template Gold.
+- provider-neutral;
+- fixture correta e fixture com bug proposital;
+- provar a Skill primeiro no próprio `ideias_standard` ou exemplo Gold antes de promovê-la aos templates.
 
 #### 2. `goldify` — PRIORIDADE 2
 
-Estudar principalmente:
-
-- GitHub `ai-ready`;
-- GitHub `acquire-codebase-knowledge`.
+Estudar principalmente `ai-ready` e `acquire-codebase-knowledge`.
 
 Objetivo:
 
@@ -317,7 +298,7 @@ stack + CI + tests + docs + AGENTS + check
 Golden Diff
 ```
 
-Não copiar o comportamento de gerar documentação extensa por padrão. O resultado Gold deve ser curto:
+Resultado padrão:
 
 ```text
 NECESSÁRIO
@@ -329,32 +310,26 @@ RECOMENDADO
 
 Requisitos:
 
-- preservar arquitetura e trabalho existente;
+- preservar arquitetura e trabalho existentes;
 - localizar antes de ler;
-- não produzir sete relatórios quando um Golden Diff resolve;
-- alimentar diretamente F4 — Adopt / Goldify;
-- ser reutilizável para os próximos repositórios existentes que forem levados ao Gold.
+- evitar relatórios excessivos;
+- alimentar F4 diretamente;
+- provar em projeto existente real antes de tratar a abordagem como padrão universal.
 
 #### 3. `skill-author` — PRIORIDADE 3
 
-Estudar:
+Estudar Agent Skills specification e Anthropic/Claude Code `skill-development`.
 
-- Agent Skills specification;
-- Anthropic/Claude Code `skill-development`;
-- boas práticas de scripts/references com progressive disclosure.
-
-Objetivo: impedir que o ecossistema Gold vire uma coleção desorganizada de Skills.
-
-Antes de criar uma nova Skill, verificar:
+Antes de criar Skill:
 
 1. a tarefa é repetitiva?
-2. precisa de conhecimento/procedimento especializado?
+2. precisa de procedimento especializado?
 3. cabe melhor em Skill do que em `AGENTS.md`?
-4. um script simples seria suficiente?
-5. já existe uma Skill madura que podemos adaptar?
-6. existe teste mínimo que prove sua utilidade?
+4. script simples resolveria?
+5. existe Skill madura adaptável?
+6. há teste mínimo de utilidade?
 
-Resultado possível:
+Resultado:
 
 ```text
 CREATE SKILL
@@ -366,39 +341,30 @@ ou:
 DO NOT CREATE SKILL
 ```
 
-#### 4. `skill-curator` — CANDIDATA FUTURA
+#### 4. `skill-curator` — FUTURA
 
-Estudar o padrão de `agent-skill-stack`.
-
-Objetivo futuro: dado um projeto, recomendar o **menor conjunto necessário de Skills**, considerando utilidade, sobreposição, risco e custo de contexto.
+Estudar `agent-skill-stack` para recomendar o menor conjunto útil de Skills.
 
 Não implementar antes das três Skills prioritárias estarem comprovadas.
 
 ### Skills opcionais por domínio
 
-Não fazem parte do Core e só serão avaliadas quando um projeto real exigir:
+Avaliar somente diante de necessidade real:
 
-- `security-review` → pack `sensitive-data`/security;
+- `security-review` → security/sensitive-data;
 - `secret-scanning` → segurança de repositório;
-- `agentic-eval` → projetos de IA com avaliação de agentes;
+- `agentic-eval` → projetos de IA;
 - Skills Android → pack Android;
-- Skills de migration/release → somente quando houver fluxo repetitivo real.
+- migration/release → quando houver fluxo repetitivo real.
 
-### Resultado esperado da pesquisa
-
-Ao finalizar F0-SK, o projeto deve ter:
+### Saída esperada de F0-SK
 
 - [ ] matriz de decisão das Skills prioritárias;
-- [ ] `gold-audit` desenhada e testada;
-- [ ] `goldify` desenhada para alimentar F4;
+- [ ] `gold-audit` desenhada, testada e dogfooded;
+- [ ] `goldify` desenhada e testada em projeto real adequado;
 - [ ] `skill-author` desenhada para controlar futuras Skills;
-- [ ] critérios claros para rejeitar Skills desnecessárias;
-- [ ] nenhum aumento relevante do contexto permanente do `AGENTS.md`;
-- [ ] aprendizado incorporado ao Template Gold para novos projetos.
-
-## Validação de F0
-
-O exemplo Gold deve ser compreensível, verificável e utilizável sem documentação excessiva ou carregamento desnecessário de contexto.
+- [ ] critérios claros de rejeição;
+- [ ] nenhum aumento relevante do contexto permanente do `AGENTS.md`.
 
 ---
 
@@ -414,23 +380,19 @@ Criar novos projetos Gold da forma mais simples possível.
 
 Começar por **GitHub Template Repository**.
 
-Adicionar gerador próprio somente se houver necessidade real que o template não resolva.
-
-Se parametrização mais rica for necessária, avaliar ferramenta existente antes de criar engine própria.
+Adicionar gerador próprio somente se uma necessidade real provar que o template simples é insuficiente.
 
 ## Entregas
 
-- [ ] disponibilizar template Gold utilizável;
-- [ ] permitir criação de projeto base em poucos passos;
-- [ ] permitir escolha simples de packs quando aplicável;
-- [ ] manter Skills fora do Core por padrão;
-- [ ] permitir que Skills aprovadas sejam adicionadas somente quando pertinentes ao projeto;
-- [ ] garantir que o projeto criado passa no `check`;
-- [ ] documentar fluxo de criação em poucas linhas.
+- [ ] template Gold utilizável;
+- [ ] criação de projeto base em poucos passos;
+- [ ] packs escolhidos somente quando aplicáveis;
+- [ ] Skills fora do Core por padrão;
+- [ ] Skills aprovadas adicionadas somente quando pertinentes;
+- [ ] projeto criado passa no `check`;
+- [ ] fluxo de criação documentado em poucas linhas.
 
-## Template Gold alvo
-
-Estrutura conceitual mínima:
+## Template alvo
 
 ```text
 novo-projeto/
@@ -442,10 +404,12 @@ novo-projeto/
 ├─ src/...
 ├─ tests/...
 ├─ docs/...              somente quando útil
-└─ .agents/skills/...    somente Skills realmente necessárias
+└─ .agents/skills/...    somente Skills necessárias
 ```
 
 Nenhuma pasta opcional precisa existir vazia.
+
+O template deve ser primeiro exercitado pelo próprio `ideias_standard` e por pelo menos um exemplo/projeto real antes de ser considerado estável.
 
 ---
 
@@ -455,13 +419,11 @@ Nenhuma pasta opcional precisa existir vazia.
 
 ## Objetivo
 
-Dar ao projeto uma resposta objetiva para:
+Responder objetivamente:
 
 > Como eu provo que esta alteração não quebrou o projeto?
 
-## `check`
-
-O projeto deve possuir um comando ou mecanismo conhecido que execute apenas as verificações aplicáveis, por exemplo:
+`check` executa somente verificações aplicáveis:
 
 ```text
 check
@@ -471,9 +433,7 @@ check
  └─ build
 ```
 
-Nem toda stack exige todas as etapas.
-
-A saída padrão deve ser resumida:
+Saída padrão curta:
 
 ```text
 PASS
@@ -482,22 +442,18 @@ PASS
 ✓ build
 ```
 
-Falhas devem mostrar somente informação acionável por padrão. Logs completos ficam disponíveis por modo detalhado quando necessário.
+Falhas mostram informação acionável; logs completos ficam sob demanda.
 
 ## Entregas
 
 - [ ] `check` simples e reproduzível;
-- [ ] saída curta e clara de sucesso ou falha;
-- [ ] detalhes expandíveis quando houver investigação;
-- [ ] CI utiliza as mesmas verificações importantes;
-- [ ] bug relevante recebe teste de regressão quando fizer sentido;
-- [ ] auditoria independente começa pelo diff;
-- [ ] `gold-audit` pode ser usada quando disponível;
-- [ ] auditor amplia contexto somente sob necessidade.
-
-## Regra
-
-Testar comportamento importante, não detalhes internos apenas para aumentar cobertura.
+- [ ] saída curta;
+- [ ] detalhes expandíveis;
+- [ ] CI reutiliza as verificações importantes;
+- [ ] regressão relevante recebe teste quando fizer sentido;
+- [ ] Auditor começa pelo diff;
+- [ ] `gold-audit` utilizada quando comprovada;
+- [ ] Auditor amplia contexto somente quando necessário.
 
 ---
 
@@ -509,7 +465,7 @@ Testar comportamento importante, não detalhes internos apenas para aumentar cob
 
 Adicionar capacidade sem inflar o Core.
 
-## Packs candidatos
+Packs candidatos:
 
 - `android`;
 - `python`;
@@ -519,34 +475,13 @@ Adicionar capacidade sem inflar o Core.
 - `sensitive-data`;
 - `agent-guardrails`.
 
-Um pack existe somente quando um projeto real justifica sua existência.
+Regra:
 
-Packs não devem despejar grandes blocos no `AGENTS.md`. Devem manter contexto específico próximo do domínio e adicionar apenas referências mínimas quando necessário.
+> Pack ou Skill só entra no ecossistema reutilizável depois que uma necessidade real e uso comprovado justificarem sua existência.
 
-## Política de Skills
+As três primeiras Skills planejadas são `gold-audit`, `goldify` e `skill-author`.
 
-As três primeiras Skills do ecossistema Gold são:
-
-1. `gold-audit`;
-2. `goldify`;
-3. `skill-author`.
-
-Elas são estudadas durante F0 e só se tornam parte reutilizável do ecossistema depois de testadas.
-
-Skills externas nunca são copiadas cegamente:
-
-```text
-DISCOVER → REVIEW → TRIM → ADAPT → TEST → INSTALL
-```
-
-Uma Skill deve ter responsabilidade única, progressive disclosure e justificativa concreta.
-
-## Guardrails
-
-As melhores ideias do projeto `playertwo1/guardrail` entram em duas camadas:
-
-- Core: poucas regras essenciais no `AGENTS.md`;
-- Pack `agent-guardrails`: controles ampliados apenas quando o risco justificar.
+O projeto `playertwo1/guardrail` continua como fonte de padrões úteis; controles ampliados pertencem ao pack `agent-guardrails`, não ao Core.
 
 ---
 
@@ -556,9 +491,7 @@ As melhores ideias do projeto `playertwo1/guardrail` entram em duas camadas:
 
 ## Objetivo
 
-Elevar projetos existentes ao padrão Gold sem reescrever o produto nem destruir trabalho válido.
-
-Fluxo:
+Elevar projetos existentes ao Gold sem reescrever o produto nem destruir trabalho válido.
 
 ```text
 projeto existente
@@ -571,8 +504,6 @@ Golden Diff
       ↓
 plano curto
       ↓
-preview das mudanças
-      ↓
 aplicar somente o necessário
       ↓
 check
@@ -582,31 +513,26 @@ auditoria independente
 GOLD
 ```
 
-A Skill `goldify` será a principal candidata para implementar a descoberta e o Golden Diff sem carregar o repositório inteiro.
-
-## Golden Diff
-
-O relatório deve separar:
+Golden Diff:
 
 ```text
 NECESSÁRIO
-- itens que impedem o padrão Gold
+- itens que impedem o Gold
 
 RECOMENDADO
 - melhorias úteis, não obrigatórias
 ```
 
-Sem nota arbitrária ou sistema complexo de pontuação.
+A Skill `goldify` é candidata principal para essa descoberta.
 
-## Proteção do projeto existente
+Proteções:
 
-Antes de alterar:
-
-- examinar estado atual;
 - preservar mudanças locais e trabalho válido;
 - não reorganizar arquitetura sem necessidade;
-- preferir adicionar infraestrutura Gold ao redor do código existente;
-- mostrar diff antes de mudanças relevantes quando aplicável.
+- preferir infraestrutura Gold ao redor do código existente;
+- mostrar mudanças relevantes quando aplicável.
+
+F4 deve ser validada primeiro em projetos reais antes de qualquer tentativa de automatização mais ampla.
 
 ---
 
@@ -616,46 +542,45 @@ Antes de alterar:
 
 ## Objetivo
 
-Permitir que projetos Gold existentes recebam melhorias futuras do Standard sem reescrever o projeto.
+Permitir que projetos Gold existentes recebam melhorias futuras sem reescrever o projeto.
 
-Só implementar após Create, Check e Adopt estarem comprovados em uso real.
+Só implementar depois de Create, Check e Adopt estarem comprovados em uso real.
 
-Skills adicionadas ao ecossistema também devem respeitar compatibilidade e não ser empurradas automaticamente para projetos que não precisam delas.
+Nada novo é empurrado automaticamente para projetos que não precisam da capacidade.
 
 ---
 
 ## 6. SEGURANÇA
 
-Baseline Gold:
+Baseline:
 
 - não versionar secrets;
 - `.gitignore` adequado;
 - dependências atualizáveis;
 - CI sem exposição de credenciais;
-- validação de entradas externas quando aplicável;
+- validar entradas externas quando aplicável;
 - nenhuma operação destrutiva silenciosa.
 
-Projetos de maior risco recebem packs específicos. O Core não carrega controles de sistemas críticos que a maioria dos projetos não precisa.
+Projetos de maior risco recebem packs específicos.
 
-Skills externas são parte da superfície de confiança: instruções, scripts, permissões e licença devem ser revisados antes da adoção.
+Skills externas fazem parte da superfície de confiança: instruções, scripts, permissões e licença devem ser revisados antes da adoção.
 
 ---
 
 ## 7. ANTI-OVERENGINEERING
-
-Regras permanentes:
 
 1. Faça a menor mudança coerente que resolva o pedido.
 2. Não crie abstrações para necessidades hipotéticas.
 3. Não duplique contexto.
 4. Não transforme documentação em burocracia.
 5. Não crie schema quando texto simples resolve.
-6. Não crie ferramenta própria quando uma solução madura e simples já atende.
+6. Não crie ferramenta própria quando solução madura e simples já atende.
 7. Não leia o repositório inteiro sem necessidade objetiva.
 8. Não adicione testes sem comportamento útil a proteger.
 9. Não imponha pack ou Skill opcional ao Core.
-10. Não instale catálogo de Skills inteiro quando uma ou duas Skills resolvem a necessidade.
-11. Remova complexidade que deixou de justificar sua existência.
+10. Não instale catálogo de Skills quando uma ou duas resolvem.
+11. Não promova algo ao Gold antes de provar em uso adequado.
+12. Remova complexidade que deixou de justificar sua existência.
 
 ---
 
@@ -663,7 +588,8 @@ Regras permanentes:
 
 ```text
 F0 Golden Standard
-   └─ F0-SK pesquisa e desenho das Skills Gold
+   ├─ dogfooding do próprio Standard
+   └─ F0-SK pesquisa/prova das Skills Gold
         ↓
 F1 Create
         ↓
@@ -682,15 +608,15 @@ As fases organizam construção; não são gates burocráticos.
 
 ## 9. DEFINIÇÃO FINAL
 
-O Ideias Standard terá cumprido sua função quando um humano ou agente puder:
+O Ideias Standard cumpre sua função quando consegue:
 
-1. entender rapidamente um projeto;
-2. carregar somente o contexto necessário;
-3. localizar informação antes de carregar grandes volumes;
-4. fazer uma mudança pequena e correta;
-5. provar que ela funciona com saída enxuta;
-6. submetê-la a uma revisão independente;
-7. usar Skills especializadas somente quando necessárias;
-8. criar projetos novos já preparados para progressive disclosure e auditoria;
-9. elevar projetos antigos ao Gold sem reconstruí-los;
-10. reutilizar o aprendizado de Skills maduras sem importar sua complexidade desnecessária.
+1. aplicar suas próprias regras de forma simples;
+2. entender rapidamente um projeto;
+3. carregar somente o contexto necessário;
+4. fazer mudança pequena e correta;
+5. provar que funciona com saída enxuta;
+6. submeter alteração a revisão independente;
+7. usar Skills somente quando necessárias;
+8. criar projetos novos no Gold;
+9. elevar projetos existentes ao Gold sem reconstruí-los;
+10. promover ao padrão reutilizável apenas práticas comprovadas em uso real.
