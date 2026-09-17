@@ -313,7 +313,7 @@ Não é gate de produto.
 
 ## S1 — CONFORMANCE FIRST
 
-**Status:** ACTIVE — retomado em D-C02; S1-C01 (`check`) e S1-C02 (validação de project manifest) concluídos.
+**Status:** ACTIVE — retomado em D-C02; S1-C01 (`check`), S1-C02 (validação de project manifest) e S1-C03 (validação de standard lock) concluídos.
 
 ### Objective
 
@@ -323,7 +323,7 @@ Criar interface estável de conformance.
 
 - [x] S1-C01 Implementar `check`.
 - [x] S1-C02 Validar project manifest.
-- [ ] S1-C03 Validar standard lock.
+- [x] S1-C03 Validar standard lock.
 - [ ] S1-C04 Validar contexto aplicável.
 - [ ] S1-C05 Validar ownership.
 - [ ] S1-C06 Validar arquivos obrigatórios.
