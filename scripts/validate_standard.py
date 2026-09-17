@@ -241,6 +241,16 @@ def check_project_composition(checks: list[dict[str, Any]], project_dir: Path, m
     add_check(checks, "IS-SEM-031", "PASS" if not invalid_packs else "FAIL", "INFO" if not invalid_packs else "HIGH",
               "All declared packs are applicable and available" if not invalid_packs else f"Unavailable applicable packs: {', '.join(sorted(invalid_packs))}", "/packs")
 
+    lock_path = next((project_dir / n for n in ("standard.lock", "standard-lock.json", "standard.lock.yaml", "standard.lock.yml", "standard-lock.yaml", "standard-lock.yml") if (project_dir / n).exists()), None)
+    missing_artifacts: list[str] = []
+    if lock_path is not None:
+        lock_data = load_yaml(lock_path) if lock_path.suffix in {".yaml", ".yml"} else load_json(lock_path)
+        for artifact in lock_data.get("artifacts", []):
+            if artifact.get("ownership") == "MANAGED" and isinstance(artifact.get("path"), str) and not (project_dir / artifact["path"]).is_file():
+                missing_artifacts.append(artifact["path"])
+    add_check(checks, "IS-SEM-029", "FAIL" if missing_artifacts else "PASS", "HIGH" if missing_artifacts else "INFO",
+              f"Missing MANAGED artifacts: {', '.join(sorted(missing_artifacts))}" if missing_artifacts else "All declared MANAGED artifacts exist", "/artifacts")
+
     # Workflow applicability is validated against the catalog and its materialized path.
     workflow = manifest.get("workflow")
     if workflow is None:

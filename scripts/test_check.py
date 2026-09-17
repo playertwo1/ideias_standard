@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -60,6 +61,28 @@ class CheckCommandTest(unittest.TestCase):
     def test_s1_c09_applicable_workflow_check(self):
         report = json.loads(run_check(path=ROOT / "examples" / "standard-android-ai", as_json=True)[1])
         self.assertEqual("PASS", {c["code"]: c["status"] for c in report["checks"]}["IS-SEM-032"])
+
+    def test_s1_c06_yaml_manifest_uses_composition_validation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = ROOT / "fixtures" / "valid" / "yaml-project"
+            for name in ("project-manifest.yaml", "standard.lock", "context-manifest.json"):
+                (root / name).write_bytes((source / name).read_bytes())
+            report = json.loads(run_check(path=root, as_json=True)[1])
+            codes = {c["code"]: c["status"] for c in report["checks"]}
+            self.assertEqual("PASS", codes["IS-SEM-028"])
+
+    def test_s1_c06_missing_managed_artifact_is_sem_029(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = ROOT / "examples" / "standard-android-ai" / "project-manifest.json"
+            (root / "project-manifest.json").write_bytes(source.read_bytes())
+            (root / "context-manifest.json").write_text('{"schema_version":"0.1","strategy":"PROGRESSIVE","routes":{"DEFAULT":{"required":[],"conditional":[],"discovery":[]}}}')
+            lock = json.loads((ROOT / "examples" / "standard-android-ai" / "standard.lock").read_text())
+            lock["artifacts"] = [{"path":"missing.txt","ownership":"MANAGED","source":"template","fingerprint":"sha256:x","local_override":False}]
+            (root / "standard.lock").write_text(json.dumps(lock))
+            report = json.loads(run_check(path=root, as_json=True)[1])
+            self.assertEqual("FAIL", {c["code"]: c["status"] for c in report["checks"]}["IS-SEM-029"])
 
     def test_invalid_fixture_fails(self):
         target = ROOT / "fixtures" / "invalid" / "unknown-pack.project.json"
@@ -699,5 +722,4 @@ class CheckCommandTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
 

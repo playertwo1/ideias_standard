@@ -129,6 +129,10 @@ def check_target(
                 report["result"] = "FAIL" if any(c["status"] == "FAIL" for c in report["checks"]) else ("WARN" if any(c["status"] == "WARN" for c in report["checks"]) else "PASS")
         elif manifest_yml.exists():
             report = validate(manifest_yml.resolve(), kind or "project-manifest")
+            if kind is None:
+                from scripts.validate_standard import check_project_composition, load_yaml
+                report["checks"].extend(check_project_composition([], target, load_yaml(manifest_yml)))
+                report["result"] = "FAIL" if any(c["status"] == "FAIL" for c in report["checks"]) else ("WARN" if any(c["status"] == "WARN" for c in report["checks"]) else "PASS")
         elif lock_json.exists():
             report = validate(lock_json.resolve(), kind or "standard-lock")
         elif lock_json_alt.exists():
