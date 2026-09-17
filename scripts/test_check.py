@@ -1,6 +1,5 @@
 import json
 import os
-import tempfile
 import unittest
 from pathlib import Path
 
@@ -61,39 +60,21 @@ class CheckCommandTest(unittest.TestCase):
         self.assertIn("IS-SEM-001", codes)
 
     def test_strict_mode_elevates_warn(self):
-        # Create temporary standard-lock containing a local_override on MANAGED artifact -> produces WARN IS-WARN-001
-        base_lock = load_json(ROOT / "fixtures" / "valid" / "basic.standard-lock.json")
-        warn_data = dict(base_lock)
-        warn_data["artifacts"] = [
-            {
-                "path": "STANDARD.md",
-                "ownership": "MANAGED",
-                "source": "templates/STANDARD.md",
-                "source_revision": "0.1",
-                "fingerprint": "sha256:standard",
-                "profile": "STANDARD",
-                "pack": None,
-                "local_override": True,
-                "rationale": "Managed file override for testing.",
-            }
-        ]
-        with tempfile.TemporaryDirectory() as tmpdir:
-            lock_path = Path(tmpdir) / "standard.lock.json"
-            lock_path.write_text(json.dumps(warn_data), encoding="utf-8")
+        lock_path = ROOT / "fixtures" / "valid" / "warn.standard-lock.json"
 
-            # Normal check: exit code 0
-            exit_code_normal, out_normal = run_check(path=lock_path, as_json=True, strict=False)
-            self.assertEqual(0, exit_code_normal)
-            report_normal = json.loads(out_normal)
-            self.assert_conformance_schema(report_normal)
-            self.assertEqual("WARN", report_normal["result"])
+        # Normal check: exit code 0
+        exit_code_normal, out_normal = run_check(path=lock_path, as_json=True, strict=False)
+        self.assertEqual(0, exit_code_normal)
+        report_normal = json.loads(out_normal)
+        self.assert_conformance_schema(report_normal)
+        self.assertEqual("WARN", report_normal["result"])
 
-            # Strict check: exit code 1, but canonical result remains WARN
-            exit_code_strict, out_strict = run_check(path=lock_path, as_json=True, strict=True)
-            self.assertEqual(1, exit_code_strict)
-            report_strict = json.loads(out_strict)
-            self.assert_conformance_schema(report_strict)
-            self.assertEqual("WARN", report_strict["result"])
+        # Strict check: exit code 1, but canonical result remains WARN
+        exit_code_strict, out_strict = run_check(path=lock_path, as_json=True, strict=True)
+        self.assertEqual(1, exit_code_strict)
+        report_strict = json.loads(out_strict)
+        self.assert_conformance_schema(report_strict)
+        self.assertEqual("WARN", report_strict["result"])
 
     def test_operational_error_on_missing_path(self):
         nonexistent = ROOT / "fixtures" / "nonexistent_file_xyz.json"
@@ -106,14 +87,13 @@ class CheckCommandTest(unittest.TestCase):
         self.assertIn("IS-CLI-001", codes)
 
     def test_operational_error_on_empty_dir(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            empty_dir = Path(tmpdir)
-            exit_code, output = run_check(path=empty_dir, as_json=True)
-            self.assertEqual(2, exit_code)
-            report = json.loads(output)
-            self.assert_conformance_schema(report)
-            self.assertEqual("FAIL", report["result"])
-            self.assertEqual("IS-CLI-001", report["checks"][0]["code"])
+        empty_dir = ROOT / "schemas"
+        exit_code, output = run_check(path=empty_dir, as_json=True)
+        self.assertEqual(2, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        self.assertEqual("IS-CLI-001", report["checks"][0]["code"])
 
     def test_text_report_no_color(self):
         target = ROOT / "examples" / "standard-android-ai" / "project-manifest.json"

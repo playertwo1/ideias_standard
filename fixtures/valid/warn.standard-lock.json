@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.1",
+  "standard_version": "0.1.0-draft",
+  "profile": "STANDARD",
+  "packs": [
+    "android",
+    "ai"
+  ],
+  "bundle": {
+    "id": "standard-android-ai",
+    "version": "0.1"
+  },
+  "workflow": "default",
+  "adapters": [
+    "generic"
+  ],
+  "template_fingerprint": "sha256:template-v01",
+  "generated_at": "2026-09-14T12:00:00Z",
+  "local_overrides": [],
+  "source_revision": "main",
+  "artifacts": [
+    {
+      "path": "STANDARD.md",
+      "ownership": "MANAGED",
+      "source": "templates/STANDARD.md",
+      "source_revision": "0.1",
+      "fingerprint": "sha256:standard",
+      "profile": "STANDARD",
+      "pack": null,
+      "local_override": true,
+      "rationale": "Managed file override for testing."
+    }
+  ]
+}
