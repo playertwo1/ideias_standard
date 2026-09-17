@@ -1,0 +1,1 @@
+{"schema_version":"0.1","project":{"name":"Gold Example","type":"python"},"standard":{"name":"Ideias Standard","version":"0.1.0-draft","profile":"LIGHT"},"packs":["python"],"governance":{"product_authority":"USER","builder":"AGENT_A","auditor":"AGENT_B"},"context":{"strategy":"PROGRESSIVE","full_repo_scan_default":false}}

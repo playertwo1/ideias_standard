@@ -181,18 +181,18 @@ Definir e provar a menor base que torna um projeto Gold.
 
 ## Entregas
 
-- [ ] consolidar o Standard Gold;
-- [ ] manter `AGENTS.md` como contexto mínimo universal;
-- [ ] consolidar `README.md` do template;
-- [ ] definir estrutura mínima recomendada;
-- [ ] formalizar Token Discipline;
-- [ ] definir `check` com saída curta e detalhes sob demanda;
-- [ ] manter CI simples e testes essenciais;
-- [ ] definir segurança básica;
-- [ ] executar a trilha F0-SK de Skills Gold;
-- [ ] revisar ativos legados e remover complexidade sem função prática;
-- [ ] aplicar o Gold ao próprio `ideias_standard` como dogfood;
-- [ ] criar pelo menos um exemplo Gold completo;
+- [x] consolidar o Standard Gold (aguardando auditoria independente);
+- [x] manter `AGENTS.md` como contexto mínimo universal;
+- [x] consolidar `README.md` do template;
+- [x] definir estrutura mínima recomendada;
+- [x] formalizar Token Discipline;
+- [x] definir `check` com saída curta e detalhes sob demanda;
+- [x] manter CI simples e testes essenciais;
+- [x] definir segurança básica;
+- [x] executar a trilha F0-SK de Skills Gold;
+- [x] revisar ativos legados e remover complexidade sem função prática;
+- [x] aplicar o Gold ao próprio `ideias_standard` como dogfood;
+- [x] criar pelo menos um exemplo Gold completo;
 - [ ] executar auditoria independente final da fase.
 
 ### Critério adicional de F0
@@ -359,11 +359,11 @@ Avaliar somente diante de necessidade real:
 
 ### Saída esperada de F0-SK
 
-- [ ] matriz de decisão das Skills prioritárias;
-- [ ] `gold-audit` desenhada, testada e dogfooded;
-- [ ] `goldify` desenhada e testada em projeto real adequado;
-- [ ] `skill-author` desenhada para controlar futuras Skills;
-- [ ] critérios claros de rejeição;
+- [x] matriz de decisão das Skills prioritárias;
+- [x] `gold-audit` desenhada, testada e dogfooded;
+- [x] `goldify` desenhada e testada em projeto real adequado;
+- [x] `skill-author` desenhada para controlar futuras Skills;
+- [x] critérios claros de rejeição;
 - [ ] nenhum aumento relevante do contexto permanente do `AGENTS.md`.
 
 ---

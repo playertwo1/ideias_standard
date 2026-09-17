@@ -4,7 +4,7 @@
 - **Modelo atual:** Gold V5
 - **Fase atual:** F0 — Golden Standard
 - **Status:** ACTIVE
-- **Objetivo atual:** consolidar e provar a menor base reutilizável que torne um projeto fácil de entender, verificar, auditar e manter com alto sinal e baixo desperdício de contexto.
+- **Objetivo atual:** F0/F0-SK implementado; aguarda auditoria independente do SHA final.
 
 ## Direção atual
 
@@ -100,10 +100,5 @@ Não alterar esses ativos apenas para fazê-los parecer alinhados documentalment
 
 ## Próxima ação
 
-1. estudar em profundidade as fontes de `gold-audit`;
-2. extrair somente os padrões úteis de revisão independente e contexto progressivo;
-3. desenhar versão provider-neutral de `gold-audit`;
-4. criar fixture correta e fixture com bug proposital;
-5. executar a Skill contra o próprio `ideias_standard` ou exemplo Gold;
-6. corrigir o que o dogfooding revelar;
-7. somente depois decidir se `gold-audit` está pronta para integrar os templates futuros.
+1. executar auditoria independente de F0/F0-SK no SHA final;
+2. manter F1–F5 não iniciadas.

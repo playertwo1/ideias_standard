@@ -216,7 +216,8 @@ O projeto está em **F0 — Golden Standard**.
 
 A arquitetura antiga baseada em profiles, bundles, gates e lifecycle amplo foi substituída pelo modelo Gold. O código e os artefatos existentes serão reaproveitados apenas quando simplificarem o novo Standard.
 
-A próxima frente é construir e dogfood a primeira capacidade concreta do novo modelo, começando por `gold-audit`.
+F0/F0-SK está implementado e aguarda auditoria independente. O exemplo `examples/gold-standard`
+e as Skills em `.agents/skills/` fornecem dogfood mínimo do modelo.
 
 ## Regra principal
 
