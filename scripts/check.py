@@ -117,8 +117,16 @@ def check_target(
                 raise FileNotFoundError(f"Directory does not contain artifact-policy.json or artifact-policy.yaml: {target}")
         elif manifest_json.exists():
             report = validate(manifest_json.resolve(), kind or "project-manifest")
+            if kind is None:
+                from scripts.validate_standard import check_project_composition, load_json
+                report["checks"].extend(check_project_composition([], target, load_json(manifest_json)))
+                report["result"] = "FAIL" if any(c["status"] == "FAIL" for c in report["checks"]) else ("WARN" if any(c["status"] == "WARN" for c in report["checks"]) else "PASS")
         elif manifest_yaml.exists():
             report = validate(manifest_yaml.resolve(), kind or "project-manifest")
+            if kind is None:
+                from scripts.validate_standard import check_project_composition, load_yaml
+                report["checks"].extend(check_project_composition([], target, load_yaml(manifest_yaml)))
+                report["result"] = "FAIL" if any(c["status"] == "FAIL" for c in report["checks"]) else ("WARN" if any(c["status"] == "WARN" for c in report["checks"]) else "PASS")
         elif manifest_yml.exists():
             report = validate(manifest_yml.resolve(), kind or "project-manifest")
         elif lock_json.exists():

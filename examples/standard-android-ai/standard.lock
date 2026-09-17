@@ -1,0 +1,12 @@
+{
+  "schema_version": "0.1",
+  "standard_version": "0.1.0-draft",
+  "profile": "STANDARD",
+  "packs": ["android", "ai"],
+  "bundle": {"id": "standard-android-ai", "version": "0.1"},
+  "workflow": "default",
+  "adapters": ["generic"],
+  "template_fingerprint": "sha256:template-v01",
+  "generated_at": "2026-09-14T12:00:00Z",
+  "artifacts": []
+}

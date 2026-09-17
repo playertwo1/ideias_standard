@@ -208,6 +208,47 @@ def check_adapters(checks: list[dict[str, Any]], values: list[str], path: str) -
         add_check(checks, "IS-SEM-005", "PASS", "INFO", "All referenced adapters are ACTIVE", path)
 
 
+def check_project_composition(checks: list[dict[str, Any]], project_dir: Path, manifest: dict[str, Any]) -> list[dict[str, Any]]:
+    """Validate project-level S1 composition without duplicating document rules."""
+    required = {
+        "project-manifest": any((project_dir / n).exists() for n in ("project-manifest.json", "project-manifest.yaml", "project-manifest.yml")),
+        "standard-lock": any((project_dir / n).exists() for n in ("standard.lock", "standard-lock.json", "standard.lock.yaml", "standard.lock.yml", "standard-lock.yaml", "standard-lock.yml")),
+        "context-manifest": any((project_dir / n).exists() for n in ("context-manifest.json", "context-manifest.yaml", "context-manifest.yml", "context.json", "context.yaml", "context.yml")),
+    }
+    missing = [name for name, present in required.items() if not present]
+    if missing:
+        add_check(checks, "IS-SEM-028", "FAIL", "HIGH", f"Missing required project contracts: {', '.join(missing)}", "/")
+    else:
+        add_check(checks, "IS-SEM-028", "PASS", "INFO", "All required project contracts are present", "/")
+
+    compatibility = load_yaml(ROOT / "COMPATIBILITY.yaml")
+    compatible = manifest.get("standard", {}).get("version") == compatibility.get("standard_version") == current_version()
+    add_check(checks, "IS-SEM-030", "PASS" if compatible else "FAIL", "INFO" if compatible else "HIGH",
+              "Project version is compatible with the active matrix" if compatible else "Project version is incompatible with COMPATIBILITY.yaml",
+              "/standard/version")
+
+    packs = manifest.get("packs", [])
+    pack_catalog = {item["id"]: item for item in catalog_items(ROOT / "packs" / "catalog.yaml", "packs")}
+    invalid_packs = [pack for pack in packs if pack not in pack_catalog or not (ROOT / pack_catalog[pack]["path"]).exists()]
+    add_check(checks, "IS-SEM-031", "PASS" if not invalid_packs else "FAIL", "INFO" if not invalid_packs else "HIGH",
+              "All declared packs are applicable and available" if not invalid_packs else f"Unavailable applicable packs: {', '.join(sorted(invalid_packs))}", "/packs")
+
+    # Workflow applicability is validated against the catalog and its materialized path.
+    workflow = manifest.get("workflow")
+    if workflow is None:
+        for name in ("standard.lock", "standard-lock.json", "standard.lock.yaml", "standard.lock.yml"):
+            lock_path = project_dir / name
+            if lock_path.exists():
+                lock_data = load_yaml(lock_path) if lock_path.suffix in {".yaml", ".yml"} else load_json(lock_path)
+                workflow = lock_data.get("workflow")
+                break
+    workflows = {item["id"]: item for item in catalog_items(ROOT / "workflows" / "catalog.yaml", "workflows")}
+    invalid_workflow = workflow is not None and (workflow not in workflows or not (ROOT / workflows[workflow]["path"]).exists())
+    add_check(checks, "IS-SEM-032", "PASS" if not invalid_workflow else "FAIL", "INFO" if not invalid_workflow else "HIGH",
+              "Declared workflow is applicable and available" if not invalid_workflow else f"Unavailable applicable workflow: {workflow}", "/workflow")
+    return checks
+
+
 def check_artifact_entry(
     checks: list[dict[str, Any]],
     artifact: dict[str, Any],
