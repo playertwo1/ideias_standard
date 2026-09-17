@@ -24,6 +24,10 @@ from typing import Any
 if sys.platform == "linux":
     import fcntl
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from scripts.orchestrate_handoffs import (
     HandoffError,
     accepted_audit_snapshot,
