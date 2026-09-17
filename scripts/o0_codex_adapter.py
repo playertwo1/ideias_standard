@@ -95,10 +95,30 @@ def main() -> int:
     }
     temp_schema_file.write_text(json.dumps(codex_output_schema, indent=2), encoding="utf-8")
 
-    task_criteria = args.task or os.environ.get("IDEAS_STANDARD_AUDIT_CRITERIA") or (
-        "Inspect the repository files, implementation and tests. "
-        "Verify correctness, completeness and that tests pass."
-    )
+    task_criteria = args.task or os.environ.get("IDEAS_STANDARD_AUDIT_CRITERIA")
+    if not task_criteria and os.environ.get("IDEAS_STANDARD_TASK_GOAL"):
+        goal = os.environ["IDEAS_STANDARD_TASK_GOAL"]
+        criteria_str = os.environ.get("IDEAS_STANDARD_TASK_CRITERIA")
+        parts = [f"Goal: {goal}"]
+        if criteria_str:
+            try:
+                criteria_list = json.loads(criteria_str)
+                parts.append("Acceptance criteria to verify:\n- " + "\n- ".join(criteria_list))
+            except Exception:
+                pass
+        task_criteria = "\n".join(parts)
+    elif not task_criteria:
+        task_criteria = (
+            "Inspect the repository files, implementation and tests. "
+            "Verify correctness, completeness and that tests pass."
+        )
+
+    diff_summary = ""
+    try:
+        git_show = _run_git(["show", "--stat", "--oneline", target_sha], cwd=audit_workspace).stdout.strip()
+        diff_summary = f"\n\nCommit under audit:\n{git_show}\n"
+    except Exception:
+        pass
 
     reaudit_handoff_env = os.environ.get("IDEAS_STANDARD_REAUDIT_HANDOFF")
     if reaudit_handoff_env and Path(reaudit_handoff_env).is_file():
@@ -111,7 +131,7 @@ def main() -> int:
         auditor_prompt = (
             f"You are an independent auditor performing a REAUDIT of the repository in the current directory at commit {target_sha}. "
             f"The previous round had findings that Builder was tasked to fix.{changed_desc} "
-            f"{task_criteria} "
+            f"{task_criteria}{diff_summary}"
             "Verify whether the findings from the previous round have been corrected and all tests pass in this commit. "
             "Return the JSON report required by the output schema. Use audit_result PASS only if the implementation and tests are correct. "
             "Use arrays of strings for findings and checks; findings must be empty for PASS."
@@ -119,7 +139,7 @@ def main() -> int:
     else:
         auditor_prompt = (
             f"You are an independent auditor. Audit the repository in the current directory at commit {target_sha}. "
-            f"{task_criteria} "
+            f"{task_criteria}{diff_summary}"
             "Return the JSON report required by the output schema. Use audit_result PASS only if the implementation and tests are correct. "
             "Use arrays of strings for findings and checks; findings must be empty for PASS."
         )

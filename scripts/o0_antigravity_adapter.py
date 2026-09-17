@@ -83,6 +83,24 @@ def main() -> int:
         )
     elif task_desc:
         prompt_task = task_desc
+    elif os.environ.get("IDEAS_STANDARD_TASK_GOAL"):
+        goal = os.environ["IDEAS_STANDARD_TASK_GOAL"]
+        scope_str = os.environ.get("IDEAS_STANDARD_TASK_SCOPE")
+        criteria_str = os.environ.get("IDEAS_STANDARD_TASK_CRITERIA")
+        parts = [f"Goal: {goal}"]
+        if scope_str:
+            try:
+                scope_list = json.loads(scope_str)
+                parts.append(f"Scope: {', '.join(scope_list)}")
+            except Exception:
+                pass
+        if criteria_str:
+            try:
+                criteria_list = json.loads(criteria_str)
+                parts.append("Criteria:\n- " + "\n- ".join(criteria_list))
+            except Exception:
+                pass
+        prompt_task = "\n".join(parts)
     else:
         prompt_task = "Implement the requested changes in the active workspace and ensure tests pass."
 

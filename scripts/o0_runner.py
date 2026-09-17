@@ -662,6 +662,27 @@ def prepare_audit_workspace(repository: Path, audit_root: Path, sha: str) -> Pat
     return workspace
 
 
+def cleanup_audit_workspace(repository: Path, workspace: Path) -> None:
+    if not workspace.exists():
+        return
+    for path in [workspace, *workspace.rglob("*")]:
+        try:
+            mode = path.stat().st_mode
+            path.chmod(mode | stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+        except OSError:
+            pass
+    subprocess.run(
+        ["git", "-C", str(repository), "worktree", "remove", "--force", str(workspace)],
+        capture_output=True,
+        check=False,
+    )
+    subprocess.run(
+        ["git", "-C", str(repository), "worktree", "prune"],
+        capture_output=True,
+        check=False,
+    )
+
+
 def _landlock_write_access(abi: int) -> int:
     access = (
         _WRITE_FILE
@@ -783,7 +804,7 @@ def _windows_auditor_write_sandbox(
             )
         for d in reversed(applied_dirs):
             subprocess.run(
-                ["icacls", _icacls_path(d), "/remove:d", "*S-1-1-0", "/t"],
+                ["icacls", _icacls_path(d), "/remove:d", "*S-1-1-0"],
                 capture_output=True,
                 check=False,
             )
@@ -793,7 +814,7 @@ def _windows_auditor_write_sandbox(
             target_str = _icacls_path(target)
             if target.is_dir():
                 res = subprocess.run(
-                    ["icacls", target_str, "/deny", "*S-1-1-0:(OI)(CI)(WD,AD,WA,WEA,DC,DE)", "/t"],
+                    ["icacls", target_str, "/deny", "*S-1-1-0:(OI)(CI)(WD,AD,WA,WEA,DC,DE)"],
                     capture_output=True,
                     check=False,
                 )
@@ -1874,6 +1895,10 @@ def run_task_queue(
                 queue_record["status"] = "COMPLETED"
                 queue_record["active_task_index"] = None
                 queue_record["active_task_id"] = None
+            if base_config.get("cleanup_audit_workspaces", False) or os.environ.get("IDEAS_STANDARD_CLEANUP_WORKSPACES") == "1":
+                last_sha = final_task_state.get("last_audited_sha")
+                if last_sha:
+                    cleanup_audit_workspace(repository, audit_root / last_sha)
     finally:
         task_config_path.unlink(missing_ok=True)
 
@@ -1889,7 +1914,10 @@ def main() -> int:
     parser.add_argument("--loop", action="store_true", help="Run handoff loop until terminal state or human gate")
     parser.add_argument("--queue", type=Path, default=None, help="Execute pre-authorized task queue")
     parser.add_argument("--invocation-id", type=str, default=None, help="Explicit invocation ID for queue")
+    parser.add_argument("--cleanup-workspaces", action="store_true", help="Clean temporary audit workspaces upon completion")
     args = parser.parse_args()
+    if args.cleanup_workspaces:
+        os.environ["IDEAS_STANDARD_CLEANUP_WORKSPACES"] = "1"
     try:
         if args.queue:
             result = run_task_queue(args.config, args.queue, invocation_id=args.invocation_id)
