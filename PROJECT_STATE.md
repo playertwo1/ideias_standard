@@ -4,8 +4,8 @@
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
 - **Objetivo atual:** implementação de S1 — Conformance First (S1-C06 em diante)
-- **Última implementada:** S1-C06 — validação de contratos obrigatórios por projeto (IS-SEM-028), aguardando auditoria independente
-- **Próxima:** S1-C07 (validar compatibility)
+- **Última implementada:** S1-C07 — compatibility do projeto comparada à matriz ativa (IS-SEM-030), aguardando auditoria independente
+- **Próxima:** S1-C08 (validar packs aplicáveis)
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN

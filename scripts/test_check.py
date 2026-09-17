@@ -49,6 +49,18 @@ class CheckCommandTest(unittest.TestCase):
         self.assert_conformance_schema(report)
         self.assertEqual("PASS", report["result"])
 
+    def test_s1_c07_directory_compatibility_check(self):
+        report = json.loads(run_check(path=ROOT / "examples" / "standard-android-ai", as_json=True)[1])
+        self.assertEqual("PASS", {c["code"]: c["status"] for c in report["checks"]}["IS-SEM-030"])
+
+    def test_s1_c08_applicable_packs_check(self):
+        report = json.loads(run_check(path=ROOT / "examples" / "standard-android-ai", as_json=True)[1])
+        self.assertEqual("PASS", {c["code"]: c["status"] for c in report["checks"]}["IS-SEM-031"])
+
+    def test_s1_c09_applicable_workflow_check(self):
+        report = json.loads(run_check(path=ROOT / "examples" / "standard-android-ai", as_json=True)[1])
+        self.assertEqual("PASS", {c["code"]: c["status"] for c in report["checks"]}["IS-SEM-032"])
+
     def test_invalid_fixture_fails(self):
         target = ROOT / "fixtures" / "invalid" / "unknown-pack.project.json"
         exit_code, output = run_check(path=target, as_json=True)
@@ -687,6 +699,5 @@ class CheckCommandTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
 
 

@@ -327,7 +327,7 @@ Criar interface estável de conformance.
 - [x] S1-C04 Validar contexto aplicável.
 - [x] S1-C05 Validar ownership.
 - [x] S1-C06 Validar arquivos obrigatórios (aguardando auditoria independente).
-- [ ] S1-C07 Validar compatibility.
+- [x] S1-C07 Validar compatibility (aguardando auditoria independente).
 - [ ] S1-C08 Validar packs aplicáveis.
 - [ ] S1-C09 Validar workflows aplicáveis.
 - [ ] S1-C10 Validar bundles aplicáveis.
