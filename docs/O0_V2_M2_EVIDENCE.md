@@ -2,7 +2,7 @@
 
 - **Marco:** O0 v2 M2 (Roadmap v3)
 - **Status:** finding de processo corrigido; reauditoria independente pendente
-- **Artefato verificavel atual:** [O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json](../O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json) e [pacote persistente](../O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE/)
+- **Artefato verificavel atual:** [O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json](../O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json) e [pacote persistente](../evev2m2/)
 - **Reauditoria anterior:** `O0_V2_M2_EVIDENCE_REAUDIT.json` e seu pacote permanecem intactos, mas sua prova de encerramento da arvore era insuficiente.
 - **Registro historico substituido:** [O0_V2_M2_EVIDENCE.json](../O0_V2_M2_EVIDENCE.json) e [pacote anterior](../O0_V2_M2_EVIDENCE_PACKAGE/) mantidos preservados para rastreabilidade
 - **Data da reauditoria:** 2026-09-16

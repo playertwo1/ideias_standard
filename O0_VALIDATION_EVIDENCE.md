@@ -110,7 +110,7 @@ No real provider adapter or full FAIL → fix → PASS cycle was executed in thi
 ## O0 v2 M2 — Runner Adapters Integration
 
 - Status: PASS (auditoria independente no SHA `c76317dfd0c3dd37adbc414455f8ad707b7dc88f`)
-- Evidência canônica de aceite: `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote persistente `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE/`
+- Evidência canônica de aceite: `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote persistente `evev2m2/`
 - Registros históricos: `O0_V2_M2_EVIDENCE.json`, `O0_V2_M2_EVIDENCE_REAUDIT.json` e seus respectivos pacotes (mantidos como registros históricos)
 - Documentação detalhada: `docs/O0_V2_M2_EVIDENCE.md`
 - Adapters: `scripts/o0_antigravity_adapter.py` (Builder via Antigravity CLI) e `scripts/o0_codex_adapter.py` (Auditor via OpenAI Codex CLI).

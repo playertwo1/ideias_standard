@@ -229,7 +229,7 @@
       }
     }
   },
-  "package_root": "O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE",
+  "package_root": "evev2m2",
   "artifacts": {
     "builder_bundle": {
       "path": "builder.bundle",

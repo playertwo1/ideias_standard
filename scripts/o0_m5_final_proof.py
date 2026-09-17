@@ -210,7 +210,7 @@ def execute(work: Path, output: Path, package: Path) -> dict:
     shutil.copytree(reports, package / "reports")
     shutil.copy2(state, package / "final-state.json")
     shutil.copy2(queue_path, package / "queue.json")
-    interruption_source = ROOT / "O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE"
+    interruption_source = ROOT / "evev2m2"
     shutil.copytree(interruption_source, package / "interruption-proof")
     recovery = subprocess.run(
         [sys.executable, "-m", "unittest", "scripts.test_o0_recovery"],

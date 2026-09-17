@@ -552,7 +552,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--work-root", type=Path, default=Path(".tmp_o0_m2_process_proof_final_run"))
     parser.add_argument("--output", type=Path, default=Path("O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json"))
-    parser.add_argument("--package", type=Path, default=Path("O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL_PACKAGE"))
+    parser.add_argument("--package", type=Path, default=Path("evev2m2"))
     args = parser.parse_args()
 
     execute_m2_integration(args.work_root, args.output, args.package)

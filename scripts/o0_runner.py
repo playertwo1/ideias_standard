@@ -768,25 +768,32 @@ def _windows_auditor_write_sandbox(
             if p.exists() and not _is_subpath(p, report_parent) and p not in targets_to_protect:
                 targets_to_protect.append(p)
 
+    def _icacls_path(p: Path) -> str:
+        s = str(p.resolve())
+        if os.name == "nt" and not s.startswith("\\\\?\\"):
+            return "\\\\?\\" + s
+        return s
+
     def _rollback() -> None:
         for f in reversed(applied_files):
             subprocess.run(
-                ["icacls", str(f), "/remove:d", "*S-1-1-0"],
+                ["icacls", _icacls_path(f), "/remove:d", "*S-1-1-0"],
                 capture_output=True,
                 check=False,
             )
         for d in reversed(applied_dirs):
             subprocess.run(
-                ["icacls", str(d), "/remove:d", "*S-1-1-0", "/t"],
+                ["icacls", _icacls_path(d), "/remove:d", "*S-1-1-0", "/t"],
                 capture_output=True,
                 check=False,
             )
 
     try:
         for target in targets_to_protect:
+            target_str = _icacls_path(target)
             if target.is_dir():
                 res = subprocess.run(
-                    ["icacls", str(target), "/deny", "*S-1-1-0:(OI)(CI)(WD,AD,WA,WEA,DC,DE)", "/t"],
+                    ["icacls", target_str, "/deny", "*S-1-1-0:(OI)(CI)(WD,AD,WA,WEA,DC,DE)", "/t"],
                     capture_output=True,
                     check=False,
                 )
@@ -795,7 +802,7 @@ def _windows_auditor_write_sandbox(
                 applied_dirs.append(target)
             elif target.is_file():
                 res = subprocess.run(
-                    ["icacls", str(target), "/deny", "*S-1-1-0:(WD,AD,WA,WEA,DC,DE)"],
+                    ["icacls", target_str, "/deny", "*S-1-1-0:(WD,AD,WA,WEA,DC,DE)"],
                     capture_output=True,
                     check=False,
                 )
