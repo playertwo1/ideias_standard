@@ -1,587 +1,460 @@
-# ROADMAP V3 — IDEIAS STANDARD
+# ROADMAP V4 — IDEIAS STANDARD
 
-## 1. PRINCÍPIO
+## 1. OBJETIVO
 
-Objetivo do Standard:
+O **Ideias Standard** é um template opinativo e reutilizável para iniciar projetos com uma base profissional, simples e preparada para desenvolvimento humano e assistido por IA.
 
-correção  
-→ integridade  
-→ autoridade  
-→ evidência  
-→ economia de contexto/tokens  
-→ velocidade
+A prioridade é entregar **boas práticas úteis por padrão**, sem transformar cada projeto em um sistema de governança complexo.
 
-Usar sempre o Minimum Sufficient Context.
+Princípio:
 
-Economizar tokens sem remover informação crítica.
+> Bom por padrão. Simples por padrão. Extensível quando necessário.
 
----
+Regra contra overengineering:
 
-## 2. REGRAS GLOBAIS
-
-Estas regras valem para S0–S8.
-
-- **R01** — Não ler o repositório inteiro sem necessidade.
-- **R02** — Começar por estado atual + tarefa + regras aplicáveis + arquivos diretamente necessários.
-- **R03** — Expandir contexto somente quando houver necessidade objetiva.
-- **R04** — Preferir delta + findings pendentes + dependências diretas + invariantes aplicáveis em vez de reler contexto completo.
-- **R05** — Evidência válida pode ser reutilizada somente quando ainda aplicável ao mesmo SHA/baseline.
-- **R06** — PASS não migra entre SHAs.
-- **R07** — NOT_RUN != PASS.
-- **R08** — Preferir saída estruturada, curta e referenciável.
-- **R09** — Não repetir documentação já confirmada.
-- **R10** — Não explicar conceitos básicos sem necessidade.
-- **R11** — Bug corrigido deve ganhar teste/fixture de regressão quando aplicável.
-- **R12** — Builder != Auditor quando auditoria independente for obrigatória.
-- **R13** — Auditor não corrige o alvo auditado.
-- **R14** — Product Authority registra gates humanos.
-- **R15** — Automação não amplia autoridade.
-- **R16** — Decisão LOCKED não muda sem autoridade adequada.
-- **R17** — Operação destrutiva não deve ocorrer automaticamente sem autorização quando exigida.
-- **R18** — Processos longos devem ser retomáveis.
-- **R19** — Estado crítico não pode depender apenas da memória de chat.
-- **R20** — Codex, Claude, Gemini ou outro fornecedor nunca são fonte canônica.
-- **R21** — Não iniciar fase seguinte para compensar pendência da atual.
-- **R22** — Não antecipar funcionalidades futuras sem autorização explícita.
-- **R23** — Validação executada prevalece sobre aparência documental.
-- **R24** — Relatórios devem citar IDs/códigos em vez de repetir textos longos.
-- **R25** — Quando resultado estruturado existir, não duplicá-lo em narrativa extensa.
+> Toda nova abstração, regra, arquivo, teste ou camada precisa justificar qual problema concreto resolve e por que uma solução mais simples não é suficiente.
 
 ---
 
-## 3. ESTADO ATUAL
+## 2. ESCOPO
 
-- S0 = PASS / CLOSED
-- S1 = ACTIVE
-- S2 = NOT_STARTED
-- S3 = NOT_STARTED
-- S4 = NOT_STARTED
-- S5 = NOT_STARTED
-- S6 = NOT_STARTED
-- S7 = NOT_STARTED
-- S8 = NOT_STARTED
+O Standard deve ajudar um projeto a começar com:
 
-S0 auditado no SHA:
+- estrutura clara;
+- `README.md` útil;
+- `AGENTS.md` com instruções para agentes de IA;
+- configuração básica de Git e editor;
+- CI simples;
+- testes essenciais;
+- documentação mínima;
+- boas práticas de segurança proporcionais ao projeto;
+- packs opcionais para tecnologias ou necessidades específicas.
 
-`a327dc15d7a1a9c138903d6eb700977115166351`
+O Standard **não precisa**, por padrão, controlar todo o ciclo de vida do projeto, todas as decisões humanas ou cada mudança realizada por um agente.
 
----
+O Runner Builder ↔ Auditor continua sendo uma ferramenta externa e opcional:
 
-## 4. DEPENDÊNCIAS
-
-- S1 → S0 PASS
-- S2 → Gate S1 PASS
-- S3 → Gate S2 PASS
-- S4 → Gate S3 PASS
-- S5 → Gate S4 PASS
-- S6 → Gate S5 PASS
-- S7 → Gate S6 PASS
-- S8 → Gate S7 PASS
-
-O Runner é uma ferramenta externa opcional. Nenhuma fase do Standard depende da sua implementação.
+https://github.com/playertwo1/runner
 
 ---
 
-## 5. REGRA PADRÃO DE FASE
+## 3. REGRAS DE SIMPLICIDADE
 
-Cada fase usa:
-
-- Objective
-- Checklist
-- Validation
-- Audit
-- Gate
-
-Não repetir regras globais dentro das fases.
-
-Semântica dos checkboxes:
-
-- `[x]` indica implementação registrada no estado canônico;
-- auditoria e integração são estados separados, registrados em `PROJECT_STATE.md` por SHA;
-- implementação não implica `AUDIT_PASS`, integração, gate humano ou PASS de produto.
+1. Começar sempre pela solução mais simples que atende o problema.
+2. Não criar arquivo, schema, estado ou camada sem uso concreto.
+3. Não duplicar informação em múltiplos lugares.
+4. Não criar gates humanos para tarefas técnicas comuns.
+5. Não exigir auditoria em cada pequeno critério.
+6. Não testar detalhes internos sem valor prático.
+7. Bugs relevantes corrigidos devem receber teste de regressão quando fizer sentido.
+8. Recursos opcionais devem permanecer opcionais.
+9. O template deve continuar compreensível para uma pessoa nova no projeto.
+10. Segurança deve ser proporcional ao risco real do projeto.
 
 ---
 
-## S0 — FOUNDATION
+## 4. COMO UMA FASE É CONCLUÍDA
 
-**Status:** PASS / CLOSED
+Cada fase possui apenas três passos:
 
-### Objective
+1. **Implementar** o objetivo da fase.
+2. **Validar** com os testes essenciais.
+3. **Auditar** o resultado final para confirmar que está correto, simples e sem regressões importantes.
 
-Definir e validar a fundação canônica do Standard.
+Não existem gates adicionais por padrão.
 
-### Checklist
+A auditoria deve responder somente:
 
-- [x] S0-C01 Missão e fronteira definidas.
-- [x] S0-C02 `STANDARD.md` definido.
-- [x] S0-C03 `AGENTS.md` definido.
-- [x] S0-C04 `PROJECT_STATE.md` definido.
-- [x] S0-C05 Schemas iniciais válidos.
-- [x] S0-C06 Profiles LIGHT/STANDARD/DEEP definidos.
-- [x] S0-C07 Packs iniciais definidos.
-- [x] S0-C08 Ownership definido.
-- [x] S0-C09 Bundles/workflows/adapters iniciais definidos.
-- [x] S0-C10 Change lifecycle inicial definido.
-- [x] S0-C11 Invariantes estruturados definidos.
-- [x] S0-C12 Compatibility/versioning definidos.
-- [x] S0-C13 CLI contract definido.
-- [x] S0-C14 Fixtures positivas/adversariais criadas.
-- [x] S0-C15 Golden outputs criados.
-- [x] S0-C16 Validador estrutural/semântico funcionando.
-- [x] S0-C17 Self-check funcionando.
-- [x] S0-C18 CI Python 3.11/3.12/3.13 verde.
-- [x] S0-C19 Builder/Auditor separados por contrato.
-- [x] S0-C20 Audit SHA imutável.
-- [x] S0-C21 Loop Builder↔Auditor limitado.
-- [x] S0-C22 Human gate preservado.
-- [x] S0-C23 Orchestration state machine validada.
-- [x] S0-C24 Auditoria independente PASS.
+- funciona como planejado?
+- existe erro ou regressão importante?
+- algo ficou desnecessariamente complexo?
+- a documentação necessária está coerente?
 
-### Gate
-
-Gate S0 = PASS
-
-Registrado pela Product Authority.
+Se a resposta estiver satisfatória, a fase é considerada concluída.
 
 ---
 
-## Runner externo
+# F0 — GOLDEN TEMPLATE
 
-A automação Builder ↔ Auditor foi separada para [playertwo1/runner](https://github.com/playertwo1/runner). O histórico O0 permanece no Git deste repositório até `baf5c393e9e391dd0ddfc65551d37f4bfc7b2c58`; a execução e as evidências agora pertencem ao repositório Runner. O Standard mantém somente os contratos gerais de governança.
+**Status:** ACTIVE
 
----
-## S1 — CONFORMANCE FIRST
+## Objetivo
 
-**Status:** ACTIVE — retomado em D-C02; S1-C01 (`check`), S1-C02 (validação de project manifest), S1-C03 (validação de standard lock) e S1-C04 (validação de context manifest) concluídos.
+Definir a melhor base reutilizável possível para novos projetos.
 
-### Objective
+## Entregas
 
-Criar interface estável de conformance.
+- [ ] definir a estrutura mínima do template;
+- [ ] consolidar `README.md`;
+- [ ] consolidar `AGENTS.md`;
+- [ ] manter `PROJECT_STATE.md` simples e opcional para projetos que precisem dele;
+- [ ] fornecer `.gitignore` adequado;
+- [ ] fornecer `.editorconfig`;
+- [ ] fornecer CI básico;
+- [ ] definir padrão mínimo de testes;
+- [ ] definir documentação mínima recomendada;
+- [ ] revisar o conteúdo existente e remover estruturas que não tenham utilidade no novo modelo;
+- [ ] criar pelo menos um projeto de exemplo usando o template completo.
 
-### Checklist
+## Reaproveitar do trabalho atual
 
-- [x] S1-C01 Implementar `check`.
-- [x] S1-C02 Validar project manifest.
-- [x] S1-C03 Validar standard lock.
-- [x] S1-C04 Validar contexto aplicável.
-- [x] S1-C05 Validar ownership.
-- [x] S1-C06 Validar arquivos obrigatórios (aguardando auditoria independente).
-- [x] S1-C07 Validar compatibility (aguardando auditoria independente).
-- [x] S1-C08 Validar packs aplicáveis (aguardando auditoria independente).
-- [x] S1-C09 Validar workflows aplicáveis (aguardando auditoria independente).
-- [ ] S1-C10 Validar bundles aplicáveis.
-- [ ] S1-C11 Validar adapters aplicáveis.
-- [ ] S1-C12 Detectar status contraditórios.
-- [ ] S1-C13 Detectar status duplicados.
-- [ ] S1-C14 Detectar arquivos ausentes.
-- [ ] S1-C15 Detectar referências inválidas.
-- [ ] S1-C16 Detectar adapters divergentes.
-- [ ] S1-C17 Findings possuem códigos determinísticos.
-- [ ] S1-C18 Mesma violação produz mesmo código.
-- [ ] S1-C19 Implementar `doctor`.
-- [ ] S1-C20 `doctor` usa o mesmo rule engine do `check`.
-- [ ] S1-C21 `doctor` não cria regras próprias.
-- [ ] S1-C22 Output estruturado segue `conformance-report.schema.json`.
-- [ ] S1-C23 Suportar PASS/FAIL/WARN/NOT_APPLICABLE.
-- [ ] S1-C24 Preservar NOT_RUN != PASS.
-- [ ] S1-C25 Implementar modo não interativo.
-- [ ] S1-C26 Exit codes seguem `CLI_CONTRACT.md`.
-- [ ] S1-C27 Exit code e relatório nunca se contradizem.
-- [ ] S1-C28 Fixture válida → PASS.
-- [ ] S1-C29 Fixtures inválidas → códigos esperados.
-- [ ] S1-C30 Execuções repetidas → resultado determinístico.
-- [ ] S1-C31 CI verde.
-- [ ] S1-C32 Audit packet S1 produzido.
-- [ ] S1-C33 Auditoria independente PASS.
+Sempre que continuar útil, reaproveitar:
 
-### Gate
+- `AGENTS.md`;
+- `README.md`;
+- validadores já existentes;
+- schemas simples que ainda tenham função prática;
+- packs existentes que representem necessidades reais;
+- fixtures que protejam comportamentos importantes;
+- CI já funcional.
 
-Todos os critérios obrigatórios PASS.
+Nada deve ser mantido apenas porque já foi implementado.
 
-Depois:
+## Validação mínima
 
-AUDIT RESULT: PASS
+- o exemplo criado a partir do template é compreensível;
+- os arquivos essenciais existem;
+- CI executa corretamente;
+- testes essenciais passam;
+- um agente de IA consegue identificar como trabalhar no projeto lendo as instruções principais.
 
-Depois Product Authority registra:
+## Auditoria
 
-Gate S1 = PASS
-
-Somente então S2.
+Uma única auditoria da fase confirma se o Golden Template está correto e simples.
 
 ---
 
-## S2 — INIT / COMPILER
+# F1 — GENERATOR
 
 **Status:** NOT_STARTED
 
-### Objective
+## Objetivo
 
-Gerar projeto mínimo e determinístico a partir de manifest válido.
+Permitir criar um novo projeto a partir do Standard sem copiar arquivos manualmente.
 
-### Checklist
+Exemplo de uso desejado:
 
-- [ ] S2-C01 Compor BASE.
-- [ ] S2-C02 Aplicar PROFILE.
-- [ ] S2-C03 Aplicar PACKS.
-- [ ] S2-C04 Aplicar PROJECT RULES.
-- [ ] S2-C05 Materializar somente artefatos aplicáveis.
-- [ ] S2-C06 Gerar `standard.lock`.
-- [ ] S2-C07 Gerar fingerprints.
-- [ ] S2-C08 Registrar provenance.
-- [ ] S2-C09 Classificar MANAGED/MERGEABLE/USER_OWNED.
-- [ ] S2-C10 Implementar dry-run.
-- [ ] S2-C11 Mostrar diff antes de escrita quando aplicável.
-- [ ] S2-C12 Detectar conflitos entre packs.
-- [ ] S2-C13 Expandir bundles explicitamente.
-- [ ] S2-C14 Materializar adapters sem criar fonte canônica concorrente.
-- [ ] S2-C15 Geração LIGHT determinística.
-- [ ] S2-C16 Geração STANDARD determinística.
-- [ ] S2-C17 Geração DEEP determinística.
-- [ ] S2-C18 Segunda execução sem mudança → sem diff indevido.
-- [ ] S2-C19 Falha não avança lock.
-- [ ] S2-C20 Auditoria independente PASS.
+```powershell
+ideias-standard init meu-app
+```
 
-### Gate
+Ou, quando houver packs:
 
-Gate S2 = PASS após registro da Product Authority.
+```powershell
+ideias-standard init meu-app --android --ai
+```
+
+## Entregas
+
+- [ ] implementar comando `init`;
+- [ ] receber nome e opções principais do projeto;
+- [ ] copiar/renderizar o template base;
+- [ ] aplicar somente os packs escolhidos;
+- [ ] evitar sobrescrever destino existente sem confirmação explícita;
+- [ ] gerar projeto pronto para abrir e desenvolver;
+- [ ] emitir mensagem simples de sucesso ou erro.
+
+## Validação mínima
+
+Testar apenas os cenários essenciais:
+
+- projeto básico é criado corretamente;
+- projeto com pack é criado corretamente;
+- entrada inválida falha de forma compreensível;
+- destino que já contém arquivos não é sobrescrito silenciosamente;
+- projeto gerado passa no CI básico.
+
+## Auditoria
+
+Uma única auditoria confirma que o gerador produz corretamente o template esperado.
 
 ---
 
-## S3 — ADOPT / BROWNFIELD
+# F2 — QUALITY CHECK
 
 **Status:** NOT_STARTED
 
-### Objective
+## Objetivo
 
-Adotar projetos existentes sem destruir conteúdo legítimo.
+Fornecer uma verificação simples para saber se um projeto continua compatível com o Standard.
 
-### Checklist
+Uso desejado:
 
-- [ ] S3-C01 Inventário inicial read-only.
-- [ ] S3-C02 Identificar arquivos-chave antes de ler conteúdo amplo.
-- [ ] S3-C03 Recomendar profile.
-- [ ] S3-C04 Recomendar packs.
-- [ ] S3-C05 Produzir gap analysis.
-- [ ] S3-C06 Mapear equivalências existentes.
-- [ ] S3-C07 Produzir plano de adoção.
-- [ ] S3-C08 Produzir preview antes de alterações.
-- [ ] S3-C09 Arquivos existentes = USER_OWNED por padrão.
-- [ ] S3-C10 Overwrite implícito proibido.
-- [ ] S3-C11 Conflitos explicitados.
-- [ ] S3-C12 Provenance preservada.
-- [ ] S3-C13 Lock criado somente após validação.
-- [ ] S3-C14 Fixture legacy preserva conteúdo válido.
-- [ ] S3-C15 Auditoria independente PASS.
+```powershell
+ideias-standard check
+```
 
-### Gate
+## O `check` deve verificar
 
-Gate S3 = PASS.
+- [ ] arquivos essenciais presentes;
+- [ ] configuração principal válida;
+- [ ] `AGENTS.md` presente quando aplicável;
+- [ ] packs declarados existem e são compatíveis;
+- [ ] CI básico configurado quando esperado;
+- [ ] inconsistências óbvias que realmente impeçam o uso do template.
+
+## Resultado esperado
+
+Saída humana curta:
+
+```text
+✓ configuração válida
+✓ arquivos essenciais presentes
+✓ AGENTS.md encontrado
+✓ packs válidos
+✓ CI configurado
+
+PASS
+```
+
+Quando houver problema:
+
+```text
+FAIL
+- arquivo obrigatório ausente: AGENTS.md
+```
+
+Pode existir saída JSON se ela for útil para automação, mas ela não deve tornar a implementação mais complexa que o necessário.
+
+## Reaproveitar do S1 antigo
+
+O trabalho já feito em `check`, manifests, ownership, packs e workflows pode ser reaproveitado **somente onde simplificar esta fase**.
+
+Não continuar automaticamente a antiga lista S1-C10–C33.
+
+## Validação mínima
+
+- projeto válido → PASS;
+- projeto claramente inválido → FAIL com mensagem útil;
+- execuções repetidas no mesmo projeto não produzem resultados contraditórios.
+
+## Auditoria
+
+Uma única auditoria confirma que o `check` detecta os problemas importantes sem criar burocracia.
 
 ---
 
-## S4 — UPGRADE LIFECYCLE
+# F3 — PACKS E ECOSSISTEMA
 
 **Status:** NOT_STARTED
 
-### Objective
+## Objetivo
 
-Atualizar projetos gerenciados preservando alterações legítimas.
+Adicionar extensões reutilizáveis somente quando houver necessidade real.
 
-### Checklist
+## Packs iniciais candidatos
 
-- [ ] S4-C01 Suportar versionamento semântico.
-- [ ] S4-C02 Usar provenance no lock.
-- [ ] S4-C03 Implementar migrations versionadas.
-- [ ] S4-C04 Renderizar target em staging.
-- [ ] S4-C05 Comparar baseline anterior × local × target.
-- [ ] S4-C06 Produzir diff antes de aplicar.
-- [ ] S4-C07 MERGEABLE suporta merge controlado.
-- [ ] S4-C08 Detectar conflitos locais.
-- [ ] S4-C09 Fingerprints evitam análise desnecessária.
-- [ ] S4-C10 Analisar prioritariamente artefatos alterados/dependentes.
-- [ ] S4-C11 Implementar rollback quando seguro.
-- [ ] S4-C12 Falha pós-upgrade não avança lock.
-- [ ] S4-C13 Upgrade preserva ownership.
-- [ ] S4-C14 Upgrade preserva provenance.
-- [ ] S4-C15 Rollback preserva estado válido.
-- [ ] S4-C16 Auditoria independente PASS.
+- `android`;
+- `python`;
+- `web`;
+- `ai`;
+- `multi-agent`;
+- `sensitive-data`.
 
-### Gate
+A lista não é uma obrigação. Um pack deve existir somente quando houver projeto real que justifique sua criação.
 
-Gate S4 = PASS.
+## Cada pack deve conter somente o necessário
 
----
+Exemplos:
 
-## S5 — CONTEXT LIFECYCLE
+### Android
 
-**Status:** NOT_STARTED
+- estrutura/recomendações Android;
+- `.gitignore` adequado;
+- CI adequado;
+- instruções relevantes para agentes.
 
-### Objective
+### Python
 
-Formalizar Minimum Sufficient Context.
+- estrutura Python;
+- dependências e ambiente;
+- lint/test básico;
+- CI adequado.
 
-### Checklist
+### AI
 
-- [ ] S5-C01 Implementar REQUIRED.
-- [ ] S5-C02 Implementar CONDITIONAL.
-- [ ] S5-C03 Implementar DISCOVERY.
-- [ ] S5-C04 Registrar why-included.
-- [ ] S5-C05 Registrar why-excluded.
-- [ ] S5-C06 Fingerprints por bloco.
-- [ ] S5-C07 Implementar delta-context.
-- [ ] S5-C08 Implementar byte/token budgets.
-- [ ] S5-C09 Implementar `CONTEXT_OVERFLOW`.
-- [ ] S5-C10 REQUIRED nunca é truncado silenciosamente.
-- [ ] S5-C11 Implementar context reuse.
-- [ ] S5-C12 Medir critical recall.
-- [ ] S5-C13 Medir irrelevant-context rate.
-- [ ] S5-C14 Mudança pequena usa contexto menor que full-project baseline.
-- [ ] S5-C15 Critical recall = 100% nas fixtures críticas.
-- [ ] S5-C16 Overflow insuficiente gera erro explícito.
-- [ ] S5-C17 Auditoria independente PASS.
+- instruções para uso de modelos;
+- tratamento de secrets;
+- configuração de avaliação somente quando o projeto realmente precisar.
 
-### Gate
+### Multi-agent
 
-Gate S5 = PASS.
+- regras básicas de papéis;
+- integração opcional com o Runner;
+- sem obrigar todos os projetos a usar Builder/Auditor.
+
+## Validação mínima
+
+Para cada pack mantido:
+
+- pode ser aplicado a um projeto novo;
+- não quebra o template base;
+- possui pelo menos um exemplo ou teste que prove seu funcionamento principal.
+
+## Auditoria
+
+Auditar cada pack quando ele estiver pronto para uso real, sem criar uma fase independente de governança para cada detalhe interno.
 
 ---
 
-## S6 — MULTI-PROVIDER ECOSYSTEM
+# 5. BACKLOG — SOMENTE SE HOUVER NECESSIDADE REAL
 
-**Status:** NOT_STARTED
+Os itens abaixo **não fazem parte do roadmap obrigatório**. Só devem ser promovidos para uma fase quando um problema real justificar a complexidade.
 
-### Objective
-
-Compor contratos de projeto para diferentes fornecedores sem acoplar o Standard a um executor.
-
-### Checklist
-
-- [ ] S6-C01 Definir contrato provider-neutral para adapters de projeto.
-- [ ] S6-C02 Validar adapters genéricos e específicos nos catálogos.
-- [ ] S6-C03 Garantir que adapters não mudem autoridade, gates ou ownership.
-- [ ] S6-C04 Versionar bundles e workflows declarativos.
-- [ ] S6-C05 Detectar conflitos entre packs, bundles e adapters.
-- [ ] S6-C06 Testar equivalência dos contratos gerados para provedores distintos.
-- [ ] S6-C07 Auditoria independente PASS.
-
-### Gate
-
-Gate S6 = PASS.
-
----
-
-## S7 — IDEA INTEGRATION
-
-**Status:** NOT_STARTED
-
-### Objective
-
-Permitir que Idea produza manifest consumível diretamente pelo Standard.
-
-### Checklist
-
-- [ ] S7-C01 Definir contrato Idea → Standard.
-- [ ] S7-C02 Export versionado.
-- [ ] S7-C03 Import versionado.
-- [ ] S7-C04 Validation de handoff.
-- [ ] S7-C05 Compatibility explícita.
-- [ ] S7-C06 Preservar decisões relevantes.
-- [ ] S7-C07 Preservar provenance.
-- [ ] S7-C08 Não exigir replay da conversa original.
-- [ ] S7-C09 Handoff usa estrutura em vez de transcript completo.
-- [ ] S7-C10 Fixture E2E Idea → Standard PASS.
-- [ ] S7-C11 Projeto gerado compila/valida sem reconstruir conversa.
-- [ ] S7-C12 Auditoria independente PASS.
-
-### Gate
-
-Gate S7 = PASS.
-
----
-
-## S8 — CHANGE LIFECYCLE
-
-**Status:** NOT_STARTED
-
-### Objective
-
-Permitir evolução incremental do projeto por delta.
-
-### Checklist
-
-- [ ] S8-C01 Change possui ID.
-- [ ] S8-C02 Change possui tipo.
-- [ ] S8-C03 Change possui estado.
-- [ ] S8-C04 Change possui rationale.
-- [ ] S8-C05 Registrar decisions afetadas.
-- [ ] S8-C06 Registrar requirements afetados.
-- [ ] S8-C07 Registrar paths afetados.
-- [ ] S8-C08 Registrar acceptance.
-- [ ] S8-C09 Registrar evidências.
-- [ ] S8-C10 Gerar impact delta.
-- [ ] S8-C11 Gerar Minimum Sufficient Context da change.
-- [ ] S8-C12 Builder recebe somente contexto necessário.
-- [ ] S8-C13 Auditor recebe contexto independente necessário.
-- [ ] S8-C14 Change pequena não exige full-project context.
-- [ ] S8-C15 Change pode ser fechada formalmente.
-- [ ] S8-C16 Histórico permanece auditável.
-- [ ] S8-C17 Comparar full-context vs delta-context.
-- [ ] S8-C18 Critical recall permanece preservado.
-- [ ] S8-C19 Auditoria independente PASS.
-
-### Gate
-
-Gate S8 = PASS.
-
----
-
-## 6. DOGFOODING
-
-- [x] D-C01 Histórico: O0 v2 M1–M5 aceitos e usado no próprio `ideias_standard`; execução transferida ao repositório Runner.
-- [x] D-C02 Histórico: S1 retomado após D-C01.
-- [ ] D-C03 Testar o Runner em outro projeto no repositório próprio; não bloqueia S6.
-- [ ] D-C04 S5 passa a gerar contexto do próprio Standard.
-- [ ] D-C05 S8 passa a controlar novas mudanças do próprio Standard.
+- adoção automática de projetos antigos (`adopt`);
+- atualização automática de templates já aplicados (`upgrade`);
+- migrations complexas;
+- fingerprints de arquivos;
+- provenance detalhada;
+- three-way merge;
+- gerenciamento avançado de ownership;
+- bundles;
+- múltiplos profiles de governança;
+- lifecycle formal de mudanças;
+- sistema avançado de contexto/token budget;
+- métricas de critical recall;
+- integração automática Idea → Standard;
+- adapters específicos por fornecedor;
+- validações extensivas multi-provider.
 
 Regra:
 
-provar internamente → depois generalizar
+> Primeiro provar que precisamos. Depois construir.
 
 ---
 
-## 7. MÉTRICAS
+# 6. TESTES
 
-Métricas são evidência auxiliar, não gates cosméticos.
+Testar comportamento importante, não o roadmap.
 
-### Correção
+Base mínima:
 
-- false PASS
-- regressions
-- SHA mismatches
-- validation failures
+1. template válido funciona;
+2. gerador cria projeto válido;
+3. `check` aprova projeto válido;
+4. `check` rejeita erro importante;
+5. packs principais não quebram o template;
+6. bug relevante corrigido recebe regressão quando aplicável.
 
-### Automação
+Não existe meta de quantidade de testes.
 
-- manual handoffs
-- automatic cycles
-- blocked correctly
-- resume success
-
-### Contexto
-
-- tokens/bytes por tarefa
-- repeated-context ratio
-- delta/full ratio
-- critical recall
-
-### Eficiência
-
-- arquivos lidos
-- rodadas Builder/Auditor
-- evidência reutilizada
-- tempo até resolução
-
-Meta:
-
-menos contexto + menos retransmissão + menos intervenção manual, sem reduzir correção.
+Cobertura é ferramenta de diagnóstico, não objetivo do produto.
 
 ---
 
-## 8. FORMATO DE PROGRESSO
+# 7. SEGURANÇA
 
-Cada fase deve manter apenas:
+Segurança deve seguir boas práticas proporcionais ao risco.
 
-- [ ] IMPLEMENTATION_COMPLETE
-- [ ] VALIDATION_PASS
-- [ ] AUDIT_READY
-- [ ] AUDIT_PASS
-- [ ] PRODUCT_AUTHORITY_GATE_PASS
+Baseline:
 
-Quando aplicável.
+- secrets nunca entram no repositório;
+- dependências devem poder ser atualizadas;
+- CI não deve expor credenciais;
+- entradas externas devem ser validadas quando aplicável;
+- operações destrutivas importantes não devem ocorrer silenciosamente.
 
-Para cada entrega auditável, distinguir:
+Projetos sensíveis podem adicionar controles extras por meio de um pack específico.
 
-- `IMPLEMENTED` — commit produzido;
-- `AUDIT_PASS` — auditoria independente aprovou o SHA exato;
-- `INTEGRATED` — SHA auditado foi incorporado à referência canônica;
-- `GATE_PASS` — somente quando a Product Authority registra um gate aplicável.
+O projeto base não deve carregar controles de sistemas críticos que não precisa.
 
 ---
 
-## 9. AUDITORIA
+# 8. RELAÇÃO COM AGENTES DE IA
 
-Auditor recebe somente:
+O Standard deve facilitar o trabalho de Codex, Claude, Gemini, Antigravity e outros agentes sem depender de um fornecedor específico.
 
-- target SHA
-- acceptance/gate aplicável
-- invariantes aplicáveis
-- diff/paths relevantes
-- evidência existente
-- contexto adicional sob demanda
+O principal mecanismo é documentação clara e instruções persistentes no projeto.
 
-Não enviar automaticamente:
+Fluxo esperado:
 
-- conversa inteira;
-- raciocínio completo do Builder;
-- documentação irrelevante;
-- histórico já substituído.
+```text
+Golden Template
+      ↓
+Novo Projeto
+      ↓
+AGENTS.md + README + estrutura clara
+      ↓
+Builder / agente de desenvolvimento
+      ↓
+Testes + CI
+      ↓
+Auditoria quando necessária
+```
 
-Objetivo:
+Para projetos que desejarem automação Builder ↔ Auditor:
 
-Minimum Sufficient Audit Context
+```text
+Ideias Standard
+      ↓
+projeto preparado
+      ↓
+Runner opcional
+      ↓
+Builder ↔ Auditor
+```
 
----
-
-## 10. ESCALADA
-
-Automação deve parar em:
-
-- nova decisão de produto
-- conflito LOCKED
-- operação destrutiva não autorizada
-- DISPUTED
-- ESCALATE
-- limite de auditorias
-- evidência insuficiente
-- risco de segurança
-- falha de integridade
-- ambiguidade material
-
-Resultado:
-
-BLOCKED → Product Authority
-
-Não preencher lacuna material por suposição.
+O Runner não é requisito para usar o Standard.
 
 ---
 
-## 11. VISÃO FINAL
+# 9. IDEIA FUTURA
 
-- S0 Foundation — ✅ CLOSED
-- Runner — ferramenta externa: https://github.com/playertwo1/runner
-- S1 Conformance First — 🟢 ACTIVE
-- S2 Init / Compiler
-- S3 Adopt / Brownfield
-- S4 Upgrade Lifecycle
-- S5 Context Lifecycle
-- S6 Multi-provider Ecosystem
-- S7 Idea Integration
-- S8 Change Lifecycle
+O projeto `Idea` poderá futuramente gerar a configuração inicial usada pelo Ideias Standard.
 
-Resultado desejado:
+Fluxo desejado:
 
-- Idea → define o projeto
-- Ideias Standard → define contrato e lifecycle
-- Context System → entrega contexto mínimo
-- Builder → implementa
-- Auditor → verifica independentemente
-- Adapters → descrevem integração sem prender o Standard a um executor
-- Product Authority → mantém decisões materiais e gates
+```text
+Idea
+  ↓
+Definição do projeto
+  ↓
+Ideias Standard
+  ↓
+Template + packs
+  ↓
+Projeto pronto para desenvolvimento
+```
 
-Regra final:
+Essa integração só deve ser construída depois que o próprio Standard estiver simples e estável.
 
-> Adapters não ampliam a autoridade do projeto.
+---
 
-Regra de contexto:
+# 10. DEFINIÇÃO DE SUCESSO
 
-> Usar o mínimo de tokens possível preservando 100% das obrigações críticas.
+O Ideias Standard estará cumprindo sua função quando for possível criar um projeto novo e, em poucos minutos, obter:
+
+- estrutura profissional;
+- instruções claras para agentes;
+- documentação mínima útil;
+- CI funcionando;
+- testes essenciais;
+- packs adequados à tecnologia escolhida;
+- baixa quantidade de configuração manual;
+- pouca burocracia.
+
+A pergunta principal não será:
+
+> Quantos controles o Standard possui?
+
+Será:
+
+> Ele me ajuda a começar um projeto melhor e mais rápido?
+
+---
+
+# 11. ORDEM DE EXECUÇÃO
+
+```text
+F0 Golden Template
+        ↓
+F1 Generator
+        ↓
+F2 Quality Check
+        ↓
+F3 Packs e Ecossistema
+```
+
+Qualquer capacidade além disso entra primeiro no backlog.
+
+**Não construir antecipadamente.**
