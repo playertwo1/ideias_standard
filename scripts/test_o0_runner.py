@@ -551,6 +551,22 @@ class O0RunnerTest(unittest.TestCase):
                 with self.assertRaisesRegex(HandoffError, "Auditor write sandbox is unavailable"):
                     run_actor([sys.executable, "-c", "pass"], workspace, report, {}, write_sandbox=True)
 
+    @unittest.skipUnless(os.name == "nt", "Windows ACL semantics")
+    def test_windows_sandbox_blocks_existing_child_without_inheritance(self):
+        workspace = self.root / "acl-workspace"
+        child = workspace / "child"
+        child.mkdir(parents=True)
+        target = child / "file.txt"
+        target.write_text("before", encoding="utf-8")
+        subprocess.run(["icacls", str(child), "/inheritance:d"], check=True, capture_output=True)
+        report = self.root / "reports" / "audit.json"
+
+        with runner_module._windows_auditor_write_sandbox(workspace, report, {}):
+            with self.assertRaises(PermissionError):
+                target.write_text("blocked", encoding="utf-8")
+
+        target.write_text("after", encoding="utf-8")
+
     def test_state_change_during_audit_is_rejected(self):
         repository, _, target = self._repository()
         workspace = prepare_audit_workspace(repository, self.root / "audits", target)

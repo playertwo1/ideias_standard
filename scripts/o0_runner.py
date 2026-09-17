@@ -804,7 +804,7 @@ def _windows_auditor_write_sandbox(
             )
         for d in reversed(applied_dirs):
             subprocess.run(
-                ["icacls", _icacls_path(d), "/remove:d", "*S-1-1-0"],
+                ["icacls", _icacls_path(d), "/remove:d", "*S-1-1-0", "/t"],
                 capture_output=True,
                 check=False,
             )
@@ -814,7 +814,7 @@ def _windows_auditor_write_sandbox(
             target_str = _icacls_path(target)
             if target.is_dir():
                 res = subprocess.run(
-                    ["icacls", target_str, "/deny", "*S-1-1-0:(OI)(CI)(WD,AD,WA,WEA,DC,DE)"],
+                    ["icacls", target_str, "/deny", "*S-1-1-0:(OI)(CI)(WD,AD,WA,WEA,DC,DE)", "/t"],
                     capture_output=True,
                     check=False,
                 )
@@ -1666,6 +1666,7 @@ def run_task_queue(
     state_path = resolve_path(config_path, base_config["state_path"])
     reports_dir = resolve_path(config_path, base_config["reports_dir"])
     repository = resolve_path(config_path, base_config["repository"])
+    audit_root = resolve_path(config_path, base_config["audit_workspaces"])
 
     queue_data = load_json(queue_path)
     validate_with_schema(queue_data, "task-queue")

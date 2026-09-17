@@ -47,6 +47,71 @@ def _run_git(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
+def _load_reaudit_context(path: Path) -> dict[str, Any]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("Reaudit handoff must be an object")
+    required = {
+        "previous_audited_sha", "new_audit_target_sha", "audit_round",
+        "context_mode", "full_context_reasons", "findings",
+        "changed_paths", "declared_changed_paths", "reusable_evidence",
+    }
+    missing = sorted(required - payload.keys())
+    if missing:
+        raise ValueError(f"Reaudit handoff missing fields: {', '.join(missing)}")
+    return payload
+
+
+def _compact_reaudit_context(payload: dict[str, Any]) -> str:
+    context = {
+        "previous_audited_sha": payload["previous_audited_sha"],
+        "new_audit_target_sha": payload["new_audit_target_sha"],
+        "audit_round": payload["audit_round"],
+        "context_mode": payload["context_mode"],
+        "full_context_reasons": payload["full_context_reasons"],
+        "findings": payload["findings"],
+        "changed_paths": payload["changed_paths"],
+        "declared_changed_paths": payload["declared_changed_paths"],
+        "reusable_evidence": payload["reusable_evidence"],
+    }
+    return json.dumps(context, ensure_ascii=False, separators=(",", ":"))
+
+
+def _diff_summary(cwd: Path, target_sha: str, base_sha: str | None) -> str:
+    if base_sha:
+        range_spec = f"{base_sha}..{target_sha}"
+    else:
+        parent = _run_git(["rev-parse", f"{target_sha}^"], cwd=cwd).stdout.strip()
+        range_spec = f"{parent}..{target_sha}"
+    return _run_git(["diff", "--name-status", range_spec], cwd=cwd).stdout.strip()
+
+
+def _build_audit_prompt(
+    target_sha: str,
+    audit_workspace: Path,
+    task_criteria: str,
+    reaudit_payload: dict[str, Any] | None = None,
+) -> str:
+    base_sha = reaudit_payload.get("previous_audited_sha") if reaudit_payload else None
+    changed = _diff_summary(audit_workspace, target_sha, base_sha)
+    diff_context = f"Delta {base_sha or 'parent'}..{target_sha}:\n{changed or '(no changed paths)'}"
+    if reaudit_payload is not None:
+        return (
+            "You are an independent auditor performing a REAUDIT. "
+            f"Audit commit {target_sha} in the current read-only checkout. "
+            f"Prior context (references only): {_compact_reaudit_context(reaudit_payload)}\n"
+            f"{diff_context}\n{task_criteria}\n"
+            "Verify every applicable prior finding and the declared delta. "
+            "Read referenced evidence by ID/SHA only when needed. Return the required JSON report; findings and checks must be structured."
+        )
+    return (
+        "You are an independent auditor. "
+        f"Audit commit {target_sha} in the current read-only checkout. "
+        f"{diff_context}\n{task_criteria}\n"
+        "Read only files necessary for the criteria. Return the required JSON report; findings and checks must be structured."
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", default=None, help="Explicit task description for Auditor")
@@ -89,8 +154,37 @@ def main() -> int:
             "audited_sha": {"type": "string"},
             "audit_result": {"enum": ["PASS", "FAIL"]},
             "summary": {"type": "string"},
-            "findings": {"type": "array", "items": {"type": "string"}},
-            "checks": {"type": "array", "items": {"type": "string"}},
+            "findings": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["id", "severity", "blocking", "files", "problem", "violated_criterion", "resolution_condition", "evidence"],
+                    "properties": {
+                        "id": {"type": "string"},
+                        "severity": {"enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]},
+                        "blocking": {"type": "boolean"},
+                        "files": {"type": "array", "items": {"type": "string"}},
+                        "problem": {"type": "string"},
+                        "violated_criterion": {"type": "string"},
+                        "resolution_condition": {"type": "string"},
+                        "evidence": {"type": "string"},
+                    },
+                },
+            },
+            "checks": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["id", "status", "evidence"],
+                    "properties": {
+                        "id": {"type": "string"},
+                        "status": {"enum": ["PASS", "FAIL", "NOT_RUN", "NOT_APPLICABLE"]},
+                        "evidence": {"type": "string"},
+                    },
+                },
+            },
         },
     }
     temp_schema_file.write_text(json.dumps(codex_output_schema, indent=2), encoding="utf-8")
@@ -113,36 +207,13 @@ def main() -> int:
             "Verify correctness, completeness and that tests pass."
         )
 
-    diff_summary = ""
-    try:
-        git_show = _run_git(["show", "--stat", "--oneline", target_sha], cwd=audit_workspace).stdout.strip()
-        diff_summary = f"\n\nCommit under audit:\n{git_show}\n"
-    except Exception:
-        pass
-
     reaudit_handoff_env = os.environ.get("IDEAS_STANDARD_REAUDIT_HANDOFF")
+    reaudit_payload = None
     if reaudit_handoff_env and Path(reaudit_handoff_env).is_file():
-        try:
-            reaudit_data = json.loads(Path(reaudit_handoff_env).read_text(encoding="utf-8"))
-            changed_paths = reaudit_data.get("changed_paths", [])
-            changed_desc = f" Changed files: {', '.join(changed_paths)}." if changed_paths else ""
-        except Exception:
-            changed_desc = ""
-        auditor_prompt = (
-            f"You are an independent auditor performing a REAUDIT of the repository in the current directory at commit {target_sha}. "
-            f"The previous round had findings that Builder was tasked to fix.{changed_desc} "
-            f"{task_criteria}{diff_summary}"
-            "Verify whether the findings from the previous round have been corrected and all tests pass in this commit. "
-            "Return the JSON report required by the output schema. Use audit_result PASS only if the implementation and tests are correct. "
-            "Use arrays of strings for findings and checks; findings must be empty for PASS."
-        )
-    else:
-        auditor_prompt = (
-            f"You are an independent auditor. Audit the repository in the current directory at commit {target_sha}. "
-            f"{task_criteria}{diff_summary}"
-            "Return the JSON report required by the output schema. Use audit_result PASS only if the implementation and tests are correct. "
-            "Use arrays of strings for findings and checks; findings must be empty for PASS."
-        )
+        reaudit_payload = _load_reaudit_context(Path(reaudit_handoff_env))
+    auditor_prompt = _build_audit_prompt(
+        target_sha, audit_workspace, task_criteria, reaudit_payload
+    )
 
 
     codex_cmd = [
@@ -204,21 +275,28 @@ def main() -> int:
     raw_findings = raw_report.get("findings", [])
     raw_checks = raw_report.get("checks", [])
     if not raw_checks:
-        raw_checks = ["Auditor verification performed in frozen checkout"]
+        raw_checks = [{
+            "id": "codex-check-1",
+            "status": "PASS" if audit_result == "PASS" else "FAIL",
+            "evidence": "Auditor verification performed in frozen checkout",
+        }]
 
     converted_findings = []
     if audit_result == "FAIL":
         for i, item in enumerate(raw_findings):
-            converted_findings.append({
-                "id": f"CODEX-FINDING-{i+1:03d}",
-                "severity": "HIGH",
-                "blocking": True,
-                "files": ["."],
-                "evidence": f"Codex reported finding: {item}",
-                "problem": item,
-                "violated_criterion": "Implementation or test correctness",
-                "resolution_condition": "Builder must fix the reported finding and produce a new SHA.",
-            })
+            if isinstance(item, dict):
+                converted_findings.append(item)
+            else:
+                converted_findings.append({
+                    "id": f"CODEX-FINDING-{i+1:03d}",
+                    "severity": "HIGH",
+                    "blocking": True,
+                    "files": ["."],
+                    "evidence": f"Codex reported finding: {item}",
+                    "problem": str(item),
+                    "violated_criterion": "Implementation or test correctness",
+                    "resolution_condition": "Builder must fix the reported finding and produce a new SHA.",
+                })
 
     canonical_report: dict[str, Any] = {
         "schema_version": "0.1",
@@ -229,14 +307,7 @@ def main() -> int:
         "audited_sha": target_sha,
         "summary": raw_report.get("summary", f"Independent audit {audit_result} by Codex CLI."),
         "findings": converted_findings,
-        "checks": [
-            {
-                "id": f"codex-check-{i+1}",
-                "status": audit_result,
-                "evidence": check_desc,
-            }
-            for i, check_desc in enumerate(raw_checks)
-        ],
+        "checks": raw_checks,
         "residual_risks": [],
         "gate_registration": "NOT_AUTHORIZED",
     }

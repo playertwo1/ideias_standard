@@ -8,9 +8,49 @@ import unittest
 from pathlib import Path
 
 from scripts.o0_m1_cli_validation import _prepare_work_root
+from scripts.o0_codex_adapter import _build_audit_prompt
 
 
 class O0V2M1Test(unittest.TestCase):
+    def test_reaudit_prompt_keeps_structured_context_without_inline_evidence(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repo = Path(temporary) / "repo"
+            repo.mkdir()
+            subprocess.run(["git", "init", "-b", "main"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "test"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.email", "test@example.invalid"], cwd=repo, check=True, capture_output=True)
+            (repo / "a.txt").write_text("a", encoding="utf-8")
+            subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "commit", "-m", "base"], cwd=repo, check=True, capture_output=True)
+            base = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True).stdout.strip()
+            (repo / "a.txt").write_text("b", encoding="utf-8")
+            subprocess.run(["git", "commit", "-am", "change"], cwd=repo, check=True, capture_output=True)
+            target = subprocess.run(["git", "rev-parse", "HEAD"], cwd=repo, check=True, capture_output=True, text=True).stdout.strip()
+            payload = {
+                "previous_audited_sha": base,
+                "new_audit_target_sha": target,
+                "audit_round": 1,
+                "context_mode": "DELTA",
+                "full_context_reasons": [],
+                "findings": [{
+                    "id": "F-1", "severity": "HIGH", "blocking": True,
+                    "files": ["a.txt"], "problem": "bad value",
+                    "violated_criterion": "value", "resolution_condition": "fix",
+                    "evidence": {"evidence_id": "ev-1", "sha256": "a" * 64},
+                }],
+                "changed_paths": ["a.txt"],
+                "declared_changed_paths": ["a.txt"],
+                "reusable_evidence": [{
+                    "check_id": "c-1", "status": "FAIL",
+                    "evidence": {"evidence_id": "ev-2", "sha256": "b" * 64},
+                }],
+            }
+            prompt = _build_audit_prompt(target, repo, "Check the fix.", payload)
+            self.assertIn('"id":"F-1"', prompt)
+            self.assertIn('"context_mode":"DELTA"', prompt)
+            self.assertIn("a.txt", prompt)
+            self.assertNotIn("secret evidence body", prompt)
+
     def test_existing_execution_is_never_removed(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "accepted"

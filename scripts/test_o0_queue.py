@@ -177,6 +177,40 @@ class O0QueueTest(unittest.TestCase):
         self.assertTrue(exec_file.is_file())
         self.assertEqual("COMPLETED", json.loads(exec_file.read_text(encoding="utf-8"))["status"])
 
+    def test_queue_cleanup_removes_audit_workspace_without_error(self) -> None:
+        builder_script, auditor_script = self._create_actor_scripts()
+        config = {
+            "repository": str(self.repo),
+            "state_path": str(self.state_path),
+            "reports_dir": str(self.reports_dir),
+            "builder_workspace": str(self.repo),
+            "audit_workspaces": str(self.audit_workspaces),
+            "builder_command": [sys.executable, str(builder_script)],
+            "auditor_command": [sys.executable, str(auditor_script)],
+            "max_retries": 3,
+            "cleanup_audit_workspaces": True,
+        }
+        config_path = self.root / "config-cleanup.json"
+        config_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
+        queue_path = self.root / "queue-cleanup.json"
+        queue_path.write_text(json.dumps({
+            "schema_version": "0.1",
+            "phase": "O0",
+            "tasks": [{
+                "task_id": "task-cleanup",
+                "goal": "cleanup",
+                "scope": ["file.txt"],
+                "acceptance_criteria": ["pass"],
+                "phase": "O0",
+            }],
+        }), encoding="utf-8")
+
+        result = run_task_queue(config_path, queue_path, max_steps_per_task=10)
+        self.assertEqual("COMPLETED", result["status"])
+        self.assertFalse(
+            [path for path in self.audit_workspaces.iterdir() if path.name != "state-snapshots"]
+        )
+
     def test_queue_stops_when_task_is_blocked(self) -> None:
         builder_script, _ = self._create_actor_scripts()
         # Auditor script returns ESCALATE for task-01, causing BLOCKED state
