@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -145,7 +146,7 @@ def main() -> int:
         return 1
 
     # Temporary schema and output paths placed safely outside the audit checkout
-    temp_dir = report_path.parent / f".codex_tmp_{target_sha[:8]}"
+    temp_dir = report_path.parent / f".codex_tmp_{target_sha[:8]}_{uuid.uuid4().hex[:8]}"
     temp_dir.mkdir(parents=True, exist_ok=True)
     temp_schema_file = temp_dir / "auditor-schema.json"
     temp_report_file = temp_dir / "codex-raw-report.json"
