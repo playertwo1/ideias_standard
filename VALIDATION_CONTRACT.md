@@ -1,70 +1,96 @@
-# Validation Contract — Ideias Standard
+# Validation Contract — Ideias Standard Gold
 
-Este contrato define os códigos determinísticos iniciais de conformance. O objetivo é separar falhas estruturais, semânticas, invariantes e integridade interna do próprio Standard.
+Este contrato define o comportamento mínimo do `check` no modelo Gold.
 
-## Estados
+O objetivo é responder de forma simples:
 
-- `PASS`: check executado e satisfeito.
-- `FAIL`: check executado e não satisfeito.
-- `WARN`: problema real não bloqueante para o check atual.
-- `NOT_APPLICABLE`: somente com rationale.
+> O projeto está saudável para continuar o trabalho?
 
-`NOT_RUN != PASS`.
+## Resultado
 
-## Códigos de documento
+O resultado principal deve ser:
 
-| Código | Tipo | Regra |
-|---|---|---|
-| `IS-SCHEMA-001` | FAIL | Documento não satisfaz o JSON Schema aplicável. |
-| `IS-SEM-001` | FAIL | Manifest/lock referencia pack inexistente. |
-| `IS-SEM-002` | FAIL | `standard.lock` contém paths de artefatos duplicados. |
-| `IS-SEM-003` | FAIL | Bundle referencia pack inexistente. |
-| `IS-SEM-004` | FAIL | Documento materializável referencia workflow inexistente. |
-| `IS-SEM-005` | FAIL | Documento materializável referencia adapter inexistente ou não `ACTIVE`. |
-| `IS-SEM-006` | FAIL | Manifest/lock declara versão do Standard diferente da versão suportada. |
-| `IS-SEM-007` | FAIL | Workflow contém IDs de steps duplicados. |
-| `IS-SEM-008` | FAIL | Reservado para contradição material de composição profile/bundle/packs. |
-| `IS-SEM-009` | FAIL/CRITICAL | `sensitive-data` exige `capabilities.human_gates=true`. |
-| `IS-SEM-010` | FAIL/CRITICAL | `multi-agent` exige `capabilities.independent_audit=true`. |
-| `IS-SEM-011` | FAIL/CRITICAL | `multi-agent` exige Builder e Auditor distintos. |
-| `IS-SEM-021` | FAIL/HIGH | Rota de `context-manifest` contém path traversal (`..`) ou caminho absoluto. |
-| `IS-SEM-022` | FAIL/HIGH | Categorias de uma rota de `context-manifest` possuem caminhos sobrepostos. |
-| `IS-SEM-023` | FAIL/MEDIUM | `bootstrap_target_max_bytes` excede `task_target_max_bytes` em `context-manifest`. |
-| `IS-SEM-024` | FAIL/HIGH | Caminho de artefato contém path traversal (`..`) ou caminho absoluto. |
-| `IS-SEM-025` | FAIL/HIGH | Artefato referencia pack inexistente ou não declarado no lock. |
-| `IS-SEM-026` | FAIL/HIGH | Artefato declara profile inválido (deve ser LIGHT, STANDARD ou DEEP). |
-| `IS-SEM-027` | FAIL/CRITICAL | Artefato `USER_OWNED` possui `local_override=true` (violação do invariante INV-002). |
-| `IS-SEM-028` | FAIL/HIGH | Arquivo de contrato obrigatório do projeto está ausente (`project-manifest.json`, `standard.lock`, `context-manifest.json`). |
-| `IS-SEM-029` | FAIL/HIGH | Artefato gerenciado declarado em `standard.lock` não existe no disco. |
-| `IS-INV-001` | FAIL/CRITICAL | Registry contém IDs de invariantes duplicados. |
-| `IS-WARN-001` | WARN | Artefato `MANAGED` possui `local_override=true`; revisar antes de upgrade. |
+- `PASS` — verificações aplicáveis concluídas sem falha relevante;
+- `FAIL` — existe falha que precisa ser corrigida antes de considerar o projeto saudável.
 
-## Códigos de autoauditoria
+`WARN` pode ser usado quando houver informação útil que não bloqueie o trabalho, mas não é obrigatório.
 
-| Código | Regra |
-|---|---|
-| `IS-SELF-001` | JSON Schema interno é inválido. |
-| `IS-SELF-002` | Catálogo possui IDs duplicados. |
-| `IS-SELF-003` | Catálogo aponta para path inexistente. |
-| `IS-SELF-004` | `COMPATIBILITY.yaml` diverge de `VERSION`. |
-| `IS-SELF-005` | `INVARIANTS.yaml` falhou validação. |
-| `IS-SELF-006` | Bundle canônico falhou validação. |
-| `IS-SELF-007` | Workflow canônico falhou validação. |
-| `IS-SELF-008` | Policy canônica de orquestração multiagente falhou validação. |
-| `IS-CLI-001` | Erro operacional da ferramenta; exit code 2. |
-| `IS-CLI-002` | Modo offline ativo; validação estritamente local. |
-| `IS-CLI-003` | Modo dry-run ativo; preview de execução sem escrita ou efeitos colaterais. |
+## O que pode ser verificado
 
-## Princípios
+Somente o que for aplicável ao projeto, por exemplo:
 
-- JSON Schema valida forma; regras entre documentos e catálogos são semânticas.
-- Invariantes críticos possuem IDs estáveis em `INVARIANTS.yaml`.
-- Um erro deve retornar código estável e mensagem específica.
-- Não alterar fixture ou teste apenas para obter verde.
-- Novo código não reutiliza significado antigo dentro da mesma major version.
-- `doctor` deve explicar os mesmos findings de `check`, não criar regra paralela.
-- `--strict` futuro pode elevar WARN operacionalmente, mas não muda o significado canônico do check.
-- O relatório estruturado usa `schemas/conformance-report.schema.json`.
-- Exit codes da futura CLI seguem `CLI_CONTRACT.md`.
-- Orquestração multiagente valida estado, handoffs e autoridade separadamente da execução do provider.
-- PASS de Auditor é evidência para o SHA auditado; não é registro automático de gate humano.
+- arquivos essenciais;
+- configuração da stack;
+- lint/format;
+- typecheck;
+- testes;
+- build;
+- CI;
+- packs ativos;
+- problemas básicos de segurança ou configuração.
+
+Nem todo projeto precisa de todas as verificações.
+
+## Saída humana
+
+Preferir saída curta e acionável.
+
+Exemplo:
+
+```text
+PASS
+✓ lint
+✓ tests
+✓ build
+```
+
+Falha:
+
+```text
+FAIL
+- tests: 2 testes falharam
+- build: não executado após falha dos testes
+```
+
+## Saída estruturada
+
+JSON só deve ser mantido ou ampliado quando houver consumidor real de automação.
+
+Se usado, deve representar o mesmo resultado da saída humana e nunca contradizê-la.
+
+## Códigos
+
+O Gold Standard não exige um catálogo grande de códigos determinísticos para cada detalhe interno.
+
+Quando um código estável trouxer valor para automação ou diagnóstico, ele pode existir. Não criar códigos apenas para satisfazer documentação.
+
+## Exit codes
+
+Quando usados pela CLI/script:
+
+- `0`: PASS;
+- `1`: FAIL de validação;
+- `2`: erro operacional ou uso inválido.
+
+## Testes
+
+Testar comportamentos importantes:
+
+- projeto saudável → PASS;
+- falha importante → FAIL com mensagem útil;
+- mesma entrada não produz resultado contraditório;
+- bug relevante corrigido recebe regressão quando fizer sentido.
+
+Não existe meta de quantidade de testes ou cobertura como gate do produto.
+
+## Auditoria
+
+`check` não substitui auditoria independente.
+
+Para alterações relevantes, o Auditor recebe inicialmente pedido/aceite, diff e resultado do `check`, e amplia contexto somente quando necessário.
+
+## Transição do modelo antigo
+
+Scripts e schemas existentes podem continuar emitindo códigos do modelo de conformance anterior durante F0.
+
+Esses códigos são ativos legados em revisão e não definem mais o roadmap. Devem ser mantidos, simplificados ou removidos conforme seu valor prático no Gold Standard.
