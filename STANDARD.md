@@ -13,12 +13,13 @@ O Ideias Standard não é um framework de governança. É um **Golden Standard o
 
 1. **Small Core** — poucas regras universais.
 2. **Progressive Context** — carregar somente o contexto necessário para a tarefa atual.
-3. **Executable Verification** — preferir build, testes, lint, typecheck e scripts reais a instruções vagas.
-4. **Independent Audit** — alterações relevantes podem ser revisadas por outro agente/processo.
-5. **Optional Packs** — capacidades específicas permanecem fora do Core até serem necessárias.
-6. **No Overengineering** — nenhuma abstração, arquivo ou camada existe sem problema concreto.
-7. **Preserve Existing Work** — padronizar não significa reescrever o projeto.
-8. **Security Proportional to Risk** — segurança cresce conforme o risco real.
+3. **Token Discipline** — maximizar sinal por token e evitar contexto sem função prática.
+4. **Executable Verification** — preferir build, testes, lint, typecheck e scripts reais a instruções vagas.
+5. **Independent Audit** — alterações relevantes podem ser revisadas por outro agente/processo.
+6. **Optional Packs & Skills** — capacidades específicas permanecem fora do Core até serem necessárias.
+7. **No Overengineering** — nenhuma abstração, arquivo ou camada existe sem problema concreto.
+8. **Preserve Existing Work** — padronizar não significa reescrever o projeto.
+9. **Security Proportional to Risk** — segurança cresce conforme o risco real.
 
 ## 3. Definição de Gold
 
@@ -60,20 +61,47 @@ Evitar copiar o mesmo conteúdo para arquivos específicos de fornecedores. Se u
 A leitura começa pequena e cresce apenas sob necessidade.
 
 ```text
-AGENTS.md
+AGENTS.md + pedido
    ↓
 contexto mínimo
+   ├─ busca/localização
+   ├─ trecho ou arquivo necessário
    ├─ documentação específica
    ├─ pack da tecnologia
    ├─ Skill do procedimento
    └─ dependências diretas necessárias
 ```
 
-Não escanear o repositório inteiro por padrão.
+Regras:
+
+- localizar antes de carregar;
+- preferir trechos relevantes a arquivos inteiros;
+- não escanear o repositório inteiro por padrão;
+- não carregar estado, roadmap ou documentação sem relação concreta com a tarefa;
+- expandir contexto somente quando uma hipótese ou dependência justificar.
 
 Não criar um engine complexo de contexto enquanto referências simples e organização por domínio forem suficientes.
 
-## 6. Builder
+## 6. Token Discipline
+
+O objetivo não é minimizar tokens a qualquer custo. É **maximizar sinal por token sem perder correção**.
+
+Práticas Gold:
+
+1. `AGENTS.md` funciona como mapa, não manual.
+2. Localizar antes de ler e ler o menor trecho suficiente.
+3. Limitar ou filtrar outputs potencialmente grandes de terminal, testes, builds e ferramentas.
+4. `check` deve resumir validações; logs detalhados ficam disponíveis somente quando necessários.
+5. Carregar docs, packs e Skills somente sob demanda.
+6. Ativar somente ferramentas/MCPs necessários à tarefa atual quando isso for controlável.
+7. Auditor começa por pedido, aceite, diff e resultado do `check`.
+8. Nova tarefa materialmente diferente deve preferir novo contexto/sessão em vez de carregar histórico irrelevante.
+9. Trabalho longo pode manter estado externo curto em vez de depender de histórico extenso.
+10. Não reduzir contexto crítico apenas para economizar tokens; retrabalho também é desperdício.
+
+Outputs de ferramentas devem preferir resumo acionável. Detalhes completos permanecem acessíveis para investigação.
+
+## 7. Builder
 
 O Builder deve:
 
@@ -88,7 +116,7 @@ O Builder deve:
 
 Planejamento é proporcional à complexidade da tarefa.
 
-## 7. Verificação executável
+## 8. Verificação executável
 
 Todo projeto Gold deve possuir uma forma conhecida de verificar alterações.
 
@@ -104,13 +132,15 @@ check
 
 O mecanismo físico pode variar por stack.
 
+A saída padrão deve ser curta e útil. Detalhes ou logs completos devem ser expandidos somente quando houver falha ou investigação explícita.
+
 CI deve preferencialmente executar as mesmas verificações importantes usadas localmente.
 
 Testes protegem comportamento útil. Não existe meta de quantidade de testes nem obrigação de testar detalhes internos sem valor prático.
 
 Bug relevante deve ganhar teste de regressão quando isso for útil e viável.
 
-## 8. Auditoria independente
+## 9. Auditoria independente
 
 O Auditor não precisa ler o projeto inteiro.
 
@@ -138,7 +168,7 @@ Resultado mínimo: `PASS` ou `FAIL` com findings acionáveis.
 
 A automação Builder ↔ Auditor pertence ao projeto externo Runner quando desejada. O Standard define o comportamento esperado, não exige um executor específico.
 
-## 9. Packs
+## 10. Packs
 
 Packs adicionam boas práticas específicas sem inflar o Core.
 
@@ -156,22 +186,34 @@ Um pack deve existir somente quando uma necessidade real justificar sua criaçã
 
 Packs não devem despejar grandes blocos de texto no `AGENTS.md`. Contexto específico deve permanecer próximo do domínio ao qual pertence.
 
-## 10. Skills
+## 11. Skills
 
-Procedimentos especializados e reutilizáveis podem ser representados como Skills carregadas sob demanda.
+Skills representam procedimentos especializados e reutilizáveis carregados sob demanda.
 
-Exemplos:
+Princípios:
 
-- code review;
-- release;
-- migration;
-- build especializado.
+- uma Skill deve ter uma responsabilidade clara;
+- metadata deve permitir descoberta sem carregar todo o conteúdo;
+- referências e scripts devem ser carregados/executados somente quando necessários;
+- não criar Skill quando um comando/script simples resolve melhor;
+- não duplicar instruções já presentes no Core;
+- Skills de terceiros entram somente após revisão de conteúdo, segurança, licença e adequação ao Gold.
 
-Cada Skill deve fazer uma coisa bem e permanecer pequena.
+Fluxo para reaproveitar Skill externa:
 
-Skills não substituem comandos executáveis quando um script simples resolve melhor o problema.
+```text
+DISCOVER → REVIEW → TRIM → ADAPT → TEST → INSTALL
+```
 
-## 11. Create
+Prioridade inicial de Skills Gold:
+
+- `gold-audit` — auditoria independente baseada em diff;
+- `goldify` — análise de projeto existente e Golden Diff;
+- `skill-author` — criar/revisar Skills pequenas e coerentes com o Standard.
+
+Novas Skills só entram quando uma tarefa repetitiva concreta justificar sua existência.
+
+## 12. Create
 
 A primeira forma de criar projetos Gold deve ser a solução mais simples disponível.
 
@@ -181,7 +223,7 @@ Criar um gerador próprio somente se houver necessidade real não atendida por u
 
 Projeto criado deve passar no `check` aplicável.
 
-## 12. Adopt / Goldify
+## 13. Adopt / Goldify
 
 Projetos existentes são casos de primeira classe.
 
@@ -198,7 +240,7 @@ Goldify deve:
 
 Não usar nota arbitrária ou sistema complexo de pontuação.
 
-## 13. Segurança
+## 14. Segurança
 
 Baseline:
 
@@ -211,7 +253,7 @@ Baseline:
 
 Projetos com maior risco recebem controles adicionais por packs específicos.
 
-## 14. Anti-overengineering
+## 15. Anti-overengineering
 
 Nunca adicionar complexidade apenas para antecipar possibilidades futuras.
 
@@ -227,6 +269,6 @@ Prefira:
 
 Complexidade que deixou de justificar sua existência deve poder ser removida.
 
-## 15. Regra final
+## 16. Regra final
 
 > Menos contexto, mais sinal. Menos processo, mais verificação. Menos abstração, mais utilidade.
