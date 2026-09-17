@@ -956,7 +956,12 @@ def write_state_snapshot(state_path: Path, audit_root: Path, target: str) -> Pat
     snapshot_root = audit_root / "state-snapshots"
     snapshot_root.mkdir(parents=True, exist_ok=True)
     snapshot = snapshot_root / f"{target}.json"
-    snapshot.write_bytes(state_path.read_bytes())
+    current_bytes = state_path.read_bytes()
+    if snapshot.exists():
+        if snapshot.read_bytes() != current_bytes:
+            raise HandoffError("Existing Auditor state snapshot differs from canonical state")
+        return snapshot
+    snapshot.write_bytes(current_bytes)
     snapshot.chmod(snapshot.stat().st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
     return snapshot
 

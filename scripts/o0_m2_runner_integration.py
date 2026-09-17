@@ -82,6 +82,7 @@ def _prove_interruption(
     mode: str,  # "timeout" or "cancel"
     actor_role: str,  # "BUILDER" or "AUDITOR"
     target_sha: str | None = None,
+    timeout_seconds: float = 3.0,
 ) -> dict[str, Any]:
     work_dir.mkdir(parents=True, exist_ok=True)
     state_path = work_dir / "orchestrator-state.json"
@@ -122,7 +123,7 @@ def _prove_interruption(
         "auditor_command": command if actor_role == "AUDITOR" else ["dummy"],
     }
     if mode == "timeout":
-        config["actor_timeout_seconds"] = 3.0
+        config["actor_timeout_seconds"] = timeout_seconds
     elif mode == "cancel":
         config["cancel_path"] = str(cancel_file)
 

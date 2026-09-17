@@ -35,6 +35,18 @@ class O0RunnerTest(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def test_audit_snapshot_reuse_after_interruption_is_immutable(self):
+        state = self.root / "state.json"
+        state.write_bytes(b'{"run_id":"same"}')
+        audit_root = self.root / "audits"
+        first = runner_module.write_state_snapshot(state, audit_root, "a" * 40)
+        self.assertEqual(first, runner_module.write_state_snapshot(state, audit_root, "a" * 40))
+        self.assertEqual(b'{"run_id":"same"}', first.read_bytes())
+        state.write_bytes(b'{"run_id":"changed"}')
+        with self.assertRaises(HandoffError):
+            runner_module.write_state_snapshot(state, audit_root, "a" * 40)
+        self.assertEqual(b'{"run_id":"same"}', first.read_bytes())
+
     def _run_runner_cli(self, config: Path):
         return subprocess.run(
             [sys.executable, "-m", "scripts.o0_runner", "--config", str(config)],

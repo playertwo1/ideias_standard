@@ -3,20 +3,20 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** completar prova de interrupção e retomada real de O0 v2 M5
-- **Última implementada:** O0 v2 M5 parcial — ciclo real e fila autorizada
-- **Próxima:** provar retomada real sem duplicação antes da auditoria de M5
-- **Bloqueios do projeto:** prova M5 de retomada após interrupção real pendente; M4 tem PASS independente no SHA `bdd1dd1da5358e391c5ea39f25f3b694f2535582`
+- **Objetivo atual:** auditoria independente de O0 v2 M5
+- **Última implementada:** O0 v2 M5 — ciclo real, fila autorizada e retomada após interrupção real
+- **Próxima:** auditoria independente de O0 v2 M5
+- **Bloqueios do projeto:** nenhum conhecido; M4 tem PASS independente no SHA `bdd1dd1da5358e391c5ea39f25f3b694f2535582`
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1–M4 aprovados com PASS independente; O0 v2 M5 parcial; Gate S1 = NOT_RUN e S2 = NOT_STARTED
+- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1–M4 aprovados com PASS independente; O0 v2 M5 aguarda auditoria; Gate S1 = NOT_RUN e S2 = NOT_STARTED
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
 
 ## Evidência atual
 
-- O0 v2 M5 parcial: Antigravity CLI e Codex CLI executaram FAIL, correção e PASS; a segunda tarefa autorizada iniciou automaticamente e a fila terminou. Pacote `O0_V2_M5_EVIDENCE_PACKAGE/` inclui relatórios, operations, evidências, bundle, provas reais M2 reutilizadas de timeout/cancelamento e regressão separada de recuperação, indexados por SHA-256. A tentativa de prova conjunta nova falhou por `taskkill` exit 128; retomada real sem duplicação ainda não foi comprovada. Gate S1 = NOT_RUN, approval=null e S2 não iniciado.
+- O0 v2 M5: Antigravity CLI e Codex CLI executaram FAIL, correção e PASS; a segunda tarefa autorizada iniciou automaticamente e a fila terminou. Provas novas de Builder timeout e Auditor cancelamento terminaram árvores reais, preservaram estado sem relatório parcial e retomaram explicitamente com um registro de operação cada. O snapshot imutável do Auditor é reutilizado com validação de bytes. Pacote `O0_V2_M5_EVIDENCE_PACKAGE/` indexado por SHA-256 em `O0_V2_M5_EVIDENCE.json`; auditoria independente pendente. Gate S1 = NOT_RUN, approval=null e S2 não iniciado.
 
 - Auditoria independente de O0 v2 M4: PASS no SHA `bdd1dd1da5358e391c5ea39f25f3b694f2535582`. Nenhum gate ou aprovação humana registrado.
 

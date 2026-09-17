@@ -15,7 +15,7 @@ class O0M5EvidenceTest(unittest.TestCase):
     def test_committed_package_references_are_complete_and_integral(self):
         evidence = json.loads((ROOT / "O0_V2_M5_EVIDENCE.json").read_text(encoding="utf-8"))
         package = ROOT / "O0_V2_M5_EVIDENCE_PACKAGE"
-        self.assertEqual("PARTIAL", evidence["status"])
+        self.assertEqual("COMPLETED", evidence["status"])
         self.assertEqual("COMPLETED", evidence["cycle_status"])
         self.assertEqual(2, len(evidence["queue_result"]["executed_tasks"]))
         self.assertEqual(2, evidence["queue_result"]["executed_tasks"][0]["audit_round"])
@@ -25,6 +25,24 @@ class O0M5EvidenceTest(unittest.TestCase):
         self.assertEqual(("FAIL", evidence["sha_a"]), (fail["audit_result"], fail["audited_sha"]))
         self.assertEqual(("PASS", evidence["sha_b"]), (passed["audit_result"], passed["audited_sha"]))
         self.assertNotEqual(evidence["sha_a"], evidence["sha_b"])
+        fresh = evidence["interruption_proof"]["fresh_real_cli_resume"]
+        self.assertEqual({("BUILDER", "TIMEOUT"), ("AUDITOR", "CANCELLED")},
+                         {(item["role"], item["reason"]) for item in fresh})
+        for item in fresh:
+            self.assertTrue(item["state_preserved_before_resume"])
+            self.assertFalse(item["partial_report_accepted"])
+            self.assertEqual(1, item["operation_records_after_resume"])
+            self.assertTrue(item["all_observed_processes_terminated"])
+            folder = package / "fresh-resume" / (
+                f"{item['role'].lower()}-{'timeout' if item['reason'] == 'TIMEOUT' else 'cancel'}"
+            )
+            self.assertEqual((folder / "state-before.json").read_bytes(), (folder / "state-after.json").read_bytes())
+            self.assertEqual("INTERRUPTED", json.loads((folder / "interrupted-journal.json").read_text())["phase"])
+            self.assertFalse(json.loads((folder / "absence-proof.json").read_text())["report_exists"])
+            resumed = json.loads((folder / "resumed-state.json").read_text())
+            self.assertIsNone(resumed["approval"])
+            self.assertEqual("NONE", resumed["gate"])
+            self.assertEqual(0, json.loads((folder / "taskkill-events.json").read_text())[0]["exit_code"])
         referenced = {item["path"] for item in evidence["references"]}
         actual = {path.relative_to(package).as_posix() for path in package.rglob("*") if path.is_file()}
         self.assertEqual(actual, referenced)

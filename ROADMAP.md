@@ -300,10 +300,10 @@ Não é gate de produto.
 - [x] Executar defeito conhecido: SHA A → FAIL → correção → SHA B distinto → PASS.
 - [x] Iniciar automaticamente a segunda tarefa autorizada e parar ao terminar a fila.
 - [x] Verificar relatórios, journals e referências de evidência por SHA-256.
-- [ ] Testar timeout/cancelamento das CLIs reais sem aceitar relatório parcial; retomar sem duplicar resultado aceito (provas M2 e regressão de recuperação reutilizadas; prova conjunta M5 pendente).
+- [x] Testar timeout/cancelamento das CLIs reais sem aceitar relatório parcial; retomar sem duplicar resultado aceito (prova nova M5 de Builder timeout e Auditor cancelamento).
 - [x] Executar regressões pertinentes e self-check; documentar um comando de início e um de retomada.
 
-**Aceite:** ciclo local completo sem copiar/colar operacional. Evidência parcial em `O0_V2_M5_EVIDENCE.json` e `O0_V2_M5_EVIDENCE_PACKAGE/`; retomada real e auditoria independente pendentes. Não exigir respostas ou commits idênticos entre execuções de agentes reais.
+**Aceite:** ciclo local completo sem copiar/colar operacional. Evidência verificável em `O0_V2_M5_EVIDENCE.json` e `O0_V2_M5_EVIDENCE_PACKAGE/`; auditoria independente pendente. Não exigir respostas ou commits idênticos entre execuções de agentes reais.
 
 **Ordem:** M1 → M2 → M3 → M4 → M5. Um marco dependente só inicia após o aceite técnico do anterior. D-C01 registra o uso no próprio repositório após M5; D-C02 permite retomar S1 com O0. Gate S1 continua sob decisão explícita da Product Authority. Dashboard, banco externo, múltiplos auditores, execução distribuída e automação de GUI ficam fora deste plano.
 

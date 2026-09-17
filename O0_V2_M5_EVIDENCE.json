@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1",
   "milestone": "O0_V2_M5",
-  "status": "PARTIAL",
+  "status": "COMPLETED",
   "cycle_status": "COMPLETED",
   "base_sha": "bafe1054e6d277cb3c40648bbb26f23de4663a12",
   "sha_a": "003d050af5186ad3efd39d729fc4ab3b888fd1a6",
@@ -58,7 +58,27 @@
   ],
   "interruption_proof": {
     "timeout_cancel": "interruption-proof/ (reused audited M2 real-CLI proof)",
-    "resume_without_duplication": "recovery-regression.txt (separate recovery regression)"
+    "resume_without_duplication": "recovery-regression.txt (separate recovery regression)",
+    "fresh_real_cli_resume": [
+      {
+        "role": "BUILDER",
+        "reason": "TIMEOUT",
+        "state_preserved_before_resume": true,
+        "partial_report_accepted": false,
+        "all_observed_processes_terminated": true,
+        "operation_records_after_resume": 1,
+        "resumed_state": "READY_FOR_AUDIT"
+      },
+      {
+        "role": "AUDITOR",
+        "reason": "CANCELLED",
+        "state_preserved_before_resume": true,
+        "partial_report_accepted": false,
+        "all_observed_processes_terminated": true,
+        "operation_records_after_resume": 1,
+        "resumed_state": "WAITING_PRODUCT_AUTHORITY"
+      }
+    ]
   },
   "references": [
     {
@@ -68,6 +88,78 @@
     {
       "path": "final-state.json",
       "sha256": "38bbd953f75cd85d2f2bf74ebd6bbd4941ddbdc56d80cf8e73572c69a5d19748"
+    },
+    {
+      "path": "fresh-resume/auditor-cancel/absence-proof.json",
+      "sha256": "4ed32113c00c97199d5b523397e587facaaf3bab6a1c2a168316c52f568ea9ad"
+    },
+    {
+      "path": "fresh-resume/auditor-cancel/interrupted-journal.json",
+      "sha256": "ccb1b980e189f885cd098cef4da5b7f2590ead13243999fb1374e435ba5cffa5"
+    },
+    {
+      "path": "fresh-resume/auditor-cancel/operations/op-fd2d78562abcbd58bc7c747a90e3fb63de7048f1a018b0acd2a88b8bc8978f20.json",
+      "sha256": "b61b50bd9ee1ab6fa25b5c6d2120363f353b5a451d79073483ce30c84abd6b4d"
+    },
+    {
+      "path": "fresh-resume/auditor-cancel/operations/op-fd2d78562abcbd58bc7c747a90e3fb63de7048f1a018b0acd2a88b8bc8978f20.report.json",
+      "sha256": "8ccff3ac1bee785d9ac90036b1a1186b972a51fd93768d75b739c4fb8b047a2d"
+    },
+    {
+      "path": "fresh-resume/auditor-cancel/resumed-state.json",
+      "sha256": "18a9898eacd5097436ece280a43c7d08fcc30e01586d2235cd911600ce1f5f61"
+    },
+    {
+      "path": "fresh-resume/auditor-cancel/runner-config.json",
+      "sha256": "ab418f470a02a9569dd24908e94293ac6d77c7ae96e9b7c048720f7dc058a2a0"
+    },
+    {
+      "path": "fresh-resume/auditor-cancel/state-after.json",
+      "sha256": "37f01888962f6f8d2a12e51665ad25b4de2fbbb786787ca339b9e620ca5be4c3"
+    },
+    {
+      "path": "fresh-resume/auditor-cancel/state-before.json",
+      "sha256": "37f01888962f6f8d2a12e51665ad25b4de2fbbb786787ca339b9e620ca5be4c3"
+    },
+    {
+      "path": "fresh-resume/auditor-cancel/taskkill-events.json",
+      "sha256": "9beb49bfe090bedf1c20ac012722df9e6ab89f42f400e18cce49cc052bb0aa28"
+    },
+    {
+      "path": "fresh-resume/builder-timeout/absence-proof.json",
+      "sha256": "e27963b3c98b783e201bfd3bfd55c632d5358f2b81cb04d03a53884849ebd2d1"
+    },
+    {
+      "path": "fresh-resume/builder-timeout/interrupted-journal.json",
+      "sha256": "a685836230acb8c66b5f071ad4ec554a0f70545a221d116d3d4dd26649aa75f5"
+    },
+    {
+      "path": "fresh-resume/builder-timeout/operations/op-e1afd67438700196ee0ddcf49541af81c27e8c3520b60a07843c8d9eb491a3c8.json",
+      "sha256": "099df89e68269a737820b509c4815b103aec6e1ec40ff4128cfd2b46c773d188"
+    },
+    {
+      "path": "fresh-resume/builder-timeout/operations/op-e1afd67438700196ee0ddcf49541af81c27e8c3520b60a07843c8d9eb491a3c8.report.json",
+      "sha256": "9b64098c7e3a0970529fdd0c8e8edc603a26038dae9985d2f18050bcae48c0bd"
+    },
+    {
+      "path": "fresh-resume/builder-timeout/resumed-state.json",
+      "sha256": "61197613945d7b6f867a256c682957a27de74d3ae5b995b852092b4a7a35eb77"
+    },
+    {
+      "path": "fresh-resume/builder-timeout/runner-config.json",
+      "sha256": "a4ba4ca657d6d9422088b88dea536e932b2c31422b74458988084faa282bf39a"
+    },
+    {
+      "path": "fresh-resume/builder-timeout/state-after.json",
+      "sha256": "8e76d01d234b3f67dfc14172a3b568035a17ed8b958bae628e67a1ab50d20cab"
+    },
+    {
+      "path": "fresh-resume/builder-timeout/state-before.json",
+      "sha256": "8e76d01d234b3f67dfc14172a3b568035a17ed8b958bae628e67a1ab50d20cab"
+    },
+    {
+      "path": "fresh-resume/builder-timeout/taskkill-events.json",
+      "sha256": "9a5eb04ecddbe2310a631150675a0ce1c0d0dd4a83bc93cd5273623de64e27db"
     },
     {
       "path": "interruption-proof/audit-report.json",
@@ -390,7 +482,6 @@
       "sha256": "b4256ff1ccd4204e40ca8e5381ebf6a6b92d2b9f8da5f9458dc61f6e1a6ec073"
     }
   ],
-  "remaining_proof": "Fresh real-CLI interruption followed by resume without duplicate accepted result",
   "approval": null,
   "gate_s1": "NOT_RUN",
   "s2": "NOT_STARTED"
