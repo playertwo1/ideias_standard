@@ -1,51 +1,78 @@
-# CLI Contract — Ideias Standard
+# CLI Contract — Ideias Standard Gold
 
-Este documento define comportamento esperado da futura CLI antes de sua implementacao. Ele nao declara S1 concluida.
+Este documento define a superfície mínima esperada de automação do Standard. A CLI não deve crescer além do necessário.
 
-## Principios
+## Princípios
 
-- comandos de leitura sao seguros por padrao;
-- operacoes de escrita suportam `--dry-run` antes de aplicar;
-- saida JSON e deterministica e propria para automacao;
-- ordem dos findings e estavel;
-- nenhum comando converte WARN/NOT_RUN em PASS;
-- nenhum comando destrutivo usa confirmacao implicita.
+- leitura é segura por padrão;
+- escrita nunca sobrescreve trabalho existente silenciosamente;
+- saída humana deve ser curta e acionável;
+- JSON só existe quando houver necessidade real de automação;
+- comandos devem reutilizar a mesma lógica de validação sempre que possível;
+- nenhuma abstração de CLI deve existir apenas para antecipar uso futuro.
 
 ## Exit codes
 
-- `0`: execucao concluida sem finding bloqueante (`PASS` ou `WARN` conforme o comando);
-- `1`: conformance/validacao resultou em `FAIL`;
-- `2`: erro operacional — arquivo ausente, parse impossivel, dependencia indisponivel ou uso invalido da CLI.
+Quando aplicável:
 
-## Flags comuns planejadas
+- `0`: execução concluída com sucesso;
+- `1`: validação/check falhou;
+- `2`: erro operacional ou uso inválido.
 
-- `--json`: emitir somente documento estruturado;
-- `--strict`: tratar WARN selecionados como falha de politica, sem alterar o significado canônico do check;
-- `--offline`: proibir acesso de rede e falhar se recurso remoto for indispensavel;
-- `--dry-run`: mostrar efeito esperado sem gravar;
-- `--diff`: apresentar alteracoes propostas;
-- `--no-color`: saida estavel para CI/logs.
-
-## Comandos planejados
+## Comandos
 
 ### `check`
-Valida conformance estrutural e semantica. Nao escreve no projeto.
 
-### `doctor`
-Explica os mesmos findings do `check` em formato humano. Nao cria uma segunda regra de validacao.
+Comando principal.
 
-### `init`
-Compila manifesto em projeto novo. Escrita exige preview/dry-run quando houver destino nao vazio.
+Verifica o que for aplicável ao projeto, por exemplo:
+
+- estrutura essencial;
+- configuração básica;
+- lint/format;
+- typecheck;
+- testes;
+- build;
+- packs ativos.
+
+A saída deve explicar claramente o que falhou.
 
 ### `adopt`
-Inventaria brownfield antes de qualquer escrita. Arquivos existentes sao USER_OWNED por padrao.
 
-### `upgrade`
-Renderiza alvo em staging, compara baseline/local/alvo e so atualiza lock apos validacao.
+Futuro comando de Goldify para projetos existentes.
 
-### `compile-context`
-Produz contexto REQUIRED/CONDITIONAL/DISCOVERY com justificativas. Overflow de REQUIRED retorna `CONTEXT_OVERFLOW` em vez de truncar.
+Primeiro analisa sem escrever. Depois produz um **Golden Diff** separando:
 
-## Determinismo
+- `NECESSÁRIO`;
+- `RECOMENDADO`.
 
-Para a mesma versao do Standard, mesmo input e mesmo conjunto de artefatos locais, a saida estruturada deve ser semanticamente identica. Campos de tempo ou ambiente devem ser explicitamente marcados como nao deterministas quando inevitaveis.
+Mudanças relevantes devem ter preview antes de aplicação quando houver risco de sobrescrever ou reorganizar trabalho existente.
+
+### `sync`
+
+Futuro. Só implementar depois que Create, Check e Adopt estiverem comprovados em uso real.
+
+Serve para aplicar melhorias do Standard a projetos Gold existentes sem reconstruí-los.
+
+## Create
+
+A criação de projetos não exige obrigatoriamente uma CLI.
+
+A primeira implementação deve preferir GitHub Template Repository. Um comando próprio de criação só deve existir se resolver uma necessidade real não atendida de forma mais simples.
+
+## Auditoria
+
+Auditoria independente não precisa ser um comando da CLI.
+
+O contrato mínimo é:
+
+1. receber pedido/aceite, diff e resultado do `check`;
+2. começar pelo delta;
+3. ampliar contexto somente quando necessário;
+4. retornar `PASS` ou `FAIL` com findings acionáveis.
+
+O Runner pode automatizar esse ciclo externamente.
+
+## Regra final
+
+> A CLI existe para reduzir trabalho manual, não para transformar o Standard em uma plataforma complexa.
