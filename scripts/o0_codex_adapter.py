@@ -95,6 +95,10 @@ def _build_audit_prompt(
     base_sha = reaudit_payload.get("previous_audited_sha") if reaudit_payload else None
     changed = _diff_summary(audit_workspace, target_sha, base_sha)
     diff_context = f"Delta {base_sha or 'parent'}..{target_sha}:\n{changed or '(no changed paths)'}"
+    prompt_rules = (
+        "Report rules: If audit_result is PASS, findings must be empty and every check status must be PASS or NOT_APPLICABLE (never FAIL or NOT_RUN). "
+        "If any check fails, audit_result must be FAIL and findings must have at least one finding."
+    )
     if reaudit_payload is not None:
         return (
             "You are an independent auditor performing a REAUDIT. "
@@ -102,13 +106,13 @@ def _build_audit_prompt(
             f"Prior context (references only): {_compact_reaudit_context(reaudit_payload)}\n"
             f"{diff_context}\n{task_criteria}\n"
             "Verify every applicable prior finding and the declared delta. "
-            "Read referenced evidence by ID/SHA only when needed. Return the required JSON report; findings and checks must be structured."
+            f"Read referenced evidence by ID/SHA only when needed. {prompt_rules} Return the required JSON report; findings and checks must be structured."
         )
     return (
         "You are an independent auditor. "
         f"Audit commit {target_sha} in the current read-only checkout. "
         f"{diff_context}\n{task_criteria}\n"
-        "Read only files necessary for the criteria. Return the required JSON report; findings and checks must be structured."
+        f"Read only files necessary for the criteria. {prompt_rules} Return the required JSON report; findings and checks must be structured."
     )
 
 
@@ -186,6 +190,20 @@ def main() -> int:
                 },
             },
         },
+        "allOf": [
+            {
+                "if": {"properties": {"audit_result": {"const": "PASS"}}, "required": ["audit_result"]},
+                "then": {
+                    "properties": {
+                        "checks": {"not": {"contains": {"properties": {"status": {"enum": ["FAIL", "NOT_RUN"]}}, "required": ["status"]}}}
+                    }
+                }
+            },
+            {
+                "if": {"properties": {"audit_result": {"const": "FAIL"}}, "required": ["audit_result"]},
+                "then": {"properties": {"findings": {"minItems": 1}}}
+            }
+        ],
     }
     temp_schema_file.write_text(json.dumps(codex_output_schema, indent=2), encoding="utf-8")
 
@@ -274,8 +292,30 @@ def main() -> int:
     audit_result = raw_report.get("audit_result", "FAIL")
     raw_findings = raw_report.get("findings", [])
     raw_checks = raw_report.get("checks", [])
-    if not raw_checks:
-        raw_checks = [{
+
+    sanitized_checks = []
+    has_failed_check = False
+    for chk in raw_checks:
+        if not isinstance(chk, dict):
+            continue
+        c_id = str(chk.get("id") or f"check-{len(sanitized_checks)+1}")
+        c_status = str(chk.get("status") or "FAIL")
+        c_ev = str(chk.get("evidence") or "Verification performed during audit")
+        if c_status == "FAIL":
+            has_failed_check = True
+        elif audit_result == "PASS" and c_status == "NOT_RUN":
+            c_status = "NOT_APPLICABLE"
+        sanitized_checks.append({
+            "id": c_id,
+            "status": c_status,
+            "evidence": c_ev,
+        })
+
+    if has_failed_check and audit_result == "PASS":
+        audit_result = "FAIL"
+
+    if not sanitized_checks:
+        sanitized_checks = [{
             "id": "codex-check-1",
             "status": "PASS" if audit_result == "PASS" else "FAIL",
             "evidence": "Auditor verification performed in frozen checkout",
@@ -297,6 +337,19 @@ def main() -> int:
                     "violated_criterion": "Implementation or test correctness",
                     "resolution_condition": "Builder must fix the reported finding and produce a new SHA.",
                 })
+        if not converted_findings:
+            converted_findings.append({
+                "id": "CODEX-FINDING-001",
+                "severity": "HIGH",
+                "blocking": True,
+                "files": ["."],
+                "evidence": "Audit check failed without detailed findings",
+                "problem": "One or more checks reported failure during audit",
+                "violated_criterion": "Implementation or test correctness",
+                "resolution_condition": "Builder must fix the reported check failure and produce a new SHA.",
+            })
+    else:
+        converted_findings = []
 
     canonical_report: dict[str, Any] = {
         "schema_version": "0.1",
@@ -307,7 +360,7 @@ def main() -> int:
         "audited_sha": target_sha,
         "summary": raw_report.get("summary", f"Independent audit {audit_result} by Codex CLI."),
         "findings": converted_findings,
-        "checks": raw_checks,
+        "checks": sanitized_checks,
         "residual_risks": [],
         "gate_registration": "NOT_AUTHORIZED",
     }
