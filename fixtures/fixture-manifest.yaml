@@ -140,3 +140,34 @@ cases:
     kind: orchestrator-state
     expected_result: FAIL
     expected_codes: [IS-SEM-013]
+  - id: valid-context-manifest
+    path: fixtures/valid/basic.context-manifest.json
+    kind: context-manifest
+    expected_result: PASS
+    expected_codes: []
+  - id: valid-yaml-context-manifest
+    path: fixtures/valid/yaml-context-manifest/context-manifest.yaml
+    kind: context-manifest
+    expected_result: PASS
+    expected_codes: []
+  - id: context-manifest-traversal-path
+    path: fixtures/invalid/traversal-path.context-manifest.json
+    kind: context-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SEM-021]
+  - id: context-manifest-overlapping-categories
+    path: fixtures/invalid/overlapping-categories.context-manifest.json
+    kind: context-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SEM-022]
+  - id: context-manifest-inverted-budgets
+    path: fixtures/invalid/inverted-budgets.context-manifest.json
+    kind: context-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SEM-023]
+  - id: context-manifest-missing-required
+    path: fixtures/invalid/missing-required.context-manifest.json
+    kind: context-manifest
+    expected_result: FAIL
+    expected_codes: [IS-SCHEMA-001]
+

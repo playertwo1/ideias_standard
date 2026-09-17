@@ -434,7 +434,100 @@ class CheckCommandTest(unittest.TestCase):
         warn_codes = [c["code"] for c in report["checks"] if c["status"] == "WARN"]
         self.assertIn("IS-WARN-001", warn_codes)
 
+    # -------------------------------------------------------------------------
+    # S1-C04: Context manifest validations
+    # -------------------------------------------------------------------------
+
+    def test_context_manifest_valid_file_passes_all_checks(self):
+        target = ROOT / "fixtures" / "valid" / "basic.context-manifest.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+        pass_codes = [c["code"] for c in report["checks"] if c["status"] == "PASS"]
+        self.assertIn("IS-SCHEMA-001", pass_codes)
+        self.assertIn("IS-SEM-021", pass_codes)
+        self.assertIn("IS-SEM-022", pass_codes)
+        self.assertIn("IS-SEM-023", pass_codes)
+
+    def test_context_manifest_valid_directory_autodetection(self):
+        target = ROOT / "fixtures" / "valid" / "context-manifest-dir"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+        pass_codes = [c["code"] for c in report["checks"] if c["status"] == "PASS"]
+        self.assertIn("IS-SCHEMA-001", pass_codes)
+
+    def test_context_manifest_valid_directory_with_explicit_kind(self):
+        target = ROOT / "fixtures" / "valid" / "context-manifest-dir"
+        exit_code, output = run_check(path=target, kind="context-manifest", as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+
+    def test_context_manifest_valid_yaml(self):
+        target = ROOT / "fixtures" / "valid" / "yaml-context-manifest" / "context-manifest.yaml"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+
+    def test_context_manifest_semantic_traversal_path_is_sem_021(self):
+        target = ROOT / "fixtures" / "invalid" / "traversal-path.context-manifest.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-021", fail_codes)
+
+    def test_context_manifest_semantic_overlapping_categories_is_sem_022(self):
+        target = ROOT / "fixtures" / "invalid" / "overlapping-categories.context-manifest.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-022", fail_codes)
+
+    def test_context_manifest_semantic_inverted_budgets_is_sem_023(self):
+        target = ROOT / "fixtures" / "invalid" / "inverted-budgets.context-manifest.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-023", fail_codes)
+
+    def test_context_manifest_schema_missing_required_is_schema_001(self):
+        target = ROOT / "fixtures" / "invalid" / "missing-required.context-manifest.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SCHEMA-001", fail_codes)
+
+    def test_context_manifest_directory_not_found_fails_with_exit_code_2(self):
+        target = ROOT / "fixtures" / "valid" / "standard-lock-dir"
+        exit_code, output = run_check(path=target, kind="context-manifest", as_json=True)
+        self.assertEqual(2, exit_code)
+        report = json.loads(output)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-CLI-001", fail_codes)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

@@ -32,6 +32,13 @@ Este contrato define os códigos determinísticos iniciais de conformance. O obj
 | `IS-SEM-014` | FAIL/CRITICAL | Relatório de auditoria não pode declarar PASS com finding bloqueante. |
 | `IS-SEM-015` | FAIL/CRITICAL | `GATE_APPROVED` exige aprovação explícita coerente com gate e SHA auditado. |
 | `IS-SEM-016` | FAIL/HIGH | `audit_round` não pode exceder `max_audit_rounds`. |
+| `IS-SEM-017` | FAIL/CRITICAL | Product Authority deve ser distinto de Builder e Auditor. |
+| `IS-SEM-018` | FAIL/CRITICAL | Relatório de auditoria PASS não pode conter checks FAIL ou NOT_RUN. |
+| `IS-SEM-019` | FAIL/CRITICAL | Relatório de auditoria FAIL exige pelo menos um finding. |
+| `IS-SEM-020` | FAIL/CRITICAL | Identidades executoras de Builder e Auditor devem ser distintas. |
+| `IS-SEM-021` | FAIL/HIGH | Rota de `context-manifest` contém path traversal (`..`) ou caminho absoluto. |
+| `IS-SEM-022` | FAIL/HIGH | Categorias de uma rota de `context-manifest` possuem caminhos sobrepostos. |
+| `IS-SEM-023` | FAIL/MEDIUM | `bootstrap_target_max_bytes` excede `task_target_max_bytes` em `context-manifest`. |
 | `IS-INV-001` | FAIL/CRITICAL | Registry contém IDs de invariantes duplicados. |
 | `IS-WARN-001` | WARN | Artefato `MANAGED` possui `local_override=true`; revisar antes de upgrade. |
 

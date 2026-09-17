@@ -122,7 +122,20 @@ def detect_kind(data: dict[str, Any], path: Path) -> str:
         or ("standard_version" in data and "template_fingerprint" in data)
     ):
         return "standard-lock"
-    if "strategy" in data and "routes" in data:
+    if (
+        name in {
+            "context-manifest.json",
+            "context-manifest.yaml",
+            "context-manifest.yml",
+            "context.json",
+            "context.yaml",
+            "context.yml",
+        }
+        or name.endswith(".context-manifest.json")
+        or name.endswith(".context-manifest.yaml")
+        or name.endswith(".context-manifest.yml")
+        or ("strategy" in data and "routes" in data)
+    ):
         return "context-manifest"
     if "target" in data and "checks" in data and "result" in data:
         return "conformance-report"
@@ -308,6 +321,55 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
             add_check(checks, "IS-SEM-016", "FAIL", "HIGH", "audit_round cannot exceed max_audit_rounds", "/audit_round")
         else:
             add_check(checks, "IS-SEM-016", "PASS", "INFO", "Audit round is within policy limit")
+
+    elif kind == "context-manifest":
+        routes = data.get("routes", {})
+        has_traversal_or_absolute = False
+        duplicate_across_categories = []
+
+        for route_name, route_spec in routes.items():
+            if not isinstance(route_spec, dict):
+                continue
+            req_set = set(route_spec.get("required", []))
+            cond_set = set(route_spec.get("conditional", []))
+            disc_set = set(route_spec.get("discovery", []))
+
+            # Check disjointness across categories in the same route
+            overlap_req_cond = req_set & cond_set
+            overlap_req_disc = req_set & disc_set
+            overlap_cond_disc = cond_set & disc_set
+            all_overlaps = overlap_req_cond | overlap_req_disc | overlap_cond_disc
+            if all_overlaps:
+                duplicate_across_categories.append(f"route '{route_name}': {', '.join(sorted(all_overlaps))}")
+
+            # Check path traversal or absolute paths
+            all_paths = list(route_spec.get("required", [])) + list(route_spec.get("conditional", [])) + list(route_spec.get("discovery", []))
+            for p in all_paths:
+                if not isinstance(p, str):
+                    continue
+                p_norm = p.replace("\\", "/")
+                file_part = p_norm.split("#")[0]
+                if file_part.startswith("/") or (len(file_part) > 1 and file_part[1] == ":") or ".." in file_part.split("/"):
+                    has_traversal_or_absolute = True
+
+        if has_traversal_or_absolute:
+            add_check(checks, "IS-SEM-021", "FAIL", "HIGH", "Context routes contain absolute paths or path traversal (..)", "/routes")
+        else:
+            add_check(checks, "IS-SEM-021", "PASS", "INFO", "Context route paths are valid relative paths")
+
+        if duplicate_across_categories:
+            add_check(checks, "IS-SEM-022", "FAIL", "HIGH", f"Overlapping paths across route categories: {'; '.join(duplicate_across_categories)}", "/routes")
+        else:
+            add_check(checks, "IS-SEM-022", "PASS", "INFO", "Route categories are mutually disjoint")
+
+        budgets = data.get("budgets")
+        if isinstance(budgets, dict):
+            bootstrap = budgets.get("bootstrap_target_max_bytes")
+            task_budget = budgets.get("task_target_max_bytes")
+            if bootstrap is not None and task_budget is not None and bootstrap > task_budget:
+                add_check(checks, "IS-SEM-023", "FAIL", "MEDIUM", f"bootstrap_target_max_bytes ({bootstrap}) exceeds task_target_max_bytes ({task_budget})", "/budgets/bootstrap_target_max_bytes")
+            else:
+                add_check(checks, "IS-SEM-023", "PASS", "INFO", "Context budgets are logically consistent")
 
     return checks
 

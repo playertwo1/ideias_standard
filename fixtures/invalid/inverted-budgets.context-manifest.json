@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "strategy": "PROGRESSIVE",
+  "routes": {
+    "DEFAULT": {
+      "required": ["AGENTS.md"]
+    }
+  },
+  "budgets": {
+    "bootstrap_target_max_bytes": 50000,
+    "task_target_max_bytes": 10000
+  }
+}

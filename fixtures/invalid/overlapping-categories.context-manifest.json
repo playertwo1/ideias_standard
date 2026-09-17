@@ -1,0 +1,10 @@
+{
+  "schema_version": "0.1",
+  "strategy": "PROGRESSIVE",
+  "routes": {
+    "OVERLAP": {
+      "required": ["AGENTS.md", "PROJECT_STATE.md"],
+      "conditional": ["PROJECT_STATE.md"]
+    }
+  }
+}
