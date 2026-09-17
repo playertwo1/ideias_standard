@@ -170,20 +170,20 @@ def main() -> int:
         except Exception:
             pass
 
-    scoped_dirs = sorted(set(scoped_dirs))
-    add_dir_args: list[str] = []
-    if scoped_dirs:
-        for d in scoped_dirs:
+    add_dir_args: list[str] = [f"--add-dir={workspace}"]
+    for d in sorted(set(scoped_dirs)):
+        if d != str(workspace):
             add_dir_args.append(f"--add-dir={d}")
-    else:
-        add_dir_args.append(f"--add-dir={workspace}")
 
     builder_prompt = (
-        f"{prompt_task}\n"
-        "Instructions: Be direct and concise. Do not output conversational explanations. "
-        "Make only the necessary edits in the active workspace. Run unit tests if present. "
-        "When tests pass, stage files with 'git add' and commit with a concise semantic commit message. "
-        "Reply with only the word DONE."
+        f"Target Repository Directory: {workspace}\n\n"
+        f"{prompt_task}\n\n"
+        f"Instructions:\n"
+        f"- All code files to edit reside inside repository '{workspace}'.\n"
+        f"- Be direct and concise. Edit only the necessary files in '{workspace}'. Do not output conversational explanations.\n"
+        f"- Verify your edits with: python -B -m unittest -q scripts/test_check.py && python -B scripts/validate_standard.py --self-check\n"
+        f"- When tests pass, stage files with 'git -C \"{workspace}\" add -A' and commit with a concise semantic commit message.\n"
+        f"- Reply with only the word DONE."
     )
 
     cmd = [
