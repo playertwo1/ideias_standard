@@ -26,6 +26,7 @@ Um projeto está no padrão Gold quando:
 - build, testes e lint/typecheck aplicáveis funcionam;
 - CI executa as verificações importantes;
 - contexto específico é carregado somente quando necessário;
+- outputs grandes são filtrados ou resumidos antes de entrar no contexto;
 - alterações relevantes podem ser auditadas de forma independente;
 - segurança básica é proporcional ao risco;
 - não existe burocracia sem utilidade prática.
@@ -34,7 +35,7 @@ Gold padroniza **qualidade e operação**, não obriga todos os projetos a terem
 
 ---
 
-## 3. CONTEXTO PROGRESSIVO
+## 3. CONTEXTO PROGRESSIVO E TOKEN DISCIPLINE
 
 `AGENTS.md` é o contexto universal mínimo.
 
@@ -46,24 +47,56 @@ Ele deve permanecer curto e conter apenas:
 - mapa mínimo da estrutura;
 - referências para contexto adicional.
 
-Informação específica deve ficar fora do `AGENTS.md` e ser consultada somente quando relevante:
+O bootstrap padrão é:
+
+```text
+AGENTS.md + pedido atual
+```
+
+`PROJECT_STATE.md`, `STANDARD.md`, `ROADMAP.md`, documentação, packs, Skills e dependências são carregados somente quando a tarefa justificar.
+
+Fluxo recomendado:
+
+```text
+pedido
+  ↓
+localizar antes de ler
+  ↓
+menor trecho suficiente
+  ↓
+expandir somente se necessário
+```
+
+Informação específica deve ficar fora do `AGENTS.md`:
 
 ```text
 AGENTS.md
    ↓
 contexto mínimo
-   ├─ docs/architecture.md      quando necessário
-   ├─ docs/testing.md           quando necessário
-   ├─ docs/security.md          quando necessário
-   ├─ packs/<stack>/            quando necessário
-   └─ skills/<procedimento>/    quando necessário
+   ├─ docs/...                 quando necessário
+   ├─ packs/...                quando necessário
+   ├─ skills/...               quando necessário
+   └─ dependências diretas     quando necessário
 ```
+
+Regras de Token Discipline:
+
+1. maximizar sinal por token, não apenas minimizar tokens;
+2. localizar antes de carregar;
+3. preferir trechos a arquivos completos;
+4. limitar ou filtrar logs e outputs potencialmente grandes;
+5. usar `check` como resumo executável das validações;
+6. carregar docs, packs e Skills somente sob demanda;
+7. ativar somente ferramentas/MCPs úteis à tarefa quando isso for controlável;
+8. Auditor começa pelo delta;
+9. tarefa materialmente nova prefere contexto novo a histórico irrelevante;
+10. contexto crítico nunca é cortado apenas para economizar tokens.
 
 Regra:
 
 > Se uma instrução não é útil para a maioria das tarefas, ela não pertence ao `AGENTS.md`.
 
-Evitar duplicar as mesmas instruções em `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` ou arquivos equivalentes. Quando um fornecedor exigir arquivo próprio, usar um adaptador mínimo que aponte para a fonte canônica sempre que possível.
+Evitar duplicar as mesmas instruções em `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` ou arquivos equivalentes. Quando um fornecedor exigir arquivo próprio, usar um adaptador mínimo para a fonte canônica sempre que possível.
 
 ---
 
@@ -99,7 +132,7 @@ Contexto inicial recomendado:
 - critério de aceite;
 - diff;
 - arquivos alterados;
-- resultado do `check`;
+- resultado resumido do `check`;
 - erros ou warnings relevantes.
 
 O Auditor expande contexto somente quando existir uma razão concreta.
@@ -146,20 +179,22 @@ Definir e provar a menor base que torna um projeto Gold.
 ## Entregas
 
 - [ ] consolidar este Standard Gold;
-- [ ] reduzir `AGENTS.md` ao contexto mínimo universal;
+- [ ] manter `AGENTS.md` como contexto mínimo universal;
 - [ ] consolidar `README.md` do template;
 - [ ] definir estrutura mínima recomendada;
-- [ ] definir comando/mecanismo único de `check`;
+- [ ] formalizar Token Discipline;
+- [ ] definir comando/mecanismo único de `check` com saída curta;
 - [ ] manter CI simples;
 - [ ] definir padrão mínimo de testes;
 - [ ] definir segurança básica;
+- [ ] revisar Skills maduras que possam ser reaproveitadas;
 - [ ] remover ou arquivar estruturas legadas que não agregam ao modelo Gold;
 - [ ] criar pelo menos um exemplo Gold completo;
 - [ ] executar auditoria independente da fase.
 
 ## Validação
 
-O exemplo Gold deve ser compreensível, verificável e utilizável sem documentação excessiva.
+O exemplo Gold deve ser compreensível, verificável e utilizável sem documentação excessiva ou carregamento desnecessário de contexto.
 
 ---
 
@@ -213,10 +248,22 @@ check
 
 Nem toda stack exige todas as etapas.
 
+A saída padrão deve ser resumida:
+
+```text
+PASS
+✓ lint
+✓ tests
+✓ build
+```
+
+Falhas devem mostrar somente informação acionável por padrão. Logs completos ficam disponíveis por modo detalhado quando necessário.
+
 ## Entregas
 
 - [ ] `check` simples e reproduzível;
-- [ ] saída clara de sucesso ou falha;
+- [ ] saída curta e clara de sucesso ou falha;
+- [ ] detalhes expandíveis quando houver investigação;
 - [ ] CI utiliza as mesmas verificações importantes;
 - [ ] bug relevante recebe teste de regressão quando fizer sentido;
 - [ ] auditoria independente começa pelo diff;
@@ -250,23 +297,42 @@ Um pack existe somente quando um projeto real justifica sua existência.
 
 Packs não devem despejar grandes blocos no `AGENTS.md`. Devem manter contexto específico próximo do domínio e adicionar apenas referências mínimas quando necessário.
 
-## Skills
+## Skills Gold iniciais
 
-Procedimentos reutilizáveis e especializados podem virar Skills carregadas sob demanda, por exemplo:
+Pesquisar e adaptar soluções maduras antes de criar do zero.
 
-- `code-review`;
-- `release`;
-- `migration`;
-- `android-build`.
+Prioridade inicial:
 
-Cada Skill deve fazer uma coisa bem e permanecer pequena.
+- `gold-audit` — auditoria independente baseada em pedido + diff + `check`;
+- `goldify` — descobrir stack, comparar com Gold e gerar Golden Diff;
+- `skill-author` — criar e revisar Skills pequenas, seguras e com progressive disclosure.
+
+Outras Skills entram somente quando houver uso concreto repetido.
+
+## Política para Skills externas
+
+```text
+DISCOVER → REVIEW → TRIM → ADAPT → TEST → INSTALL
+```
+
+Antes de incorporar:
+
+- revisar instruções e scripts;
+- verificar segurança e permissões;
+- verificar licença;
+- remover conteúdo irrelevante;
+- evitar dependência de fornecedor quando não necessária;
+- confirmar que progressive disclosure é preservado;
+- testar em projeto de exemplo.
+
+Uma Skill deve ter uma responsabilidade clara. Scripts existentes devem ser executados como ferramentas quando possível, sem carregar sua implementação inteira no contexto.
 
 ## Guardrails
 
 As melhores ideias do projeto `playertwo1/guardrail` entram em duas camadas:
 
 - Core: poucas regras essenciais no `AGENTS.md`;
-- Pack `agent-guardrails`: `WATCHDOG.md`/auditoria ampliada apenas quando o risco justificar.
+- Pack `agent-guardrails`: controles ampliados apenas quando o risco justificar.
 
 ---
 
@@ -367,7 +433,7 @@ Regras permanentes:
 6. Não crie ferramenta própria quando uma solução madura e simples já atende.
 7. Não leia o repositório inteiro sem necessidade objetiva.
 8. Não adicione testes sem comportamento útil a proteger.
-9. Não imponha pack opcional ao Core.
+9. Não imponha pack ou Skill opcional ao Core.
 10. Remova complexidade que deixou de justificar sua existência.
 
 ---
@@ -398,8 +464,10 @@ O Ideias Standard terá cumprido sua função quando um humano ou agente puder:
 
 1. entender rapidamente um projeto;
 2. carregar somente o contexto necessário;
-3. fazer uma mudança pequena e correta;
-4. provar que ela funciona;
-5. submetê-la a uma revisão independente;
-6. criar projetos novos no mesmo padrão;
-7. elevar projetos antigos ao Gold sem reconstruí-los.
+3. localizar informação antes de carregar grandes volumes;
+4. fazer uma mudança pequena e correta;
+5. provar que ela funciona com saída enxuta;
+6. submetê-la a uma revisão independente;
+7. usar Skills especializadas somente quando necessárias;
+8. criar projetos novos no mesmo padrão;
+9. elevar projetos antigos ao Gold sem reconstruí-los.
