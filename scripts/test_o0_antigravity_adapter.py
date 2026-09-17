@@ -270,7 +270,82 @@ class TestO0AntigravityAdapter(unittest.TestCase):
             finally:
                 os.chdir(old_cwd)
 
+    @patch("scripts.o0_antigravity_adapter.subprocess.run")
+    @patch("scripts.o0_antigravity_adapter._find_agy_binary")
+    def test_local_prevalidation_catches_syntax_error(self, mock_find_bin, mock_subproc_run):
+        """Adapter fails locally with exit code 1 if a modified Python file has a syntax error."""
+        mock_find_bin.return_value = Path("agy.exe")
+
+        def subproc_side_effect(*args, **kwargs):
+            cmd = args[0] if args else kwargs.get("args")
+            if isinstance(cmd, list) and cmd and cmd[0] == "git":
+                return REAL_SUBPROCESS_RUN(*args, **kwargs)
+            if isinstance(cmd, list) and "agy.exe" in str(cmd[0]):
+                # Introduce a syntax error in a python file
+                (self.workspace / "broken.py").write_text("def unclosed_syntax(\n", encoding="utf-8")
+                return subprocess.CompletedProcess(
+                    args=cmd, returncode=0, stdout=json.dumps({"status": "SUCCESS"}), stderr=""
+                )
+            return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="test pass", stderr="")
+
+        mock_subproc_run.side_effect = subproc_side_effect
+
+        env = {
+            "IDEAS_STANDARD_REPORT": str(self.report_path),
+            "IDEAS_STANDARD_TEST_CMD": f'"{sys.executable}" -c "print(\'tests passed\')"',
+        }
+
+        with patch.dict(os.environ, env, clear=False), patch("sys.argv", ["o0_antigravity_adapter.py"]):
+            old_cwd = Path.cwd()
+            try:
+                os.chdir(self.workspace)
+                ret = main()
+                self.assertEqual(1, ret)
+                self.assertFalse(self.report_path.exists())
+            finally:
+                os.chdir(old_cwd)
+
+    @patch("scripts.o0_antigravity_adapter.subprocess.run")
+    @patch("scripts.o0_antigravity_adapter._find_agy_binary")
+    def test_dynamic_model_tier_selection(self, mock_find_bin, mock_subproc_run):
+        """Adapter selects fast/flash tier or deep/pro tier based on environment or state."""
+        mock_find_bin.return_value = Path("agy.exe")
+        executed_commands = []
+
+        def subproc_side_effect(*args, **kwargs):
+            cmd = args[0] if args else kwargs.get("args")
+            executed_commands.append(cmd)
+            if isinstance(cmd, list) and cmd and cmd[0] == "git":
+                return REAL_SUBPROCESS_RUN(*args, **kwargs)
+            if isinstance(cmd, list) and "agy.exe" in str(cmd[0]):
+                (self.workspace / "valid.py").write_text("x = 1\n", encoding="utf-8")
+                return subprocess.CompletedProcess(
+                    args=cmd, returncode=0, stdout=json.dumps({"status": "SUCCESS"}), stderr=""
+                )
+            return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="test pass", stderr="")
+
+        mock_subproc_run.side_effect = subproc_side_effect
+
+        # Test 1: IDEAS_STANDARD_MODEL_TIER=fast selects gemini-2.5-flash
+        env = {
+            "IDEAS_STANDARD_REPORT": str(self.report_path),
+            "IDEAS_STANDARD_TEST_CMD": f'"{sys.executable}" -c "print(\'tests passed\')"',
+            "IDEAS_STANDARD_MODEL_TIER": "fast",
+        }
+
+        with patch.dict(os.environ, env, clear=False), patch("sys.argv", ["o0_antigravity_adapter.py"]):
+            old_cwd = Path.cwd()
+            try:
+                os.chdir(self.workspace)
+                ret = main()
+                self.assertEqual(0, ret)
+                agy_call = next(c for c in executed_commands if isinstance(c, list) and "agy.exe" in str(c[0]))
+                self.assertIn("--model=gemini-2.5-flash", agy_call)
+            finally:
+                os.chdir(old_cwd)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

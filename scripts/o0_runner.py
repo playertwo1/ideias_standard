@@ -1821,6 +1821,8 @@ def run_task_queue(
                 "IDEAS_STANDARD_TASK_SCOPE": json.dumps(task["scope"]),
                 "IDEAS_STANDARD_TASK_CRITERIA": json.dumps(task["acceptance_criteria"]),
             }
+            if "model_tier" in task:
+                task_env_vars["IDEAS_STANDARD_MODEL_TIER"] = str(task["model_tier"])
             for k, v in task_env_vars.items():
                 os.environ[k] = v
 

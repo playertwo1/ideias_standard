@@ -11,11 +11,37 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import py_compile
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+
+TIER_MODELS = {
+    "fast": "gemini-2.5-flash",
+    "flash": "gemini-2.5-flash",
+    "standard": "gemini-3.7-flash-medium",
+    "medium": "gemini-3.7-flash-medium",
+    "pro": "gemini-2.5-pro",
+    "deep": "gemini-2.5-pro",
+}
+
+
+def resolve_model(cli_model: str, tier: str | None, is_fix_required: bool, audit_round: int = 0) -> str:
+    if tier and tier.lower() in TIER_MODELS:
+        return TIER_MODELS[tier.lower()]
+    env_tier = os.environ.get("IDEAS_STANDARD_MODEL_TIER", "").strip().lower()
+    if env_tier in TIER_MODELS:
+        return TIER_MODELS[env_tier]
+    env_model = os.environ.get("IDEAS_STANDARD_MODEL", "").strip()
+    if env_model:
+        return env_model
+    if cli_model and cli_model != "gemini-3.7-flash-medium":
+        return cli_model
+    if is_fix_required and audit_round >= 2:
+        return TIER_MODELS["pro"]
+    return "gemini-3.7-flash-medium"
 
 
 def _find_agy_binary(override: str | None = None) -> Path:
@@ -51,6 +77,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--task", default=None, help="Explicit task description for Builder")
     parser.add_argument("--model", default="gemini-3.7-flash-medium", help="Model for Antigravity CLI")
+    parser.add_argument("--model-tier", choices=["fast", "flash", "standard", "medium", "pro", "deep"], default=None, help="Model tier for Builder")
     parser.add_argument("--agy-bin", default=None, help="Path to Antigravity CLI binary")
     parser.add_argument("--test-cmd", default=None, help="Optional test command to verify before report")
     args = parser.parse_args()
@@ -62,6 +89,19 @@ def main() -> int:
 
     report_path = Path(report_env).resolve()
     workspace = Path.cwd().resolve()
+
+    state_env = os.environ.get("IDEAS_STANDARD_STATE")
+    is_fix_required = False
+    audit_round = 0
+    if state_env and Path(state_env).is_file():
+        try:
+            state_data = json.loads(Path(state_env).read_text(encoding="utf-8"))
+            is_fix_required = (state_data.get("machine_state") == "FIX_REQUIRED")
+            audit_round = int(state_data.get("audit_round", 0))
+        except Exception:
+            pass
+
+    selected_model = resolve_model(args.model, args.model_tier, is_fix_required, audit_round)
 
     # Discover binary
     agy_bin = _find_agy_binary(args.agy_bin)
@@ -149,7 +189,7 @@ def main() -> int:
     cmd = [
         str(agy_bin),
         *add_dir_args,
-        f"--model={args.model}",
+        f"--model={selected_model}",
         "--dangerously-skip-permissions",
         "--disable-slash-commands",
         "--output-format", "json",
@@ -193,15 +233,6 @@ def main() -> int:
             _run_git(["commit", "-m", f"feat: {summary_first_line}"], cwd=workspace)
             result_sha = _run_git(["rev-parse", "HEAD"], cwd=workspace).stdout.strip()
 
-    state_env = os.environ.get("IDEAS_STANDARD_STATE")
-    is_fix_required = False
-    if state_env and Path(state_env).is_file():
-        try:
-            state_data = json.loads(Path(state_env).read_text(encoding="utf-8"))
-            is_fix_required = (state_data.get("machine_state") == "FIX_REQUIRED")
-        except Exception:
-            pass
-
     if result_sha == base_sha:
         if is_fix_required:
             print("ERROR: Builder correction must produce a new SHA", file=sys.stderr)
@@ -214,6 +245,16 @@ def main() -> int:
     changed_paths = [line.strip() for line in diff_proc.stdout.splitlines() if line.strip()]
     if not changed_paths:
         changed_paths = ["."]
+
+    # Local Pre-validation (Zero Tokens): compile modified Python files to detect syntax errors
+    for p in changed_paths:
+        target_p = workspace / p
+        if target_p.suffix == ".py" and target_p.is_file():
+            try:
+                py_compile.compile(str(target_p), doraise=True)
+            except py_compile.PyCompileError as exc:
+                print(f"ERROR: Local pre-validation failed: syntax error in {p}: {exc}", file=sys.stderr)
+                return 1
 
     # Run required unit tests
     test_cmd = args.test_cmd or os.environ.get("IDEAS_STANDARD_TEST_CMD")
