@@ -313,7 +313,7 @@ Não é gate de produto.
 
 ## S1 — CONFORMANCE FIRST
 
-**Status:** ACTIVE — retomado em D-C02 com implementação de S1-C01 (`check`).
+**Status:** ACTIVE — retomado em D-C02; S1-C01 (`check`) e S1-C02 (validação de project manifest) concluídos.
 
 ### Objective
 
