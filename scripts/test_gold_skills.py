@@ -1,5 +1,6 @@
 import hashlib
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -29,7 +30,9 @@ class GoldSkillsTest(unittest.TestCase):
     def test_evidence_digests_match_files(self):
         evidence = json.loads((ROOT / "F0_SK_EVIDENCE.json").read_text())
         for item in evidence["artifacts"]:
-            digest = hashlib.sha256((ROOT / item["path"]).read_bytes()).hexdigest()
+            # Hash the committed blob so checkout newline normalization cannot alter evidence.
+            committed = subprocess.check_output(["git", "show", f"HEAD:{item['path']}"])
+            digest = hashlib.sha256(committed).hexdigest()
             self.assertEqual(digest, item["sha256"])
 
 
