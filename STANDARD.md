@@ -1,6 +1,7 @@
 # Ideias Standard — Gold Standard
 
-Versão: `0.2.0-draft`.
+Versão do repositório: `0.1.0-draft`.
+Modelo canônico: **Gold V5**.
 
 ## 1. Missão
 
