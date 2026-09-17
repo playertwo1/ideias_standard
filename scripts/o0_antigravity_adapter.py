@@ -145,10 +145,20 @@ def main() -> int:
         print(f"ERROR: Antigravity CLI did not return valid JSON: {p.stdout[:300]}", file=sys.stderr)
         return 1
 
-    # Verify produced SHA
+    # Verify produced SHA, or commit working tree changes if uncommitted
     result_sha = _run_git(["rev-parse", "HEAD"], cwd=workspace).stdout.strip()
     if result_sha == base_sha:
-        print("ERROR: Antigravity CLI did not create a new commit", file=sys.stderr)
+        status_proc = _run_git(["status", "--porcelain"], cwd=workspace)
+        if status_proc.stdout.strip():
+            _run_git(["add", "-A"], cwd=workspace)
+            summary_first_line = prompt_task.strip().splitlines()[0] if prompt_task.strip() else "updates"
+            if len(summary_first_line) > 72:
+                summary_first_line = summary_first_line[:72]
+            _run_git(["commit", "-m", f"feat: {summary_first_line}"], cwd=workspace)
+            result_sha = _run_git(["rev-parse", "HEAD"], cwd=workspace).stdout.strip()
+
+    if result_sha == base_sha:
+        print("ERROR: Antigravity CLI did not create a new commit or file changes", file=sys.stderr)
         return 1
 
     # Get changed paths
