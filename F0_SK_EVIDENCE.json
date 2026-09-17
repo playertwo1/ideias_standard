@@ -1,0 +1,13 @@
+{
+  "status": "EXECUTABLE_LOCAL_PROOF",
+  "test": "scripts.test_gold_skills",
+  "artifacts": [
+    {"path":".agents/skills/gold-audit/SKILL.md","sha256":"26b7c97739e746056bdc9942a9fb8f68f2780f17d162753a02cb85403f5a4886"},
+    {"path":".agents/skills/goldify/SKILL.md","sha256":"3d98d966836e290760fafd19a0691d166e11168a4d409ab44f899a068095196a"},
+    {"path":".agents/skills/skill-author/SKILL.md","sha256":"d9dab21b9495a8ddd90717572f307e083600c604fa43a57101845f34ce16605a"},
+    {"path":"fixtures/gold-skills/valid-change.json","sha256":"a664a3cf629e5d5517ee97d09f63431b00648745747fe21df6280050feb138e2"},
+    {"path":"fixtures/gold-skills/defective-change.json","sha256":"e28cc542f6b66a81909ac587dfdda847694f7ba940139a98356c4523dc00d9aa"},
+    {"path":"fixtures/gold-skills/existing-project/README.md","sha256":"e0930019db43409d11373b8c0cb4cc950fb7d131d62515c7776a9a63e6fd28dd"},
+    {"path":"fixtures/gold-skills/skill-metadata.json","sha256":"ded5a385e52d5f9908a09dce9fe144173b3b5d14d43340d75f01a647164402b9"}
+  ]
+}

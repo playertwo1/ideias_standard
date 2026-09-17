@@ -361,7 +361,7 @@ Avaliar somente diante de necessidade real:
 
 - [x] matriz de decisão das Skills prioritárias;
 - [x] `gold-audit` desenhada, testada e dogfooded;
-- [x] `goldify` desenhada e testada em projeto real adequado;
+- [x] `goldify` desenhada e testada em fixture de projeto existente (sem alegar projeto real);
 - [x] `skill-author` desenhada para controlar futuras Skills;
 - [x] critérios claros de rejeição;
 - [ ] nenhum aumento relevante do contexto permanente do `AGENTS.md`.

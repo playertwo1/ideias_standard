@@ -5,6 +5,7 @@
 - **Fase atual:** F0 — Golden Standard
 - **Status:** ACTIVE
 - **Objetivo atual:** F0/F0-SK implementado; aguarda auditoria independente do SHA final.
+- **Evidência F0-SK:** `F0_SK_EVIDENCE.json` referencia fixtures e Skills por SHA-256; `scripts.test_gold_skills` reproduz as provas locais.
 
 ## Direção atual
 
