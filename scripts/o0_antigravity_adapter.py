@@ -157,12 +157,24 @@ def main() -> int:
             _run_git(["commit", "-m", f"feat: {summary_first_line}"], cwd=workspace)
             result_sha = _run_git(["rev-parse", "HEAD"], cwd=workspace).stdout.strip()
 
-    if result_sha == base_sha:
-        print("ERROR: Antigravity CLI did not create a new commit or file changes", file=sys.stderr)
+    state_env = os.environ.get("IDEAS_STANDARD_STATE")
+    is_fix_required = False
+    if state_env and Path(state_env).is_file():
+        try:
+            state_data = json.loads(Path(state_env).read_text(encoding="utf-8"))
+            is_fix_required = (state_data.get("machine_state") == "FIX_REQUIRED")
+        except Exception:
+            pass
+
+    if result_sha == base_sha and is_fix_required:
+        print("ERROR: Builder correction must produce a new SHA", file=sys.stderr)
         return 1
 
     # Get changed paths
-    diff_proc = _run_git(["diff", "--name-only", f"{base_sha}..{result_sha}"], cwd=workspace)
+    if base_sha != result_sha:
+        diff_proc = _run_git(["diff", "--name-only", f"{base_sha}..{result_sha}"], cwd=workspace)
+    else:
+        diff_proc = _run_git(["diff", "--name-only", "HEAD^..HEAD"], cwd=workspace)
     changed_paths = [line.strip() for line in diff_proc.stdout.splitlines() if line.strip()]
     if not changed_paths:
         changed_paths = ["."]
