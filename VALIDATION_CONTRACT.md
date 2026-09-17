@@ -43,6 +43,8 @@ Este contrato define os códigos determinísticos iniciais de conformance. O obj
 | `IS-SEM-025` | FAIL/HIGH | Artefato referencia pack inexistente ou não declarado no lock. |
 | `IS-SEM-026` | FAIL/HIGH | Artefato declara profile inválido (deve ser LIGHT, STANDARD ou DEEP). |
 | `IS-SEM-027` | FAIL/CRITICAL | Artefato `USER_OWNED` possui `local_override=true` (violação do invariante INV-002). |
+| `IS-SEM-028` | FAIL/HIGH | Arquivo de contrato obrigatório do projeto está ausente (`project-manifest.json`, `standard.lock`, `context-manifest.json`). |
+| `IS-SEM-029` | FAIL/HIGH | Artefato gerenciado declarado em `standard.lock` não existe no disco. |
 | `IS-INV-001` | FAIL/CRITICAL | Registry contém IDs de invariantes duplicados. |
 | `IS-WARN-001` | WARN | Artefato `MANAGED` possui `local_override=true`; revisar antes de upgrade. |
 
