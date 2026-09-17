@@ -23,6 +23,8 @@ Abra `PROJECT_STATE.md`, `STANDARD.md`, `ROADMAP.md` ou outros arquivos apenas q
 - localize antes de ler e carregue o menor trecho suficiente;
 - limite ou filtre outputs potencialmente grandes;
 - não esconda erros nem altere testes apenas para obter PASS;
+- aplique ao próprio Standard as práticas Gold que forem relevantes;
+- não promova nova capacidade ao Gold antes de provar sua utilidade;
 - valide antes de concluir.
 
 ## Verificação
