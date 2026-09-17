@@ -3,20 +3,20 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** auditoria independente de O0 v2 M5
-- **Última implementada:** O0 v2 M5 — ciclo real, fila autorizada e retomada após interrupção real
-- **Próxima:** auditoria independente de O0 v2 M5
-- **Bloqueios do projeto:** nenhum conhecido; M4 tem PASS independente no SHA `bdd1dd1da5358e391c5ea39f25f3b694f2535582`
+- **Objetivo atual:** dogfooding de O0 v2 (D-C01) antes de retomar S1
+- **Última implementada:** O0 v2 M5 — ciclo real, fila autorizada e retomada após interrupção real (PASS independente no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`)
+- **Próxima:** D-C01 (dogfooding de O0 v2 no próprio repositório antes de D-C02)
+- **Bloqueios do projeto:** nenhum conhecido; M5 tem PASS independente no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1–M4 aprovados com PASS independente; O0 v2 M5 aguarda auditoria; Gate S1 = NOT_RUN e S2 = NOT_STARTED
+- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1–M5 aprovados com PASS independente; Gate S1 = NOT_RUN e S2 = NOT_STARTED
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
 - **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
 
 ## Evidência atual
 
-- O0 v2 M5: Antigravity CLI e Codex CLI executaram FAIL, correção e PASS; a segunda tarefa autorizada iniciou automaticamente e a fila terminou. Provas novas de Builder timeout e Auditor cancelamento terminaram árvores reais, preservaram estado sem relatório parcial e retomaram explicitamente com um registro de operação cada. O snapshot imutável do Auditor é reutilizado com validação de bytes. Pacote `O0_V2_M5_EVIDENCE_PACKAGE/` indexado por SHA-256 em `O0_V2_M5_EVIDENCE.json`; auditoria independente pendente. Gate S1 = NOT_RUN, approval=null e S2 não iniciado.
+- Auditoria independente de O0 v2 M5: PASS no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`. Evidência canônica de aceite: `O0_V2_M5_EVIDENCE.json` e pacote persistente `O0_V2_M5_EVIDENCE_PACKAGE/`. Antigravity CLI e Codex CLI executaram FAIL, correção e PASS; a segunda tarefa autorizada iniciou automaticamente e a fila terminou. Provas de Builder timeout e Auditor cancelamento terminaram árvores reais, preservaram estado sem relatório parcial e retomaram explicitamente com um registro de operação cada. O snapshot imutável do Auditor é reutilizado com validação de bytes. Mantidos Gate S1 = NOT_RUN, approval = null e S2 = NOT_STARTED.
 
 - Auditoria independente de O0 v2 M4: PASS no SHA `bdd1dd1da5358e391c5ea39f25f3b694f2535582`. Nenhum gate ou aprovação humana registrado.
 
@@ -111,4 +111,4 @@ A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um ada
 
 ## Próxima ação
 
-Submeter O0 v2 M4 à auditoria independente. S1 permanece ACTIVE; Gate S1 = NOT_RUN, M5 e S2 não iniciados.
+Executar dogfooding D-C01 (utilização de O0 v2 no próprio repositório antes de D-C02). S1 permanece ACTIVE; Gate S1 = NOT_RUN, approval = null, S2 = NOT_STARTED e S1-C01 não iniciado.

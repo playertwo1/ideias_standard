@@ -297,13 +297,15 @@ Não é gate de produto.
 
 #### M5 — Prova final com agentes reais
 
+**Estado:** PASS independente no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`. Evidência de aceite em `O0_V2_M5_EVIDENCE.json` e pacote persistente `O0_V2_M5_EVIDENCE_PACKAGE/`. Gate S1 = NOT_RUN, approval = null e S2 = NOT_STARTED.
+
 - [x] Executar defeito conhecido: SHA A → FAIL → correção → SHA B distinto → PASS.
 - [x] Iniciar automaticamente a segunda tarefa autorizada e parar ao terminar a fila.
 - [x] Verificar relatórios, journals e referências de evidência por SHA-256.
 - [x] Testar timeout/cancelamento das CLIs reais sem aceitar relatório parcial; retomar sem duplicar resultado aceito (prova nova M5 de Builder timeout e Auditor cancelamento).
 - [x] Executar regressões pertinentes e self-check; documentar um comando de início e um de retomada.
 
-**Aceite:** ciclo local completo sem copiar/colar operacional. Evidência verificável em `O0_V2_M5_EVIDENCE.json` e `O0_V2_M5_EVIDENCE_PACKAGE/`; auditoria independente pendente. Não exigir respostas ou commits idênticos entre execuções de agentes reais.
+**Aceite:** ciclo local completo sem copiar/colar operacional. Evidência verificável em `O0_V2_M5_EVIDENCE.json` e `O0_V2_M5_EVIDENCE_PACKAGE/`. PASS independente no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`. Gate S1 = NOT_RUN, approval = null e S2 = NOT_STARTED. Não exigir respostas ou commits idênticos entre execuções de agentes reais.
 
 **Ordem:** M1 → M2 → M3 → M4 → M5. Um marco dependente só inicia após o aceite técnico do anterior. D-C01 registra o uso no próprio repositório após M5; D-C02 permite retomar S1 com O0. Gate S1 continua sob decisão explícita da Product Authority. Dashboard, banco externo, múltiplos auditores, execução distribuída e automação de GUI ficam fora deste plano.
 
