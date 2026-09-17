@@ -1,9 +1,9 @@
 # IDEIAS STANDARD — PROJECT STATE
 
-- **Versão:** 0.2.0-draft
+- **Versão do repositório:** 0.1.0-draft
+- **Modelo atual:** Gold V5
 - **Fase atual:** F0 — Golden Standard
 - **Status:** ACTIVE
-- **Roadmap:** V5 — Gold
 - **Objetivo atual:** consolidar a menor base reutilizável que torne um projeto fácil de entender, verificar, auditar e manter.
 
 ## Mudança de direção
@@ -44,6 +44,12 @@ A automação desse ciclo continua separada no repositório:
 https://github.com/playertwo1/runner
 
 O Runner é opcional e não bloqueia o desenvolvimento do Standard.
+
+## Transição técnica
+
+`VERSION`, `COMPATIBILITY.yaml`, scripts, schemas e fixtures ainda podem refletir partes do modelo 0.1 anterior durante F0.
+
+Não alterar esses ativos apenas para fazê-los parecer alinhados documentalmente. Cada um deve ser revisado contra o Gold Standard antes de ser mantido, simplificado ou removido.
 
 ## Próxima ação
 
