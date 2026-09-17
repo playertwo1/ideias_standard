@@ -1,0 +1,8 @@
+{
+  "schema_version": "0.1",
+  "project": {"name": "Invalid Version App", "type": "generic"},
+  "standard": {"name": "Ideias Standard", "version": "999.0.0-unsupported", "profile": "LIGHT"},
+  "packs": [],
+  "governance": {"product_authority": "USER", "builder": "AI_AGENT", "auditor": "INDEPENDENT_AI_AGENT"},
+  "context": {"strategy": "PROGRESSIVE", "full_repo_scan_default": false}
+}

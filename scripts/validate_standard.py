@@ -87,7 +87,13 @@ def current_version() -> str:
 
 def detect_kind(data: dict[str, Any], path: Path) -> str:
     name = path.name
-    if name == "project-manifest.json" or {"project", "standard", "governance", "context"} <= data.keys():
+    if (
+        name in {"project-manifest.json", "project-manifest.yaml", "project-manifest.yml"}
+        or name.endswith(".project.json")
+        or name.endswith(".project.yaml")
+        or name.endswith(".project.yml")
+        or {"project", "standard", "governance", "context"} <= data.keys()
+    ):
         return "project-manifest"
     if data.get("role") == "BUILDER":
         return "builder-report"

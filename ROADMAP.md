@@ -322,7 +322,7 @@ Criar interface estável de conformance.
 ### Checklist
 
 - [x] S1-C01 Implementar `check`.
-- [ ] S1-C02 Validar project manifest.
+- [x] S1-C02 Validar project manifest.
 - [ ] S1-C03 Validar standard lock.
 - [ ] S1-C04 Validar contexto aplicável.
 - [ ] S1-C05 Validar ownership.

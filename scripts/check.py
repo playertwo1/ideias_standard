@@ -57,10 +57,13 @@ def check_target(
     if target.is_dir():
         manifest_json = target / "project-manifest.json"
         manifest_yaml = target / "project-manifest.yaml"
+        manifest_yml = target / "project-manifest.yml"
         if manifest_json.exists():
             report = validate(manifest_json.resolve(), kind or "project-manifest")
         elif manifest_yaml.exists():
             report = validate(manifest_yaml.resolve(), kind or "project-manifest")
+        elif manifest_yml.exists():
+            report = validate(manifest_yml.resolve(), kind or "project-manifest")
         elif (target / "VERSION").exists() and (target / "schemas").exists():
             report = self_check()
         else:
