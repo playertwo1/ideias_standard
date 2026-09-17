@@ -864,6 +864,26 @@ def _terminate_actor_process(process: subprocess.Popen) -> None:
         except OSError:
             pass
 
+
+def run_actor(
+    command: list[str],
+    workspace: Path,
+    report: Path,
+    env: dict[str, str],
+    *,
+    write_sandbox: bool = False,
+    timeout_seconds: float | None = None,
+    cancel_path: Path | None = None,
+) -> None:
+    findings_path = env.get("IDEAS_STANDARD_FINDINGS")
+    findings_fd = None
+    findings_handle = None
+    actor_env = {**os.environ, **env, "IDEAS_STANDARD_REPORT": str(report)}
+    if findings_path is not None:
+        state_path = env.get("IDEAS_STANDARD_STATE")
+        if state_path is None:
+            raise HandoffError("Builder findings require canonical state at launch")
+        validate_builder_findings_handoff(status(Path(state_path)), Path(findings_path))
         if hasattr(os, "memfd_create") and sys.platform == "linux":
             findings_bytes = Path(findings_path).read_bytes()
             findings_fd = os.memfd_create("ideas-builder-findings", os.MFD_CLOEXEC | os.MFD_ALLOW_SEALING)
