@@ -98,7 +98,8 @@ def _build_audit_prompt(
     diff_context = f"Delta {base_sha or 'parent'}..{target_sha}:\n{changed or '(no changed paths)'}"
     prompt_rules = (
         "Report rules: If audit_result is PASS, findings must be empty and every check status must be PASS or NOT_APPLICABLE (never FAIL or NOT_RUN). "
-        "If any check fails, audit_result must be FAIL and findings must have at least one finding."
+        "If any check fails, audit_result must be FAIL and findings must have at least one finding. "
+        "IMPORTANT SANDBOX RULES: The audit checkout is strictly READ-ONLY. When running Python tests or commands, always use `python -B` so Python does not attempt to write .pyc files to __pycache__. Never attempt to write temporary files or compile caches into the repository checkout."
     )
     if reaudit_payload is not None:
         return (
@@ -234,9 +235,10 @@ def main() -> int:
         auditor_prompt,
     ]
 
+    codex_env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     child_pid_file = os.environ.get("IDEAS_STANDARD_CHILD_PID_FILE")
     if child_pid_file:
-        proc = subprocess.Popen(codex_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.Popen(codex_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=codex_env)
         try:
             Path(child_pid_file).write_text(str(proc.pid), encoding="utf-8")
         except OSError:
@@ -250,6 +252,7 @@ def main() -> int:
             text=True,
             capture_output=True,
             check=False,
+            env=codex_env,
         )
 
     if p.returncode != 0:
