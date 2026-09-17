@@ -293,17 +293,17 @@ Não é gate de produto.
 - [x] Atualizar explicitamente o contrato e os testes afetados pela regra O0-C29, preservando a proibição de avanço automático de fase.
 - [x] Parar ao terminar a fila ou encontrar gate humano, BLOCKED ou mudança de escopo.
 
-**Aceite:** duas tarefas autorizadas executadas em sequência; nenhuma aprovação de produto inferida do PASS técnico. Identidade e progresso são persistidos antes da mutação da tarefa, permitindo rejeição segura após interrupção. Evidência em `O0_V2_M4_EVIDENCE.json` e pacote persistente `O0_V2_M4_EVIDENCE_PACKAGE/`; reauditoria pendente. M5 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
+**Aceite:** duas tarefas autorizadas executadas em sequência; nenhuma aprovação de produto inferida do PASS técnico. Identidade e progresso são persistidos antes da mutação da tarefa, permitindo rejeição segura após interrupção. PASS independente no SHA `bdd1dd1da5358e391c5ea39f25f3b694f2535582`. M5 executado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
 
 #### M5 — Prova final com agentes reais
 
-- [ ] Executar defeito conhecido: SHA A → FAIL → correção → SHA B distinto → PASS.
-- [ ] Iniciar automaticamente a segunda tarefa autorizada e parar ao terminar a fila.
-- [ ] Verificar relatórios, journals e referências de evidência por SHA-256.
-- [ ] Testar timeout/cancelamento das CLIs reais sem aceitar relatório parcial; retomar sem duplicar resultado aceito.
-- [ ] Executar regressões pertinentes e self-check; documentar um comando de início e um de retomada.
+- [x] Executar defeito conhecido: SHA A → FAIL → correção → SHA B distinto → PASS.
+- [x] Iniciar automaticamente a segunda tarefa autorizada e parar ao terminar a fila.
+- [x] Verificar relatórios, journals e referências de evidência por SHA-256.
+- [ ] Testar timeout/cancelamento das CLIs reais sem aceitar relatório parcial; retomar sem duplicar resultado aceito (provas M2 e regressão de recuperação reutilizadas; prova conjunta M5 pendente).
+- [x] Executar regressões pertinentes e self-check; documentar um comando de início e um de retomada.
 
-**Aceite:** ciclo local completo sem copiar/colar operacional. Não exigir respostas ou commits idênticos entre execuções de agentes reais.
+**Aceite:** ciclo local completo sem copiar/colar operacional. Evidência parcial em `O0_V2_M5_EVIDENCE.json` e `O0_V2_M5_EVIDENCE_PACKAGE/`; retomada real e auditoria independente pendentes. Não exigir respostas ou commits idênticos entre execuções de agentes reais.
 
 **Ordem:** M1 → M2 → M3 → M4 → M5. Um marco dependente só inicia após o aceite técnico do anterior. D-C01 registra o uso no próprio repositório após M5; D-C02 permite retomar S1 com O0. Gate S1 continua sob decisão explícita da Product Authority. Dashboard, banco externo, múltiplos auditores, execução distribuída e automação de GUI ficam fora deste plano.
 
