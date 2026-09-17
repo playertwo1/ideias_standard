@@ -1672,7 +1672,7 @@ def run_loop(config_path: Path, max_steps: int = 20) -> dict[str, Any]:
 def run_task_queue(
     config_path: Path,
     queue_path: Path,
-    max_steps_per_task: int = 10,
+    max_steps_per_task: int = 20,
     invocation_id: str | None = None,
     on_conflict: str = "raise",
 ) -> dict[str, Any]:
