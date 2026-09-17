@@ -179,24 +179,30 @@ def main() -> int:
     if not changed_paths:
         changed_paths = ["."]
 
-    # Run optional or detected unit tests
+    # Run required unit tests
     test_cmd = args.test_cmd or os.environ.get("IDEAS_STANDARD_TEST_CMD")
-    if test_cmd:
-        p_test = subprocess.run(test_cmd, shell=True, cwd=workspace, capture_output=True, text=True)
-        if p_test.returncode != 0:
-            print(f"ERROR: Builder tests failed: {p_test.stderr}", file=sys.stderr)
+    if not test_cmd:
+        # Auto-detect test suite from repository workspace
+        if (workspace / "scripts" / "test_check.py").exists() and (workspace / "scripts" / "validate_standard.py").exists():
+            test_cmd = f'"{sys.executable}" -m unittest scripts/test_check.py && "{sys.executable}" scripts/validate_standard.py --self-check'
+        elif (workspace / "scripts" / "validate_standard.py").exists():
+            test_cmd = f'"{sys.executable}" scripts/validate_standard.py --self-check'
+        elif (workspace / "tests").is_dir():
+            test_cmd = f'"{sys.executable}" -m unittest discover -s tests'
+        else:
+            print("ERROR: No test command configured or detected; tests are required for READY_FOR_AUDIT", file=sys.stderr)
             return 1
-        test_check = {
-            "id": "antigravity-unit-tests",
-            "status": "PASS",
-            "evidence": f"Test command '{test_cmd}' passed successfully",
-        }
-    else:
-        test_check = {
-            "id": "antigravity-unit-tests",
-            "status": "NOT_RUN",
-            "evidence": "No test command configured via --test-cmd or IDEAS_STANDARD_TEST_CMD",
-        }
+
+    p_test = subprocess.run(test_cmd, shell=True, cwd=workspace, capture_output=True, text=True)
+    if p_test.returncode != 0:
+        print(f"ERROR: Builder tests failed: {p_test.stderr}", file=sys.stderr)
+        return 1
+
+    test_check = {
+        "id": "antigravity-unit-tests",
+        "status": "PASS",
+        "evidence": f"Test command '{test_cmd}' passed successfully",
+    }
 
     # Assemble canonical builder-report.json
     report_payload: dict[str, Any] = {

@@ -108,8 +108,8 @@ class TestO0AntigravityAdapter(unittest.TestCase):
 
     @patch("scripts.o0_antigravity_adapter.subprocess.run")
     @patch("scripts.o0_antigravity_adapter._find_agy_binary")
-    def test_accepts_when_new_commit_produced_without_test_cmd(self, mock_find_bin, mock_subproc_run):
-        """Adapter generates valid report with commit PASS and unit tests NOT_RUN when no explicit test_cmd."""
+    def test_rejects_when_no_tests_configured_or_detected(self, mock_find_bin, mock_subproc_run):
+        """Adapter rejects READY_FOR_AUDIT when no test command is configured and none detected."""
         mock_find_bin.return_value = Path("agy.exe")
 
         def subproc_side_effect(*args, **kwargs):
@@ -133,16 +133,49 @@ class TestO0AntigravityAdapter(unittest.TestCase):
             try:
                 os.chdir(self.workspace)
                 ret = main()
+                self.assertEqual(1, ret)
+                self.assertFalse(self.report_path.exists())
+            finally:
+                os.chdir(old_cwd)
+
+    @patch("scripts.o0_antigravity_adapter.subprocess.run")
+    @patch("scripts.o0_antigravity_adapter._find_agy_binary")
+    def test_autodetects_and_executes_tests_when_available(self, mock_find_bin, mock_subproc_run):
+        """Adapter auto-detects test command when test files exist in workspace."""
+        mock_find_bin.return_value = Path("agy.exe")
+        scripts_dir = self.workspace / "scripts"
+        scripts_dir.mkdir(parents=True, exist_ok=True)
+        (scripts_dir / "validate_standard.py").write_text("# dummy\n", encoding="utf-8")
+
+        def subproc_side_effect(*args, **kwargs):
+            cmd = args[0] if args else kwargs.get("args")
+            if isinstance(cmd, list) and cmd and cmd[0] == "git":
+                return REAL_SUBPROCESS_RUN(*args, **kwargs)
+            if isinstance(cmd, list) and "agy.exe" in str(cmd[0]):
+                (self.workspace / "feature.py").write_text("def run(): pass\n", encoding="utf-8")
+                return subprocess.CompletedProcess(
+                    args=cmd, returncode=0, stdout=json.dumps({"status": "SUCCESS"}), stderr=""
+                )
+            # test command execution via shell string
+            return subprocess.CompletedProcess(args=cmd, returncode=0, stdout="test pass", stderr="")
+
+        mock_subproc_run.side_effect = subproc_side_effect
+
+        env = {
+            "IDEAS_STANDARD_REPORT": str(self.report_path),
+        }
+
+        with patch.dict(os.environ, env, clear=False), patch("sys.argv", ["o0_antigravity_adapter.py"]):
+            old_cwd = Path.cwd()
+            try:
+                os.chdir(self.workspace)
+                ret = main()
                 self.assertEqual(0, ret)
                 self.assertTrue(self.report_path.exists())
                 report = json.loads(self.report_path.read_text(encoding="utf-8"))
                 self.assertEqual("READY_FOR_AUDIT", report["result"])
-                self.assertIn("feature.py", report["changed_paths"])
-                commit_check = next(c for c in report["checks"] if c["id"] == "antigravity-commit")
-                self.assertEqual("PASS", commit_check["status"])
-                self.assertIn("modifying 1 path(s)", commit_check["evidence"])
                 unit_check = next(c for c in report["checks"] if c["id"] == "antigravity-unit-tests")
-                self.assertEqual("NOT_RUN", unit_check["status"])
+                self.assertEqual("PASS", unit_check["status"])
             finally:
                 os.chdir(old_cwd)
 
