@@ -23,7 +23,7 @@ Não continuar a antiga sequência S1-C10–C33.
 - definir estrutura mínima do projeto Gold;
 - definir mecanismo simples de `check` com saída curta e detalhes sob demanda;
 - manter CI e testes essenciais;
-- pesquisar e adaptar Skills maduras antes de criar Skills próprias;
+- executar a trilha F0-SK de pesquisa e adaptação de Skills maduras;
 - priorizar `gold-audit`, `goldify` e `skill-author`;
 - revisar ativos legados e remover complexidade sem função prática;
 - criar um exemplo Gold completo;
@@ -41,15 +41,32 @@ Não continuar a antiga sequência S1-C10–C33.
 - Preserve Existing Work;
 - Security Proportional to Risk.
 
-## Skills
+## Trilha F0-SK — Skills Gold
 
-Skills devem permanecer fora do contexto permanente e ser carregadas somente quando necessárias.
+Fontes prioritárias já identificadas para estudo:
+
+- Agent Skills specification;
+- Anthropic Claude Code `skill-development`;
+- OpenAI Codex `code-review`;
+- Trail of Bits `second-opinion`;
+- Trail of Bits `audit-context-building`;
+- GitHub Awesome Copilot `ai-ready`;
+- GitHub Awesome Copilot `acquire-codebase-knowledge`;
+- GitHub Awesome Copilot `agent-skill-stack`;
+- referências opcionais de `security-review`, `secret-scanning` e `agentic-eval`.
+
+Ordem de construção planejada:
+
+1. `gold-audit`;
+2. `goldify`;
+3. `skill-author`;
+4. `skill-curator` somente se houver necessidade comprovada.
 
 Skills externas seguem:
 
 `DISCOVER → REVIEW → TRIM → ADAPT → TEST → INSTALL`
 
-Nenhuma Skill é incorporada apenas por popularidade. Utilidade, segurança, licença e custo de contexto precisam justificar sua adoção.
+Nenhuma Skill é incorporada apenas por popularidade. Utilidade, segurança, licença, sobreposição, custo de contexto e teste mínimo precisam justificar sua adoção.
 
 ## Builder ↔ Auditor
 
@@ -68,7 +85,8 @@ Não alterar esses ativos apenas para fazê-los parecer alinhados documentalment
 
 ## Próxima ação
 
-1. pesquisar Skills maduras no GitHub, documentação oficial e comunidade;
-2. selecionar somente candidatas de alto valor para o Gold;
-3. revisar a estrutura e os ativos existentes do repositório contra o Gold Standard;
-4. classificar cada ativo como manter, simplificar, mover para pack/Skill ou remover/arquivar.
+1. estudar em profundidade as fontes de `gold-audit`;
+2. extrair apenas os padrões úteis de revisão independente, second opinion e expansão progressiva de contexto;
+3. desenhar a primeira versão provider-neutral de `gold-audit`;
+4. criar fixtures mínimos com um diff correto e um diff com bug proposital;
+5. testar antes de promover a Skill para uso no Template Gold.
