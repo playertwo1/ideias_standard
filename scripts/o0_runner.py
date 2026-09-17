@@ -878,7 +878,15 @@ def run_actor(
     findings_path = env.get("IDEAS_STANDARD_FINDINGS")
     findings_fd = None
     findings_handle = None
-    actor_env = {**os.environ, **env, "IDEAS_STANDARD_REPORT": str(report), "PYTHONDONTWRITEBYTECODE": "1"}
+    pycache_tmp = report.parent / ".pycache"
+    pycache_tmp.mkdir(parents=True, exist_ok=True)
+    actor_env = {
+        **os.environ,
+        **env,
+        "IDEAS_STANDARD_REPORT": str(report),
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPYCACHEPREFIX": str(pycache_tmp),
+    }
     if findings_path is not None:
         state_path = env.get("IDEAS_STANDARD_STATE")
         if state_path is None:
@@ -1627,9 +1635,24 @@ def _run_once_locked(config_path: Path, config: dict[str, Any]) -> dict[str, Any
     return current
 
 
-def run_loop(config_path: Path, max_steps: int = 10) -> dict[str, Any]:
+def preflight_check(config: dict[str, Any], config_path: Path) -> list[str]:
+    """Fast sanity check before executing multi-agent runs."""
+    issues = []
+    repo = resolve_path(config_path, config.get("repository", ""))
+    if not repo.exists():
+        issues.append(f"Repository path does not exist: {repo}")
+    builder_ws = resolve_path(config_path, config.get("builder_workspace", ""))
+    if not builder_ws.exists():
+        issues.append(f"Builder workspace does not exist: {builder_ws}")
+    return issues
+
+
+def run_loop(config_path: Path, max_steps: int = 20) -> dict[str, Any]:
     config_path = config_path.resolve()
     config = load_config(config_path)
+    issues = preflight_check(config, config_path)
+    if issues:
+        raise HandoffError(f"Preflight check failed: {'; '.join(issues)}")
     state_path = resolve_path(config_path, config["state_path"])
 
     steps = 0

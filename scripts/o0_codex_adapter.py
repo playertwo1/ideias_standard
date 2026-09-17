@@ -100,7 +100,7 @@ def _build_audit_prompt(
         "Report rules: Be concise and direct. Do not output conversational filler or chat explanations. "
         "If audit_result is PASS, findings must be empty and every check status must be PASS or NOT_APPLICABLE (never FAIL or NOT_RUN). "
         "If any check fails, audit_result must be FAIL and findings must have at least one finding. "
-        "IMPORTANT SANDBOX RULES: The audit checkout is strictly READ-ONLY. When running Python tests or commands, always use `python -B -m unittest -q` so Python does not attempt to write .pyc files to __pycache__. Never attempt to write temporary files or compile caches into the repository checkout."
+        "IMPORTANT SANDBOX RULES: The audit checkout is strictly READ-ONLY. When running Python tests or commands, always use `python -B -m unittest -q` or `python -B scripts/validate_standard.py --self-check` so Python does not attempt to write .pyc files to __pycache__. Never attempt to write temporary files or compile caches into the repository checkout. Do not run py_compile directly on checkout files."
     )
     if reaudit_payload is not None:
         return (
@@ -237,7 +237,13 @@ def main() -> int:
         auditor_prompt,
     ]
 
-    codex_env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+    pycache_dir = temp_dir / "pycache"
+    pycache_dir.mkdir(parents=True, exist_ok=True)
+    codex_env = {
+        **os.environ,
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "PYTHONPYCACHEPREFIX": str(pycache_dir),
+    }
     child_pid_file = os.environ.get("IDEAS_STANDARD_CHILD_PID_FILE")
     if child_pid_file:
         proc = subprocess.Popen(codex_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=codex_env)
