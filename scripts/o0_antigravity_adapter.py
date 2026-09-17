@@ -19,12 +19,12 @@ from pathlib import Path
 from typing import Any
 
 TIER_MODELS = {
-    "fast": "gemini-2.5-flash",
-    "flash": "gemini-2.5-flash",
+    "fast": "gemini-3.8-flash-low",
+    "flash": "gemini-3.8-flash-low",
     "standard": "gemini-3.7-flash-medium",
     "medium": "gemini-3.7-flash-medium",
-    "pro": "gemini-2.5-pro",
-    "deep": "gemini-2.5-pro",
+    "pro": "gemini-3.1-pro-high",
+    "deep": "gemini-3.1-pro-high",
 }
 
 
@@ -198,7 +198,7 @@ def main() -> int:
 
     child_pid_file = os.environ.get("IDEAS_STANDARD_CHILD_PID_FILE")
     if child_pid_file:
-        proc = subprocess.Popen(cmd, cwd=workspace, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        proc = subprocess.Popen(cmd, cwd=workspace, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         try:
             Path(child_pid_file).write_text(str(proc.pid), encoding="utf-8")
         except OSError:
@@ -206,7 +206,7 @@ def main() -> int:
         stdout, stderr = proc.communicate()
         p = subprocess.CompletedProcess(cmd, proc.returncode, stdout, stderr)
     else:
-        p = subprocess.run(cmd, cwd=workspace, capture_output=True, text=True, check=False)
+        p = subprocess.run(cmd, cwd=workspace, stdin=subprocess.DEVNULL, capture_output=True, text=True, check=False)
     if p.returncode != 0:
         print(f"ERROR: Antigravity CLI exited with code {p.returncode}: {p.stderr}", file=sys.stderr)
         return p.returncode

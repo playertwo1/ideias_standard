@@ -950,35 +950,39 @@ def run_actor(
 
     try:
         report.parent.mkdir(parents=True, exist_ok=True)
+        actor_log_path = report.parent / "last_actor_output.log"
         with sandbox_ctx:
-            if timeout_seconds is None and cancel_path is None:
-                process = subprocess.run(
-                    command, cwd=workspace, env=actor_env, check=False,
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                    preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
-                    pass_fds=(findings_fd,) if findings_fd is not None else (),
-                )
-            else:
-                process = subprocess.Popen(
-                    command, cwd=workspace, env=actor_env,
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                    preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
-                    pass_fds=(findings_fd,) if findings_fd is not None else (),
-                    start_new_session=os.name != "nt",
-                )
-                deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
-                while process.poll() is None:
-                    reason = None
-                    if cancel_path is not None and cancel_path.exists():
-                        reason = "CANCELLED"
-                    elif deadline is not None and time.monotonic() >= deadline:
-                        reason = "TIMEOUT"
-                    if reason is not None:
-                        _terminate_actor_process(process)
-                        process.wait()
-                        raise ActorInterrupted(reason)
-                    time.sleep(0.02)
-                process.wait()
+            with open(actor_log_path, "wb") as log_file:
+                if timeout_seconds is None and cancel_path is None:
+                    process = subprocess.run(
+                        command, cwd=workspace, env=actor_env, check=False,
+                        stdin=subprocess.DEVNULL,
+                        stdout=log_file, stderr=subprocess.STDOUT,
+                        preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
+                        pass_fds=(findings_fd,) if findings_fd is not None else (),
+                    )
+                else:
+                    process = subprocess.Popen(
+                        command, cwd=workspace, env=actor_env,
+                        stdin=subprocess.DEVNULL,
+                        stdout=log_file, stderr=subprocess.STDOUT,
+                        preexec_fn=_auditor_write_sandbox(report.parent) if write_sandbox and os.name != "nt" else None,
+                        pass_fds=(findings_fd,) if findings_fd is not None else (),
+                        start_new_session=os.name != "nt",
+                    )
+                    deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
+                    while process.poll() is None:
+                        reason = None
+                        if cancel_path is not None and cancel_path.exists():
+                            reason = "CANCELLED"
+                        elif deadline is not None and time.monotonic() >= deadline:
+                            reason = "TIMEOUT"
+                        if reason is not None:
+                            _terminate_actor_process(process)
+                            process.wait()
+                            raise ActorInterrupted(reason)
+                        time.sleep(0.02)
+                    process.wait()
     finally:
         if findings_fd is not None:
             os.close(findings_fd)
