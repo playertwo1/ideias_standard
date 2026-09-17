@@ -1,178 +1,231 @@
-# Ideias Standard — Contrato Canônico
+# Ideias Standard — Gold Standard
 
-Versão inicial: `0.1.0-draft`.
+Versão: `0.2.0-draft`.
 
 ## 1. Missão
 
-Padronizar como projetos preparados para agentes de IA nascem, são validados, evoluem e trocam contexto, sem acoplar o projeto a um agente, stack ou provedor específico.
+Definir uma base simples e reutilizável para projetos que precisam ser fáceis de entender, alterar, validar, auditar e manter por humanos e agentes de IA.
 
-O Standard é um **lifecycle manager**, não apenas um scaffold.
+O Ideias Standard não é um framework de governança. É um **Golden Standard operacional**.
 
-## 2. Autoridade
+## 2. Princípios canônicos
 
-Precedência recomendada para projetos gerenciados:
+1. **Small Core** — poucas regras universais.
+2. **Progressive Context** — carregar somente o contexto necessário para a tarefa atual.
+3. **Executable Verification** — preferir build, testes, lint, typecheck e scripts reais a instruções vagas.
+4. **Independent Audit** — alterações relevantes podem ser revisadas por outro agente/processo.
+5. **Optional Packs** — capacidades específicas permanecem fora do Core até serem necessárias.
+6. **No Overengineering** — nenhuma abstração, arquivo ou camada existe sem problema concreto.
+7. **Preserve Existing Work** — padronizar não significa reescrever o projeto.
+8. **Security Proportional to Risk** — segurança cresce conforme o risco real.
 
-`invariantes de segurança → pedido vigente da Product Authority → decisões LOCKED → contrato específico do projeto → Standard aplicável → estado operacional → julgamento técnico`
+## 3. Definição de Gold
 
-O Standard nunca transforma sugestão de IA em decisão humana nem amplia autoridade por bundle, workflow ou adapter.
+Um projeto Gold deve, quando aplicável:
 
-## 3. Composição
+- ter objetivo e uso claros;
+- possuir `README.md` útil;
+- possuir `AGENTS.md` pequeno e operacional;
+- ter estrutura compreensível;
+- possuir verificações executáveis;
+- executar verificações importantes no CI;
+- manter contexto específico fora do Core;
+- permitir auditoria independente pelo delta;
+- evitar secrets e configurações inseguras básicas;
+- permanecer simples o suficiente para ser mantido.
 
-`BASE + PROFILE + PACKS + PROJECT RULES = PROJECT CONTRACT`
+O Standard padroniza qualidade e operação, não arquitetura interna obrigatória.
 
-### Profiles
+## 4. `AGENTS.md`
 
-- `LIGHT`: governança mínima proporcional ao risco.
-- `STANDARD`: padrão para apps/features normais, com estado, evidência, auditoria proporcional e contexto progressivo.
-- `DEEP`: controles adicionais para sistemas sensíveis, amplos, multiagente ou críticos.
+`AGENTS.md` é a fonte canônica de instruções universais para agentes.
 
-Profile define **profundidade**. Pack define **capacidade**. Selecionar DEEP não ativa automaticamente todos os packs.
+Ele deve conter apenas informação de alto valor para a maioria das tarefas:
 
-### Packs
+- objetivo do projeto;
+- poucas regras permanentes;
+- comandos principais;
+- mapa mínimo da estrutura;
+- referências para contexto adicional.
 
-Extensões composáveis como `android`, `python`, `backend`, `ai`, `sensitive-data` e `multi-agent`.
+Regra:
 
-Packs precisam declarar capacidades, regras adicionadas e conflitos detectáveis antes da materialização.
+> Se uma instrução não é útil para a maioria das tarefas, ela não pertence ao `AGENTS.md`.
 
-## 4. Bundles
+Evitar copiar o mesmo conteúdo para arquivos específicos de fornecedores. Se um fornecedor exigir arquivo próprio, preferir um adaptador mínimo que aponte para a fonte canônica sempre que possível.
 
-Bundles são composições versionadas de profile + packs + workflow + adapters.
+## 5. Contexto progressivo
 
-Eles servem como conveniência reutilizável, não como nova fonte de verdade. Um bundle:
+A leitura começa pequena e cresce apenas sob necessidade.
 
-- não pode ampliar autoridade;
-- não remove gate exigido por risco aplicável;
-- precisa manter provenance;
-- deve ser expandível para sua composição explícita.
+```text
+AGENTS.md
+   ↓
+contexto mínimo
+   ├─ documentação específica
+   ├─ pack da tecnologia
+   ├─ Skill do procedimento
+   └─ dependências diretas necessárias
+```
 
-Contrato: `schemas/bundle.schema.json`.
+Não escanear o repositório inteiro por padrão.
 
-## 5. Workflows
+Não criar um engine complexo de contexto enquanto referências simples e organização por domínio forem suficientes.
 
-Workflows organizam sequência, artefatos e gates para classes de trabalho, por exemplo fluxo padrão, migration-first ou Builder-Auditor.
+## 6. Builder
 
-Workflow não muda decisões humanas, não transforma `NOT_RUN` em `PASS` e não pode enfraquecer controles de segurança.
+O Builder deve:
 
-Contrato: `schemas/workflow.schema.json`.
+- entender o pedido antes de editar;
+- examinar o estado relacionado à tarefa;
+- fazer a menor mudança correta;
+- preservar comportamento e trabalho existentes;
+- não tratar suposição como fato;
+- não adicionar abstrações para necessidades hipotéticas;
+- não esconder erro nem alterar testes apenas para obter PASS;
+- executar as verificações aplicáveis antes de concluir.
 
-## 6. Contratos estruturados
+Planejamento é proporcional à complexidade da tarefa.
 
-Arquivos principais:
+## 7. Verificação executável
 
-- `project-manifest.json`: intenção operacional do projeto;
-- `.idea-standard/standard.lock`: versão efetivamente materializada e provenance;
-- `context-manifest.json`: roteamento de contexto;
-- artifact policies: ownership e fingerprint por arquivo;
-- bundle/workflow/change schemas;
-- conformance report estruturado;
-- handoffs Builder/Auditor e estado/policy de orquestração quando o pack `multi-agent` se aplica.
+Todo projeto Gold deve possuir uma forma conhecida de verificar alterações.
 
-Markdown explica; contratos estruturados permitem validação determinística.
+Conceitualmente:
 
-## 7. Ownership e provenance
+```text
+check
+ ├─ lint/format quando aplicável
+ ├─ typecheck quando aplicável
+ ├─ tests quando aplicável
+ └─ build quando aplicável
+```
 
-Cada artefato gerenciado pertence a uma classe:
+O mecanismo físico pode variar por stack.
 
-- `MANAGED`: derivado do Standard; alteração local é drift e nunca é sobrescrita sem preview.
-- `MERGEABLE`: baseline do Standard + customização local legítima; upgrade usa diff/merge.
-- `USER_OWNED`: pertence ao projeto; Standard pode validar/recomendar, mas não sobrescreve automaticamente.
+CI deve preferencialmente executar as mesmas verificações importantes usadas localmente.
 
-`standard.lock` registra provenance suficiente para upgrades: origem, revisão, fingerprint, profile/pack e overrides conhecidos.
+Testes protegem comportamento útil. Não existe meta de quantidade de testes nem obrigação de testar detalhes internos sem valor prático.
 
-Nunca inferir permissão de overwrite pelo nome do arquivo.
+Bug relevante deve ganhar teste de regressão quando isso for útil e viável.
 
-## 8. Contexto
+## 8. Auditoria independente
 
-Regra central: **menor contexto suficiente para executar a tarefa corretamente**.
+O Auditor não precisa ler o projeto inteiro.
 
-Classes:
+Contexto inicial recomendado:
 
-- `REQUIRED`;
-- `CONDITIONAL`;
-- `DISCOVERY`.
+- pedido original;
+- critérios de aceite;
+- diff;
+- arquivos alterados;
+- resultado das verificações;
+- erros/warnings relevantes.
 
-Contexto cresce sob demanda. Saída potencialmente grande deve ser limitada inicialmente. Nenhuma obrigação crítica pode ser truncada silenciosamente por orçamento; overflow obrigatório gera `CONTEXT_OVERFLOW`.
+Depois, expandir contexto somente para validar uma hipótese concreta.
 
-O objetivo futuro é medir `critical recall`, redução de contexto e informação irrelevante, não perseguir economia de tokens às custas de correção.
+A auditoria verifica principalmente:
 
-## 9. Conformance first
+- correção;
+- regressão;
+- escopo;
+- complexidade desnecessária;
+- atalhos ou falso sucesso;
+- suficiência da validação.
 
-Antes de gerar projetos, o Standard deve saber dizer se um contrato está correto.
+Resultado mínimo: `PASS` ou `FAIL` com findings acionáveis.
 
-Validação é separada em:
+A automação Builder ↔ Auditor pertence ao projeto externo Runner quando desejada. O Standard define o comportamento esperado, não exige um executor específico.
 
-1. parse;
-2. JSON Schema;
-3. regras semânticas entre documentos/catálogos;
-4. relatório com códigos determinísticos.
+## 9. Packs
 
-`VALIDATION_CONTRACT.md` define os códigos iniciais. `schemas/conformance-report.schema.json` define a saída estruturada.
+Packs adicionam boas práticas específicas sem inflar o Core.
 
-Estados: `NOT_RUN`, `PASS`, `FAIL`, `WARN` e `NOT_APPLICABLE` com rationale. `NOT_RUN != PASS`.
+Exemplos possíveis:
 
-## 10. Atualização
+- `android`;
+- `python`;
+- `web`;
+- `ai`;
+- `multi-agent`;
+- `sensitive-data`;
+- `agent-guardrails`.
 
-Projetos não precisam ser recriados para receber uma nova versão.
+Um pack deve existir somente quando uma necessidade real justificar sua criação.
 
-Fluxo alvo:
+Packs não devem despejar grandes blocos de texto no `AGENTS.md`. Contexto específico deve permanecer próximo do domínio ao qual pertence.
 
-`check → render target → three-way diff (baseline/local/target) → classify conflicts → preview → apply → validate → update lock`
+## 10. Skills
 
-O lock só muda depois de validação. Conflito nunca vira overwrite implícito.
+Procedimentos especializados e reutilizáveis podem ser representados como Skills carregadas sob demanda.
 
-## 11. Adopt / brownfield
+Exemplos:
 
-Projeto existente é caso de primeira classe.
+- code review;
+- release;
+- migration;
+- build especializado.
 
-`adopt` deve:
+Cada Skill deve fazer uma coisa bem e permanecer pequena.
 
-1. inventariar sem escrever;
-2. recomendar profile/packs;
-3. mapear equivalências;
-4. tratar arquivos existentes como `USER_OWNED` por padrão;
-5. propor baseline sintético apenas para artefatos aceitos;
-6. mostrar preview/conflitos;
-7. criar lock somente após adoção validada.
+Skills não substituem comandos executáveis quando um script simples resolve melhor o problema.
 
-## 12. Change lifecycle
+## 11. Create
 
-Mudanças de feature/correção não devem exigir reprocessar o projeto inteiro.
+A primeira forma de criar projetos Gold deve ser a solução mais simples disponível.
 
-Uma change unit registra ID, tipo, status, rationale, paths/IDs afetados, acceptance e referências de contexto. O contexto da implementação deve ser composto pelo **delta da mudança + invariantes vigentes**, não por leitura global automática.
+Preferência inicial: GitHub Template Repository.
 
-Contrato inicial: `schemas/change.schema.json`.
+Criar um gerador próprio somente se houver necessidade real não atendida por uma solução madura existente.
 
-## 13. Independência de agente
+Projeto criado deve passar no `check` aplicável.
 
-O contrato canônico não é `AGENTS.md`, `CLAUDE.md` nem `GEMINI.md`.
+## 12. Adopt / Goldify
 
-Adapters são materializações. O catálogo pode conter adapters `ACTIVE` ou `PLANNED`; somente adapters ativos podem entrar em bundles materializados na versão corrente. Divergência entre adapter e contrato canônico é finding de conformance.
+Projetos existentes são casos de primeira classe.
 
-## 14. Orquestração multiagente
+Goldify deve:
 
-Quando o pack `multi-agent` estiver ativo, o Standard define limites de autoridade para Builder e Auditor sem exigir um executor específico.
+1. examinar o estado atual sem assumir que está errado;
+2. identificar o que já atende ao Gold;
+3. produzir um **Golden Diff** curto;
+4. separar `NECESSÁRIO` de `RECOMENDADO`;
+5. preservar código, arquitetura e trabalho legítimos sempre que possível;
+6. mostrar mudanças relevantes antes de aplicar quando necessário;
+7. executar `check`;
+8. submeter alterações relevantes a auditoria independente.
 
-Regras canônicas:
+Não usar nota arbitrária ou sistema complexo de pontuação.
 
-- Builder e Auditor são distintos;
-- o resultado da auditoria identifica o commit verificado e vale somente para ele;
-- Auditor independente não possui escrita no alvo auditado;
-- findings devem ser verificáveis e encaminhados à correção quando aplicável;
-- somente ação explícita da Product Authority pode registrar esse gate;
-- automação externa não altera autoridade nem inicia a próxima fase sem autorização do contrato do projeto.
+## 13. Segurança
 
-O ciclo executável, seus relatórios e schemas próprios pertencem ao projeto
-[Runner](https://github.com/playertwo1/runner). O Standard mantém apenas a
-governança provider-neutral.
+Baseline:
 
-## 15. Anti-burocracia
+- não versionar secrets;
+- usar `.gitignore` adequado;
+- não expor credenciais em CI/logs;
+- manter dependências atualizáveis;
+- validar entradas externas quando necessário;
+- não executar operações destrutivas silenciosamente.
 
-Mudança pequena não deve receber o mesmo ritual de projeto sensível. Profundidade cresce com risco, impacto e ambiguidade.
+Projetos com maior risco recebem controles adicionais por packs específicos.
 
-O Standard deve reduzir ambiguidade, drift e desperdício de contexto sem criar processo maior que o problema.
+## 14. Anti-overengineering
 
-## 16. Regra final
+Nunca adicionar complexidade apenas para antecipar possibilidades futuras.
 
-**Correção → integridade → autoridade → evidência → eficiência.**
+Prefira:
 
-Dentro desses limites, minimizar leitura, contexto irrelevante, alterações amplas, validações redundantes e retrabalho.
+- texto simples antes de schema;
+- referência antes de duplicação;
+- script simples antes de framework;
+- ferramenta madura antes de engine própria;
+- contexto local antes de leitura global;
+- teste de comportamento antes de cobertura cosmética;
+- mudança pequena antes de refatoração ampla.
+
+Complexidade que deixou de justificar sua existência deve poder ser removida.
+
+## 15. Regra final
+
+> Menos contexto, mais sinal. Menos processo, mais verificação. Menos abstração, mais utilidade.
