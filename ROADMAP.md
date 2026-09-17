@@ -293,7 +293,7 @@ Não é gate de produto.
 - [x] Atualizar explicitamente o contrato e os testes afetados pela regra O0-C29, preservando a proibição de avanço automático de fase.
 - [x] Parar ao terminar a fila ou encontrar gate humano, BLOCKED ou mudança de escopo.
 
-**Aceite:** duas tarefas autorizadas executadas em sequência; nenhuma aprovação de produto inferida do PASS técnico. Evidência em `O0_V2_M4_EVIDENCE.json` e pacote persistente `O0_V2_M4_EVIDENCE_PACKAGE/`. M5 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
+**Aceite:** duas tarefas autorizadas executadas em sequência; nenhuma aprovação de produto inferida do PASS técnico. Identidade e progresso são persistidos antes da mutação da tarefa, permitindo rejeição segura após interrupção. Evidência em `O0_V2_M4_EVIDENCE.json` e pacote persistente `O0_V2_M4_EVIDENCE_PACKAGE/`; reauditoria pendente. M5 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
 
 #### M5 — Prova final com agentes reais
 

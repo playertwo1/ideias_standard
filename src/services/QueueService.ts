@@ -10,7 +10,7 @@ export class QueueService {
   async invoke(invocationId: string, payload: any): Promise<void> {
     // CORREÇÃO: Bloqueio de mutação antes de iniciar processamento
     const existingState = await this.queueRepo.getState(invocationId);
-    
+
     if (existingState) {
       if (['ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(existingState.status)) {
         // Retoma com segurança (early return) ou lança erro de conflito
@@ -20,12 +20,12 @@ export class QueueService {
     }
 
     // Lógica original de invocação
-    await this.queueRepo.createState(invocationId, { 
-      status: 'PENDING', 
+    await this.queueRepo.createState(invocationId, {
+      status: 'PENDING',
       payload,
       results: []
     });
-    
+
     // ... continuação do processamento da fila
   }
 }

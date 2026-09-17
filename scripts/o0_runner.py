@@ -1701,7 +1701,14 @@ def run_task_queue(
         "results": [],
         "status": "IN_PROGRESS",
         "stop_reason": None,
+        "active_task_index": None,
+        "active_task_id": None,
     }
+
+    # The durable invocation identity must exist before any task state can be
+    # removed or initialized. An interrupted invocation is therefore rejected
+    # on replay without touching an accepted task result.
+    write_json(queue_record_path, queue_record)
 
     builder_branch = base_config.get("builder_branch", "main")
     project_id = base_config.get("project_id", "ideias-standard")
@@ -1713,6 +1720,10 @@ def run_task_queue(
         for idx, task in enumerate(tasks):
             task_id = task["task_id"]
             task_run_id = f"run-{hashlib.sha256(f'{task_id}-{uuid.uuid4().hex}'.encode('utf-8')).hexdigest()}"
+
+            queue_record["active_task_index"] = idx
+            queue_record["active_task_id"] = task_id
+            write_json(queue_record_path, queue_record)
 
             # Verify phase invariance
             if task["phase"] != queue_phase:
@@ -1808,6 +1819,7 @@ def run_task_queue(
             }
             queue_record["executed_tasks"].append(task_summary)
             queue_record["results"].append(task_id)
+            write_json(queue_record_path, queue_record)
 
             # Check stop conditions
             if final_task_state.get("machine_state") == "BLOCKED":
@@ -1848,6 +1860,8 @@ def run_task_queue(
                     break
             else:
                 queue_record["status"] = "COMPLETED"
+                queue_record["active_task_index"] = None
+                queue_record["active_task_id"] = None
     finally:
         task_config_path.unlink(missing_ok=True)
 

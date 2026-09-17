@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -377,6 +378,55 @@ class O0QueueTest(unittest.TestCase):
         state = json.loads(record_file.read_text(encoding="utf-8"))
         self.assertEqual("ACCEPTED", state["status"])
         self.assertEqual(["item1"], state["results"])
+
+    def test_interruption_before_final_record_rejects_retry_without_state_mutation(self) -> None:
+        builder_script, auditor_script = self._create_actor_scripts()
+        config = {
+            "repository": str(self.repo),
+            "state_path": str(self.state_path),
+            "reports_dir": str(self.reports_dir),
+            "builder_workspace": str(self.repo),
+            "audit_workspaces": str(self.audit_workspaces),
+            "builder_command": [sys.executable, str(builder_script)],
+            "auditor_command": [sys.executable, str(auditor_script)],
+            "max_retries": 3,
+        }
+        config_path = self.root / "config.json"
+        config_path.write_text(json.dumps(config), encoding="utf-8")
+        invocation_id = "inv-interrupted-final-write"
+        queue_path = self.root / "queue.json"
+        queue_path.write_text(json.dumps({
+            "schema_version": "0.1", "invocation_id": invocation_id, "phase": "O0",
+            "tasks": [{
+                "task_id": "task-01", "goal": "Goal", "scope": ["file1.txt"],
+                "acceptance_criteria": ["criterion"], "phase": "O0",
+            }],
+        }), encoding="utf-8")
+        record_path = self.reports_dir / f"task-queue-execution-{invocation_id}.json"
+
+        from scripts import o0_runner
+        original_write = o0_runner.write_json
+
+        def interrupt_final_write(path, payload):
+            if Path(path) == record_path and payload.get("status") == "COMPLETED":
+                raise OSError("simulated interruption before final queue record")
+            return original_write(path, payload)
+
+        with patch("scripts.o0_runner.write_json", side_effect=interrupt_final_write):
+            with self.assertRaisesRegex(OSError, "simulated interruption"):
+                run_task_queue(config_path, queue_path, invocation_id=invocation_id)
+
+        state_before_retry = self.state_path.read_bytes()
+        record_before_retry = record_path.read_bytes()
+        progress = json.loads(record_before_retry)
+        self.assertEqual("IN_PROGRESS", progress["status"])
+        self.assertEqual(["task-01"], progress["results"])
+
+        with self.assertRaisesRegex(HandoffError, "INVOCATION_ALREADY_EXISTS"):
+            run_task_queue(config_path, queue_path, invocation_id=invocation_id)
+
+        self.assertEqual(state_before_retry, self.state_path.read_bytes())
+        self.assertEqual(record_before_retry, record_path.read_bytes())
 
     def test_queue_service_and_repository_python_api(self) -> None:
         from scripts.o0_queue import QueueRepository, QueueService
