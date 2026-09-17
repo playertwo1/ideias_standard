@@ -325,7 +325,7 @@ Criar interface estável de conformance.
 - [x] S1-C02 Validar project manifest.
 - [x] S1-C03 Validar standard lock.
 - [x] S1-C04 Validar contexto aplicável.
-- [ ] S1-C05 Validar ownership.
+- [x] S1-C05 Validar ownership.
 - [ ] S1-C06 Validar arquivos obrigatórios.
 - [ ] S1-C07 Validar compatibility.
 - [ ] S1-C08 Validar packs aplicáveis.

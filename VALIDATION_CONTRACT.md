@@ -39,6 +39,10 @@ Este contrato define os códigos determinísticos iniciais de conformance. O obj
 | `IS-SEM-021` | FAIL/HIGH | Rota de `context-manifest` contém path traversal (`..`) ou caminho absoluto. |
 | `IS-SEM-022` | FAIL/HIGH | Categorias de uma rota de `context-manifest` possuem caminhos sobrepostos. |
 | `IS-SEM-023` | FAIL/MEDIUM | `bootstrap_target_max_bytes` excede `task_target_max_bytes` em `context-manifest`. |
+| `IS-SEM-024` | FAIL/HIGH | Caminho de artefato contém path traversal (`..`) ou caminho absoluto. |
+| `IS-SEM-025` | FAIL/HIGH | Artefato referencia pack inexistente ou não declarado no lock. |
+| `IS-SEM-026` | FAIL/HIGH | Artefato declara profile inválido (deve ser LIGHT, STANDARD ou DEEP). |
+| `IS-SEM-027` | FAIL/CRITICAL | Artefato `USER_OWNED` possui `local_override=true` (violação do invariante INV-002). |
 | `IS-INV-001` | FAIL/CRITICAL | Registry contém IDs de invariantes duplicados. |
 | `IS-WARN-001` | WARN | Artefato `MANAGED` possui `local_override=true`; revisar antes de upgrade. |
 
