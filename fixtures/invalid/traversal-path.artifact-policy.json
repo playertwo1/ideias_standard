@@ -1,0 +1,11 @@
+{
+  "path": "../outside/AGENTS.md",
+  "ownership": "MERGEABLE",
+  "source": "templates/AGENTS.md",
+  "source_revision": "0.1",
+  "fingerprint": "sha256:agents123",
+  "profile": "STANDARD",
+  "pack": null,
+  "local_override": false,
+  "rationale": "Path traversal attack attempt."
+}

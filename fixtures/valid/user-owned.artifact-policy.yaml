@@ -1,0 +1,9 @@
+path: my_custom_config.yaml
+ownership: USER_OWNED
+source: local
+source_revision: null
+fingerprint: sha256:user123
+profile: null
+pack: null
+local_override: false
+rationale: Arquivo proprio do usuario preservado pelo Standard.

@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "standard_version": "0.1.0-draft",
+  "profile": "STANDARD",
+  "packs": [
+    "android"
+  ],
+  "bundle": null,
+  "workflow": "default",
+  "adapters": [
+    "generic"
+  ],
+  "template_fingerprint": "sha256:template-v01",
+  "generated_at": "2026-09-14T12:00:00Z",
+  "local_overrides": [],
+  "source_revision": "main",
+  "artifacts": [
+    {
+      "path": "AI_RULES.md",
+      "ownership": "MERGEABLE",
+      "source": "templates/AI_RULES.md",
+      "source_revision": "0.1",
+      "fingerprint": "sha256:ai",
+      "profile": "STANDARD",
+      "pack": "ai",
+      "local_override": false,
+      "rationale": "Pack ai exists in catalog but not declared in lock packs."
+    }
+  ]
+}

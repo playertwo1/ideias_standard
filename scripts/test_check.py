@@ -526,8 +526,167 @@ class CheckCommandTest(unittest.TestCase):
         fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
         self.assertIn("IS-CLI-001", fail_codes)
 
+    # --- S1-C05: Artifact Policy & Ownership Validation Tests ---
+
+    def test_artifact_policy_valid_json(self):
+        target = ROOT / "fixtures" / "valid" / "basic.artifact-policy.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+        pass_codes = [c["code"] for c in report["checks"] if c["status"] == "PASS"]
+        self.assertIn("IS-SCHEMA-001", pass_codes)
+        self.assertIn("IS-SEM-024", pass_codes)
+        self.assertIn("IS-SEM-025", pass_codes)
+        self.assertIn("IS-SEM-026", pass_codes)
+        self.assertIn("IS-SEM-027", pass_codes)
+
+    def test_artifact_policy_valid_yaml(self):
+        target = ROOT / "fixtures" / "valid" / "user-owned.artifact-policy.yaml"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+        pass_codes = [c["code"] for c in report["checks"] if c["status"] == "PASS"]
+        self.assertIn("IS-SCHEMA-001", pass_codes)
+        self.assertIn("IS-SEM-024", pass_codes)
+        self.assertIn("IS-SEM-027", pass_codes)
+
+    def test_artifact_policy_valid_directory_autodetection(self):
+        target = ROOT / "fixtures" / "valid" / "artifact-policy-dir"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+
+    def test_artifact_policy_valid_directory_with_explicit_kind(self):
+        target = ROOT / "fixtures" / "valid" / "artifact-policy-dir"
+        exit_code, output = run_check(path=target, kind="artifact-policy", as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+
+    def test_artifact_policy_warn_managed_override(self):
+        target = ROOT / "fixtures" / "valid" / "managed-override.artifact-policy.json"
+        exit_code, output = run_check(path=target, as_json=True, strict=False)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("WARN", report["result"])
+        warn_codes = [c["code"] for c in report["checks"] if c["status"] == "WARN"]
+        self.assertIn("IS-WARN-001", warn_codes)
+
+        exit_code_strict, out_strict = run_check(path=target, as_json=True, strict=True)
+        self.assertEqual(1, exit_code_strict)
+        rep_strict = json.loads(out_strict)
+        self.assertEqual("WARN", rep_strict["result"])
+
+    def test_artifact_policy_semantic_traversal_path_is_sem_024(self):
+        target = ROOT / "fixtures" / "invalid" / "traversal-path.artifact-policy.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-024", fail_codes)
+
+    def test_artifact_policy_semantic_unknown_pack_is_sem_025(self):
+        target = ROOT / "fixtures" / "invalid" / "unknown-pack.artifact-policy.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-025", fail_codes)
+
+    def test_artifact_policy_semantic_invalid_profile_is_sem_026(self):
+        target = ROOT / "fixtures" / "invalid" / "invalid-profile.artifact-policy.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-026", fail_codes)
+
+    def test_artifact_policy_semantic_user_owned_override_is_sem_027(self):
+        target = ROOT / "fixtures" / "invalid" / "user-owned-override.artifact-policy.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-027", fail_codes)
+
+    def test_artifact_policy_schema_missing_required_is_schema_001(self):
+        target = ROOT / "fixtures" / "invalid" / "missing-required.artifact-policy.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SCHEMA-001", fail_codes)
+
+    def test_standard_lock_semantic_pack_not_in_lock_is_sem_025(self):
+        target = ROOT / "fixtures" / "invalid" / "pack-not-in-lock.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-025", fail_codes)
+
+    def test_standard_lock_semantic_user_owned_override_is_sem_027(self):
+        target = ROOT / "fixtures" / "invalid" / "user-owned-override.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-027", fail_codes)
+
+    def test_standard_lock_semantic_traversal_artifact_is_sem_024(self):
+        target = ROOT / "fixtures" / "invalid" / "traversal-artifact.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-024", fail_codes)
+
+    def test_standard_lock_semantic_invalid_profile_artifact_is_sem_026(self):
+        target = ROOT / "fixtures" / "invalid" / "invalid-profile-artifact.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-026", fail_codes)
+
+    def test_artifact_policy_directory_not_found_fails_with_exit_code_2(self):
+        target = ROOT / "fixtures" / "valid" / "standard-lock-dir"
+        exit_code, output = run_check(path=target, kind="artifact-policy", as_json=True)
+        self.assertEqual(2, exit_code)
+        report = json.loads(output)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-CLI-001", fail_codes)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 

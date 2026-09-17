@@ -1,0 +1,11 @@
+{
+  "path": "MANAGED_RULE.md",
+  "ownership": "MANAGED",
+  "source": "templates/MANAGED_RULE.md",
+  "source_revision": "0.1",
+  "fingerprint": "sha256:managed123",
+  "profile": "LIGHT",
+  "pack": null,
+  "local_override": true,
+  "rationale": "Managed rule with local override pending review."
+}

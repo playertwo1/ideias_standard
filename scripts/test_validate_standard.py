@@ -16,9 +16,9 @@ class ValidateStandardTest(unittest.TestCase):
             with self.subTest(case=case["id"]):
                 report = validate(ROOT / case["path"], case.get("kind"))
                 self.assertEqual(case["expected_result"], report["result"])
-                observed_fail_codes = {c["code"] for c in report["checks"] if c["status"] == "FAIL"}
+                observed_codes = {c["code"] for c in report["checks"] if c["status"] in {"FAIL", "WARN"}}
                 for code in case.get("expected_codes", []):
-                    self.assertIn(code, observed_fail_codes)
+                    self.assertIn(code, observed_codes)
 
     def test_valid_context_manifest_passes(self):
         report = validate(ROOT / "fixtures/valid/basic.context-manifest.json")

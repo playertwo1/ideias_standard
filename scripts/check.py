@@ -72,6 +72,10 @@ def check_target(
         context_yaml_alt = target / "context.yaml"
         context_yml_alt = target / "context.yml"
 
+        artifact_json = target / "artifact-policy.json"
+        artifact_yaml = target / "artifact-policy.yaml"
+        artifact_yml = target / "artifact-policy.yml"
+
         if kind == "standard-lock":
             if lock_json.exists():
                 report = validate(lock_json.resolve(), "standard-lock")
@@ -102,6 +106,15 @@ def check_target(
                 report = validate(context_yml_alt.resolve(), "context-manifest")
             else:
                 raise FileNotFoundError(f"Directory does not contain context-manifest.json or context.json: {target}")
+        elif kind == "artifact-policy":
+            if artifact_json.exists():
+                report = validate(artifact_json.resolve(), "artifact-policy")
+            elif artifact_yaml.exists():
+                report = validate(artifact_yaml.resolve(), "artifact-policy")
+            elif artifact_yml.exists():
+                report = validate(artifact_yml.resolve(), "artifact-policy")
+            else:
+                raise FileNotFoundError(f"Directory does not contain artifact-policy.json or artifact-policy.yaml: {target}")
         elif manifest_json.exists():
             report = validate(manifest_json.resolve(), kind or "project-manifest")
         elif manifest_yaml.exists():
@@ -132,10 +145,16 @@ def check_target(
             report = validate(context_yaml_alt.resolve(), kind or "context-manifest")
         elif context_yml_alt.exists():
             report = validate(context_yml_alt.resolve(), kind or "context-manifest")
+        elif artifact_json.exists():
+            report = validate(artifact_json.resolve(), kind or "artifact-policy")
+        elif artifact_yaml.exists():
+            report = validate(artifact_yaml.resolve(), kind or "artifact-policy")
+        elif artifact_yml.exists():
+            report = validate(artifact_yml.resolve(), kind or "artifact-policy")
         elif (target / "VERSION").exists() and (target / "schemas").exists():
             report = self_check()
         else:
-            raise ValueError(f"Directory does not contain a recognizable project-manifest, standard.lock, context-manifest, or Standard root: {target}")
+            raise ValueError(f"Directory does not contain a recognizable project-manifest, standard.lock, context-manifest, artifact-policy, or Standard root: {target}")
     else:
         report = validate(target.resolve(), kind)
 

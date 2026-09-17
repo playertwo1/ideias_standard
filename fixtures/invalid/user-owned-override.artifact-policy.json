@@ -1,0 +1,11 @@
+{
+  "path": "CUSTOM.md",
+  "ownership": "USER_OWNED",
+  "source": "local",
+  "source_revision": null,
+  "fingerprint": "sha256:custom123",
+  "profile": null,
+  "pack": null,
+  "local_override": true,
+  "rationale": "Violation of INV-002: USER_OWNED with local_override=true."
+}

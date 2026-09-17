@@ -147,7 +147,13 @@ def detect_kind(data: dict[str, Any], path: Path) -> str:
         return "workflow"
     if "profile" in data and "packs" in data and "id" in data:
         return "bundle"
-    if "ownership" in data and "source" in data and "fingerprint" in data:
+    if (
+        name in {"artifact-policy.json", "artifact-policy.yaml", "artifact-policy.yml"}
+        or name.endswith(".artifact-policy.json")
+        or name.endswith(".artifact-policy.yaml")
+        or name.endswith(".artifact-policy.yml")
+        or ("ownership" in data and "source" in data and "fingerprint" in data)
+    ):
         return "artifact-policy"
     raise ValueError(f"Unable to detect document kind: {path}")
 
@@ -202,6 +208,108 @@ def check_adapters(checks: list[dict[str, Any]], values: list[str], path: str) -
         add_check(checks, "IS-SEM-005", "PASS", "INFO", "All referenced adapters are ACTIVE", path)
 
 
+def check_artifact_entry(
+    checks: list[dict[str, Any]],
+    artifact: dict[str, Any],
+    pointer_prefix: str,
+    known_packs: set[str],
+    lock_packs: list[str] | None = None,
+) -> tuple[bool, bool, bool, bool]:
+    """Validate a single artifact policy entry. Returns (traversal_err, pack_err, profile_err, inv002_err)."""
+    traversal_err = False
+    pack_err = False
+    profile_err = False
+    inv002_err = False
+
+    path_ptr = f"{pointer_prefix}/path" if pointer_prefix else "/path"
+    pack_ptr = f"{pointer_prefix}/pack" if pointer_prefix else "/pack"
+    prof_ptr = f"{pointer_prefix}/profile" if pointer_prefix else "/profile"
+    over_ptr = f"{pointer_prefix}/local_override" if pointer_prefix else "/local_override"
+    warn_ptr = pointer_prefix if pointer_prefix else "/local_override"
+
+    # 1. Path check IS-SEM-024
+    p = artifact.get("path")
+    if isinstance(p, str):
+        p_norm = p.replace("\\", "/")
+        parts = p_norm.split("/")
+        if p_norm.startswith("/") or (len(p_norm) > 1 and p_norm[1] == ":") or ".." in parts:
+            traversal_err = True
+    else:
+        traversal_err = True
+
+    if traversal_err:
+        add_check(
+            checks,
+            "IS-SEM-024",
+            "FAIL",
+            "HIGH",
+            f"Artifact path contains absolute path or path traversal (..): {p}",
+            path_ptr,
+        )
+
+    # 2. Pack check IS-SEM-025
+    pack = artifact.get("pack")
+    if pack is not None:
+        if pack not in known_packs:
+            pack_err = True
+            add_check(
+                checks,
+                "IS-SEM-025",
+                "FAIL",
+                "HIGH",
+                f"Artifact references unknown pack: {pack}",
+                pack_ptr,
+            )
+        elif lock_packs is not None and pack not in lock_packs:
+            pack_err = True
+            add_check(
+                checks,
+                "IS-SEM-025",
+                "FAIL",
+                "HIGH",
+                f"Artifact pack {pack!r} is not declared in lock packs",
+                pack_ptr,
+            )
+
+    # 3. Profile check IS-SEM-026
+    profile = artifact.get("profile")
+    if profile is not None and profile not in {"LIGHT", "STANDARD", "DEEP"}:
+        profile_err = True
+        add_check(
+            checks,
+            "IS-SEM-026",
+            "FAIL",
+            "HIGH",
+            f"Invalid artifact profile: {profile}",
+            prof_ptr,
+        )
+
+    # 4. Invariant INV-002 check IS-SEM-027
+    if artifact.get("ownership") == "USER_OWNED" and artifact.get("local_override") is True:
+        inv002_err = True
+        add_check(
+            checks,
+            "IS-SEM-027",
+            "FAIL",
+            "CRITICAL",
+            "USER_OWNED artifact cannot have local_override=true (INV-002)",
+            over_ptr,
+        )
+
+    # 5. Managed override warning IS-WARN-001
+    if artifact.get("ownership") == "MANAGED" and artifact.get("local_override") is True:
+        add_check(
+            checks,
+            "IS-WARN-001",
+            "WARN",
+            "MEDIUM",
+            "MANAGED artifact has a local override; review before upgrade",
+            warn_ptr,
+        )
+
+    return traversal_err, pack_err, profile_err, inv002_err
+
+
 def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
     checks: list[dict[str, Any]] = []
 
@@ -245,9 +353,34 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
             add_check(checks, "IS-SEM-002", "FAIL", "HIGH", f"Duplicate artifact paths: {', '.join(duplicates)}", "/artifacts")
         else:
             add_check(checks, "IS-SEM-002", "PASS", "INFO", "Artifact paths are unique")
-        for index, artifact in enumerate(data.get("artifacts", [])):
-            if artifact.get("ownership") == "MANAGED" and artifact.get("local_override") is True:
-                add_check(checks, "IS-WARN-001", "WARN", "MEDIUM", "MANAGED artifact has a local override; review before upgrade", f"/artifacts/{index}")
+
+        known_packs = catalog_ids(ROOT / "packs" / "catalog.yaml", "packs")
+        artifacts = data.get("artifacts", [])
+        has_t_err = False
+        has_pk_err = False
+        has_pr_err = False
+        has_inv_err = False
+        for index, artifact in enumerate(artifacts):
+            t_err, pk_err, pr_err, inv_err = check_artifact_entry(
+                checks, artifact, f"/artifacts/{index}", known_packs, lock_packs=data.get("packs", [])
+            )
+            if t_err:
+                has_t_err = True
+            if pk_err:
+                has_pk_err = True
+            if pr_err:
+                has_pr_err = True
+            if inv_err:
+                has_inv_err = True
+
+        if not has_t_err:
+            add_check(checks, "IS-SEM-024", "PASS", "INFO", "All artifact paths are valid relative paths", "/artifacts")
+        if not has_pk_err:
+            add_check(checks, "IS-SEM-025", "PASS", "INFO", "All artifact pack references are valid", "/artifacts")
+        if not has_pr_err:
+            add_check(checks, "IS-SEM-026", "PASS", "INFO", "All artifact profiles are valid", "/artifacts")
+        if not has_inv_err:
+            add_check(checks, "IS-SEM-027", "PASS", "INFO", "All artifact ownership definitions comply with INV-002", "/artifacts")
 
     elif kind == "bundle":
         check_known_packs(checks, data.get("packs", []), "/packs", "IS-SEM-003")
@@ -370,6 +503,20 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
                 add_check(checks, "IS-SEM-023", "FAIL", "MEDIUM", f"bootstrap_target_max_bytes ({bootstrap}) exceeds task_target_max_bytes ({task_budget})", "/budgets/bootstrap_target_max_bytes")
             else:
                 add_check(checks, "IS-SEM-023", "PASS", "INFO", "Context budgets are logically consistent")
+
+    elif kind == "artifact-policy":
+        known_packs = catalog_ids(ROOT / "packs" / "catalog.yaml", "packs")
+        t_err, pk_err, pr_err, inv_err = check_artifact_entry(
+            checks, data, "", known_packs, lock_packs=None
+        )
+        if not t_err:
+            add_check(checks, "IS-SEM-024", "PASS", "INFO", "Artifact path is a valid relative path", "/path")
+        if not pk_err:
+            add_check(checks, "IS-SEM-025", "PASS", "INFO", "Artifact pack is valid or not specified", "/pack" if data.get("pack") is not None else "/")
+        if not pr_err:
+            add_check(checks, "IS-SEM-026", "PASS", "INFO", "Artifact profile is valid or not specified", "/profile" if data.get("profile") is not None else "/")
+        if not inv_err:
+            add_check(checks, "IS-SEM-027", "PASS", "INFO", "Artifact ownership complies with INV-002", "/")
 
     return checks
 

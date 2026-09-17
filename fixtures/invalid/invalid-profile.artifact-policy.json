@@ -1,0 +1,11 @@
+{
+  "path": "AGENTS.md",
+  "ownership": "MERGEABLE",
+  "source": "templates/AGENTS.md",
+  "source_revision": "0.1",
+  "fingerprint": "sha256:agents123",
+  "profile": "SUPER_DEEP_INVALID",
+  "pack": null,
+  "local_override": false,
+  "rationale": "Invalid profile specification."
+}

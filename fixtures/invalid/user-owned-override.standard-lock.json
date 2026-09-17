@@ -1,0 +1,30 @@
+{
+  "schema_version": "0.1",
+  "standard_version": "0.1.0-draft",
+  "profile": "STANDARD",
+  "packs": [
+    "android"
+  ],
+  "bundle": null,
+  "workflow": "default",
+  "adapters": [
+    "generic"
+  ],
+  "template_fingerprint": "sha256:template-v01",
+  "generated_at": "2026-09-14T12:00:00Z",
+  "local_overrides": [],
+  "source_revision": "main",
+  "artifacts": [
+    {
+      "path": "USER_CONFIG.md",
+      "ownership": "USER_OWNED",
+      "source": "local",
+      "source_revision": null,
+      "fingerprint": "sha256:user123",
+      "profile": null,
+      "pack": null,
+      "local_override": true,
+      "rationale": "Lock contains USER_OWNED with local_override=true violating INV-002."
+    }
+  ]
+}
