@@ -25,17 +25,6 @@ SCHEMA_FILES = {
     "change": "change.schema.json",
     "conformance-report": "conformance-report.schema.json",
     "invariants": "invariants.schema.json",
-    "builder-report": "builder-report.schema.json",
-    "audit-report": "audit-report.schema.json",
-    "builder-findings": "builder-findings.schema.json",
-    "evidence-envelope": "evidence-envelope.schema.json",
-    "orchestration-policy": "orchestration-policy.schema.json",
-    "orchestrator-state": "orchestrator-state.schema.json",
-    "reaudit-handoff": "reaudit-handoff.schema.json",
-    "operation-record": "operation-record.schema.json",
-    "operation-journal": "operation-journal.schema.json",
-    "runner-failure": "runner-failure.schema.json",
-    "task-queue": "task-queue.schema.json",
 }
 
 
@@ -95,14 +84,6 @@ def detect_kind(data: dict[str, Any], path: Path) -> str:
         or {"project", "standard", "governance", "context"} <= data.keys()
     ):
         return "project-manifest"
-    if data.get("role") == "BUILDER":
-        return "builder-report"
-    if data.get("role") == "AUDITOR":
-        return "audit-report"
-    if {"builder_role_id", "auditor_role_id", "max_audit_rounds", "immutable_audit_target"} <= data.keys():
-        return "orchestration-policy"
-    if {"machine_state", "audit_round", "max_audit_rounds", "audit_target_sha"} <= data.keys():
-        return "orchestrator-state"
     if (
         name in {
             "standard.lock",
@@ -462,58 +443,6 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
         else:
             add_check(checks, "IS-INV-001", "PASS", "INFO", "Invariant IDs are unique")
 
-    elif kind == "orchestration-policy":
-        if data.get("builder_role_id") == data.get("auditor_role_id"):
-            add_check(checks, "IS-SEM-012", "FAIL", "CRITICAL", "Orchestration requires distinct Builder and Auditor role IDs", "/")
-        else:
-            add_check(checks, "IS-SEM-012", "PASS", "INFO", "Orchestration roles are distinct")
-        actor_ids = {data.get("builder_role_id"), data.get("auditor_role_id")}
-        if data.get("product_authority_id") in actor_ids:
-            add_check(checks, "IS-SEM-017", "FAIL", "CRITICAL", "Product Authority identity must be distinct from Builder and Auditor role identities", "/product_authority_id")
-        else:
-            add_check(checks, "IS-SEM-017", "PASS", "INFO", "Product Authority identity is distinct")
-
-    elif kind == "audit-report":
-        blocking = [finding for finding in data.get("findings", []) if finding.get("blocking") is True]
-        if data.get("audit_result") == "PASS" and blocking:
-            add_check(checks, "IS-SEM-014", "FAIL", "CRITICAL", "Audit PASS cannot contain blocking findings", "/findings")
-        else:
-            add_check(checks, "IS-SEM-014", "PASS", "INFO", "Audit result is consistent with blocking findings")
-        invalid_checks = [check for check in data.get("checks", []) if check.get("status") in {"FAIL", "NOT_RUN"}]
-        if data.get("audit_result") == "PASS" and invalid_checks:
-            add_check(checks, "IS-SEM-018", "FAIL", "CRITICAL", "Audit PASS cannot contain FAIL or NOT_RUN checks", "/checks")
-        else:
-            add_check(checks, "IS-SEM-018", "PASS", "INFO", "Audit checks are consistent with result")
-        if data.get("audit_result") == "FAIL" and not data.get("findings"):
-            add_check(checks, "IS-SEM-019", "FAIL", "CRITICAL", "Audit FAIL requires at least one finding", "/findings")
-        else:
-            add_check(checks, "IS-SEM-019", "PASS", "INFO", "Audit findings are consistent with result")
-
-    elif kind == "orchestrator-state":
-        machine = data.get("machine_state")
-        target = data.get("audit_target_sha")
-        audited = data.get("last_audited_sha")
-        result = data.get("last_audit_result")
-        approval = data.get("approval")
-        if data.get("builder_executor_id") is not None and data.get("builder_executor_id") == data.get("auditor_executor_id"):
-            add_check(checks, "IS-SEM-020", "FAIL", "CRITICAL", "Builder and Auditor executor identities must be distinct", "/")
-        else:
-            add_check(checks, "IS-SEM-020", "PASS", "INFO", "Executor identities are distinct")
-        if machine == "WAITING_PRODUCT_AUTHORITY" and not (result == "PASS" and target is not None and target == audited and approval is None):
-            add_check(checks, "IS-SEM-013", "FAIL", "CRITICAL", "WAITING_PRODUCT_AUTHORITY requires PASS on the exact frozen SHA and no approval yet", "/")
-        else:
-            add_check(checks, "IS-SEM-013", "PASS", "INFO", "Waiting state is consistent")
-        if machine == "GATE_APPROVED":
-            valid = bool(approval) and result == "PASS" and target is not None and target == audited and approval.get("audited_sha") == audited and approval.get("gate") == data.get("gate") and approval.get("executor_id") == data.get("product_authority_id") and approval.get("role") == "PRODUCT_AUTHORITY" and approval.get("authority") == "GATE_APPROVAL" and approval.get("executor_id") not in {data.get("builder_executor_id"), data.get("auditor_executor_id")}
-            if not valid:
-                add_check(checks, "IS-SEM-015", "FAIL", "CRITICAL", "GATE_APPROVED requires explicit approval matching gate and audited SHA", "/approval")
-            else:
-                add_check(checks, "IS-SEM-015", "PASS", "INFO", "Gate approval matches audited SHA")
-        if data.get("audit_round", 0) > data.get("max_audit_rounds", 0):
-            add_check(checks, "IS-SEM-016", "FAIL", "HIGH", "audit_round cannot exceed max_audit_rounds", "/audit_round")
-        else:
-            add_check(checks, "IS-SEM-016", "PASS", "INFO", "Audit round is within policy limit")
-
     elif kind == "context-manifest":
         routes = data.get("routes", {})
         has_traversal_or_absolute = False
@@ -639,11 +568,6 @@ def self_check() -> dict[str, Any]:
     for item in catalog_items(ROOT / "workflows" / "catalog.yaml", "workflows"):
         report = validate(ROOT / item["path"], "workflow")
         add_check(checks, "IS-SELF-007", "PASS" if report["result"] != "FAIL" else "FAIL", "INFO" if report["result"] != "FAIL" else "HIGH", f"Workflow {'is valid' if report['result'] != 'FAIL' else 'failed validation'}: {item['id']}")
-
-    policy_path = ROOT / "orchestration" / "builder-auditor-policy.json"
-    if policy_path.exists():
-        report = validate(policy_path, "orchestration-policy")
-        add_check(checks, "IS-SELF-008", "PASS" if report["result"] != "FAIL" else "FAIL", "INFO" if report["result"] != "FAIL" else "CRITICAL", "Orchestration policy is valid" if report["result"] != "FAIL" else "Orchestration policy failed validation")
 
     return {"schema_version": "0.1", "target": "SELF", "standard_version": current_version(), "result": result_from_checks(checks), "checks": checks}
 

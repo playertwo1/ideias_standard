@@ -3,122 +3,26 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** implementação de S1 — Conformance First (S1-C06 em diante)
-- **Última implementada:** S1-C09 — workflow declarado conferido no catálogo e caminho materializado (IS-SEM-032), aguardando auditoria independente
-- **Próxima:** S1-C10 (validar bundles aplicáveis)
-- **Bloqueios do projeto:** nenhum conhecido
-- **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
+- **Última implementação:** S1-C06–C09 no SHA `f9d061cfa0518d18abb1faee0c49d9cb13dd3dfa`; correção subsequente no SHA `baf5c393e9e391dd0ddfc65551d37f4bfc7b2c58` aguarda reauditoria independente.
+- **Próxima implementação após reauditoria:** S1-C10 — validar bundles aplicáveis.
+- **Gate S0:** PASS — auditoria independente no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority.
 - **Gate S1:** NOT_RUN
-- **O0:** OPERATIONALLY_READY / PRIORITY_TOOLING — O0-C01–O0-C45 implementados; O0 v2 M1–M5 aprovados com PASS independente; D-C01 e D-C02 executados; Gate S1 = NOT_RUN e S2 = NOT_STARTED
 - **S2:** NOT_STARTED
-- **CLI completa:** NOT_RUN
-- **Validação atual:** PASS no self-check e testes unitários de `check.py` e `validate_standard.py`
+- **Aprovação de S1:** nenhuma registrada.
 
-## Evidência atual
+## Escopo deste repositório
 
-- S1-C05: validação de ownership e artifact policy consolidada para documentos standalone (`artifact-policy.json`, `.yaml`, `.yml`) e artefatos embutidos em `standard.lock` (`scripts/check.py` e `scripts/validate_standard.py`). Cobre conformidade estrutural contra `schemas/artifact-policy.schema.json` (IS-SCHEMA-001) e regras semânticas: IS-SEM-024 (caminho seguro sem traversal ou caminhos absolutos), IS-SEM-025 (packs válidos no catálogo de packs e declarados no lock), IS-SEM-026 (profile válido LIGHT/STANDARD/DEEP), IS-SEM-027 (invariante INV-002: USER_OWNED não pode ter local_override=true), e preservação de IS-WARN-001 (aviso sobre local_override em artefatos MANAGED). Coberto por fixtures válidas/inválidas e testes unitários dedicados em `scripts/test_check.py` (62/62 testes passando). Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
+O Ideias Standard mantém o padrão, seus schemas gerais, catálogos, exemplos e a
+validação de conformance. O código executável, os contratos específicos e as
+evidências da automação Builder ↔ Auditor foram transferidos para
+[playertwo1/runner](https://github.com/playertwo1/runner), commit
+`fe1e7a85129f9a229f0a3f25696537dca482caa7`.
 
-- S1-C04: validação de `context-manifest.json` / `context.json` consolidada no comando `check` (`scripts/check.py`) e validador (`scripts/validate_standard.py`), cobrindo conformidade estrutural contra `schemas/context-manifest.schema.json` (IS-SCHEMA-001) e todas as regras semânticas de contexto: IS-SEM-021 (proibição de path traversal `..` ou caminhos absolutos em rotas), IS-SEM-022 (disjunção estrita entre categorias `required`, `conditional` e `discovery` na mesma rota) e IS-SEM-023 (coerência de orçamentos de contexto onde `bootstrap_target_max_bytes <= task_target_max_bytes`). Coberto por testes unitários dedicados em `scripts/test_check.py` (47/47 testes passando). Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
+O histórico anterior do O0 permanece recuperável no Git deste repositório até
+`baf5c393e9e391dd0ddfc65551d37f4bfc7b2c58`. Essa separação não registra
+gate nem PASS de produto.
 
-- S1-C03: validação de `standard.lock` / `standard-lock.json` consolidada no comando `check` (`scripts/check.py`) e validador (`scripts/validate_standard.py`), cobrindo conformidade estrutural contra `schemas/standard-lock.schema.json` (IS-SCHEMA-001) e todas as regras semânticas: IS-SEM-001 (packs válidos no catálogo), IS-SEM-002 (caminhos de artefatos duplicados rejeitados), IS-SEM-004 (workflow válido no catálogo), IS-SEM-005 (adapters ativos no catálogo de adapters), IS-SEM-006 (versão do standard compatível com VERSION) e IS-WARN-001 (aviso sobre local_override em artefatos MANAGED). Coberto por testes unitários dedicados em `scripts/test_check.py` (38/38 testes passando). Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
+## Validação da etapa atual
 
-- S1-C02: validação de `project-manifest.json` consolidada no comando `check` (`scripts/check.py`) e validador (`scripts/validate_standard.py`), cobrindo conformidade estrutural contra `schemas/project-manifest.schema.json` (IS-SCHEMA-001) e todas as regras semânticas de manifest: IS-SEM-001 (packs válidos no catálogo), IS-SEM-006 (versão do standard compatível com VERSION), IS-SEM-009 (sensitive-data exigindo human_gates=true), IS-SEM-010 (multi-agent exigindo independent_audit=true) e IS-SEM-011 (multi-agent exigindo Builder != Auditor). Coberto por testes unitários dedicados em `scripts/test_check.py` com 100% de sucesso. Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
-
-- D-C02 / S1-C01: comando `check` implementado em `scripts/check.py` em conformidade com `CLI_CONTRACT.md` e `schemas/conformance-report.schema.json`. Suporta saída JSON determinística, flag `--strict` (elevando WARN a exit code 1), `--no-color` (sem códigos de escape ANSI), `--offline` (encaminhado e processado via finding IS-CLI-002), `--dry-run` (encaminhado e processado via finding IS-CLI-003) e exit codes contratuais (0=PASS/WARN sem strict, 1=FAIL/WARN com strict, 2=erro operacional). Coberto por testes unitários em `scripts/test_check.py` com 100% de aprovação e `validate_standard.py --self-check` PASS. Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
-
-- Auditoria independente de O0 v2 M5: PASS no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`. Evidência canônica de aceite: `O0_V2_M5_EVIDENCE.json` e pacote persistente `O0_V2_M5_EVIDENCE_PACKAGE/`. Antigravity CLI e Codex CLI executaram FAIL, correção e PASS; a segunda tarefa autorizada iniciou automaticamente e a fila terminou. Provas de Builder timeout e Auditor cancelamento terminaram árvores reais, preservaram estado sem relatório parcial e retomaram explicitamente com um registro de operação cada. O snapshot imutável do Auditor é reutilizado com validação de bytes. Mantidos Gate S1 = NOT_RUN, approval = null e S2 = NOT_STARTED.
-
-- Auditoria independente de O0 v2 M4: PASS no SHA `bdd1dd1da5358e391c5ea39f25f3b694f2535582`. Nenhum gate ou aprovação humana registrado.
-
-- O0 v2 M4: fila simples e ordenada de tarefas previamente autorizadas implementada e executada em sequência via `run_task_queue`. Duas tarefas autorizadas (`task-01-subtract` e `task-02-multiply`) declarando objetivo, escopo e critérios executadas com sucesso. A fila permanece estritamente fora do estado canônico (`orchestrator-state.json`); cada tarefa recebe seu próprio `run_id` determinístico e conforme (`run-...`). Relatórios canônicos validados e arquivados por tarefa (`reports/tasks/<task_id>/`). Invariante O0-C29 preservado. Identidade e progresso da invocação agora são persistidos antes de qualquer mutação da tarefa; após interrupção antes do registro final, a repetição é recusada sem alterar estado ou resultado aceito. Mantidos `approval: null`, `human_gate_required: true` e Gate S1 = NOT_RUN. Evidência histórica em `O0_V2_M4_EVIDENCE.json` e pacote correspondente. Reauditoria pendente; M5 e S2 não iniciados.
-
-- Auditoria independente de O0 v2 M3: PASS no SHA `9bc00e0df9c105e9ffc10b5cbaf7294244786c5a`. Evidência canônica de aceite: `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. Finding no Windows resolvido com isolamento fail-safe de sandbox via Deny ACLs e trava de handoff durante execução. Nenhum gate humano registrado; M4 executado; M5 e S2 não iniciados.
-
-- Auditoria independente de O0 v2 M2: PASS no SHA `c76317dfd0c3dd37adbc414455f8ad707b7dc88f`. Evidência canônica de aceite: `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote persistente `evev2m2/` (provas com CLIs reais comprovaram encerramento de todos os descendentes via `taskkill /F /T /PID`, sem avanço de estado e com descarte de relatório). Os registros `O0_V2_M2_EVIDENCE.json` e `O0_V2_M2_EVIDENCE_REAUDIT.json` permanecem históricos substituídos. Nenhum gate humano registrado; M3 executado; M4 e S2 não iniciados.
-
-
-- Auditoria independente de O0 v2 M1: PASS no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`. Evidência canônica de aceite: `O0_V2_M1_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M1_EVIDENCE_REAUDIT_PACKAGE/` (com bundle Git do Builder `builder.bundle`, saídas completas e relatório JSON validado do Codex `codex_audit_report.json`). O registro `O0_V2_M1_EVIDENCE.json` permanece identificado como histórico substituído. Nenhum gate humano registrado; M2 e S2 não iniciados.
-
-- Auditoria independente de O0-C19: PASS no SHA `cfa228463f2ed2a92de0cba06225860520bb116b`
-- HEAD de reconciliação `1eca5ba80be883fe5491dd9178429f033aed6899`: merge com árvore idêntica ao SHA auditado
-- Auditoria independente de O0-C20: PASS no SHA `61d4251f34163b210e11fb4b541b123771ade83d`
-- Auditoria independente de O0-C21: PASS no SHA `a9f407d4e6581e328ff9e6b8619b7740a7d6cd12`
-- Auditoria independente de O0-C22: PASS no SHA `9b8db74919af6995b9045574a04029d212237730`
-- Auditoria independente de O0-C23: PASS no SHA `3471ecfb2b5dc3ba995c9f1730d1bbd55876be86`
-- Auditoria independente de O0-C24: PASS no SHA `1c1bcac62269a934f5e0c99cc7ba6269416d62bf`
-- Auditoria independente de O0-C25: PASS no SHA `b954bddc568e2be9c4c37f88dd4ea0d22e051878`
-- Auditoria independente de O0-C26: PASS no SHA `a5d7f12ccd27370fce8751837ca4ad8751cb84dc`
-- Auditoria independente de O0-C27: PASS no SHA `0e53f0e49154688bb07ff74169402b0e33bd82fb`
-- Auditoria independente do README até O0-C27: PASS no SHA `019c561493cfaaee6628ac24bd61856bbac6b94a`
-- Auditoria independente de O0-C28: PASS no SHA `9b90b8000c16bc08787116fa99553dd8411a520a`
-- Auditoria independente de O0-C29: PASS no SHA `1c2388151ed0b5e7105aa34359c0c8c2ac499c99`
-- Auditoria independente de O0-C30: PASS no SHA `742dc3798de45f86a56449dbdbc77a6a1d5a29b9`
-- Auditoria independente do README: PASS no SHA `bb66a0760f7b9048f174582c90a102a027ad6a75`
-- Auditoria independente de O0-C31: PASS no SHA `a479facd9775d6c639c08d5da20a334534e67d63`
-- Auditoria independente de O0-C32: PASS no SHA `9f24fe5f724fb06ba4d54477293166fdd5e905cc`
-- Auditoria independente de O0-C33: PASS no SHA `13955b605601ad7359d64dad5ddd7ef79284b1f1`
-- Auditoria independente de O0-C34: PASS no SHA `37fa3a6a39a026b62144b2c9cd254f1df368a87e`
-- Auditoria independente de O0-C35: PASS no SHA `5f27511fe8923df7a7077540016c645a0247758f`
-- Auditoria independente de O0-C36: PASS no SHA `8a98790b241247baf271559b7a9a42609e82109b`
-- Auditoria independente de O0-C37: PASS no SHA `8f54a67286fa953dbdbde601ba94cedae3d5cd88`
-- O0-C38: ciclo real Builder → Auditor FAIL → Builder corrige → Auditor PASS → WAITING_PRODUCT_AUTHORITY executado; evidência em `O0_C38_E2E_EVIDENCE.json`
-- Auditoria independente de O0-C38: PASS no SHA `7792e35681911bbb15b328d854068f4d8375375a`
-- O0-C39: testes com processos reais comprovam exclusão mútua, rejeição concorrente, recuperação de lock obsoleto e preservação do estado após falha
-- Auditoria independente de O0-C39: PASS no SHA `d1f325c4bdcbb8f671bcfe13ef2cf26156c25b65`
-- O0-C40: identidade determinística, replay persistido e rejeição de payload divergente validados com processos reais
-- Auditoria independente de O0-C40: PASS no SHA `ca347c0aade5ebc9ee5c2568c08cf49fab6d2328`
-- O0-C14: invariantes de FAIL → FIX_REQUIRED e rejeições sem mutação cobertos diretamente
-- O0-C15: findings mínimos e evidências vinculadas são encaminhados ao Builder; adulteração é rejeitada antes da execução
-- O0-C41: journal durável retoma relatório, transição e `operation-record` após encerramento forçado sem reexecutar o ator
-- O0-C42: timeout e cancelamento registram `INTERRUPTED` no journal sem transição canônica; retomada exige `resume_interrupted=true`
-- O0-C43: falhas persistem em `runner-failures/` com categoria controlada, exit codes e vínculo ao estado; saída textual do ator não é retransmitida
-- SHA funcional validado: `2ab2d3881693393e53e2ba324cc947a6eb6821e8`
-- Python 3.11: PASS
-- Python 3.12: PASS
-- Python 3.13: PASS
-- Unit/adversarial fixtures: PASS
-- Testes de orquestração Builder/Auditor: PASS
-- Self-check: PASS
-- Projeto positivo de referência: PASS
-- Policy de orquestração: PASS
-- Evidência detalhada: `S0_VALIDATION_EVIDENCE.md`
-
-O commit que atualiza evidência/estado após o run é documental. O Auditor deve conferir o HEAD atual e confirmar que essas atualizações posteriores não alteraram os contratos executáveis validados.
-
-## Materializado nesta extensão
-
-- `docs/MULTI_AGENT_ORCHESTRATION.md`;
-- `schemas/builder-report.schema.json`;
-- `schemas/audit-report.schema.json`;
-- `schemas/orchestration-policy.schema.json`;
-- `schemas/orchestrator-state.schema.json`;
-- `orchestration/builder-auditor-policy.json`;
-- workflow `builder-auditor-loop`;
-- pack `multi-agent` ampliado com SHA imutável, loop limitado e parada humana;
-- `scripts/orchestrate_handoffs.py` como máquina de estados provider-neutral;
-- fixtures positivas/adversariais e testes da orquestração;
-- conformance ampliada para validar os novos contratos.
-
-## Invariantes destacados
-
-- `NOT_RUN != PASS`.
-- USER_OWNED nunca sofre overwrite automático.
-- Contexto REQUIRED nunca é truncado silenciosamente.
-- sensitive-data exige human gate.
-- multi-agent exige auditoria independente e Builder != Auditor.
-- resultado de auditoria vale somente para o SHA exato auditado.
-- Auditor não escreve no alvo da auditoria independente.
-- ciclo automático Builder/Auditor é limitado e escala ao atingir o limite.
-- PASS de auditoria não registra gate humano.
-- Orquestrador/runner/workflow/adapter não inicia a fase seguinte por conta própria.
-- bundle/workflow/adapter nunca amplia autoridade.
-
-## Fronteira do runner
-
-O núcleo implementado coordena estado, handoffs, evidência, SHA e gate. Ele é independente de fornecedor.
-
-A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um adapter/runner externo. Esse runner deve consumir os mesmos contratos e não pode ampliar autoridade. Adapters específicos continuam no escopo do lifecycle de ecossistema; a fundação S0 não transforma fornecedor em fonte canônica.
-
-## Próxima ação
-
-Avançar na implementação de S1 (S1-C05: validar ownership). S1 permanece ACTIVE; Gate S1 = NOT_RUN, approval = null, S2 = NOT_STARTED e S1-C04 aceito tecnicamente.
+Reauditar a correção dos findings de S1-C06/C08 no SHA indicado acima. Depois,
+continuar o checklist de S1 no `ROADMAP.md`.

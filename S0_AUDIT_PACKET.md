@@ -1,5 +1,9 @@
 # S0 Audit Packet — Ideias Standard
 
+> Registro histórico anterior à separação do Runner. Caminhos O0 citados
+> abaixo pertencem agora a [playertwo1/runner](https://github.com/playertwo1/runner)
+> ou podem ser consultados no Git até `baf5c393e9e391dd0ddfc65551d37f4bfc7b2c58`.
+
 Objetivo: permitir auditoria independente da fundação sem exigir leitura integral indiscriminada do repositório.
 
 ## Bootstrap do Auditor

@@ -14,7 +14,6 @@ adds_capabilities:
 recommended_artifacts:
   - docs/agents/ROLE_MATRIX.md
   - docs/agents/HANDOFF_CONTRACT.md
-  - orchestration/builder-auditor-policy.json
 rules:
   - Cada agente deve ter responsabilidade e escopo de escrita definidos.
   - Auditor nao deve simplesmente repetir o contexto completo do Builder.
@@ -24,4 +23,4 @@ rules:
   - Auditor nao pode ter escrita no alvo auditado durante a revisao independente.
   - Ciclo automatico Builder-Auditor deve ter limite de rodadas e escalar ao atingir o limite.
   - PASS de auditoria para em gate humano quando o contrato exigir; workflow ou adapter nao registra gate sozinho.
-  - Runner externo e adapter operacional e nunca amplia autoridade definida pelo contrato.
+  - Ferramentas externas não ampliam autoridade definida pelo contrato.

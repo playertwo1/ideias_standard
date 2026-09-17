@@ -1,5 +1,9 @@
 # S0 Validation Evidence — Ideias Standard
 
+> Registro histórico anterior à separação do Runner. Artefatos O0 citados
+> abaixo estão em [playertwo1/runner](https://github.com/playertwo1/runner)
+> ou no Git deste repositório até `baf5c393e9e391dd0ddfc65551d37f4bfc7b2c58`.
+
 **Data:** 2026-09-14  
 **Standard:** `0.1.0-draft`  
 **Workflow:** `Conformance`  

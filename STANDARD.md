@@ -150,33 +150,20 @@ Adapters são materializações. O catálogo pode conter adapters `ACTIVE` ou `P
 
 ## 14. Orquestração multiagente
 
-Quando o pack `multi-agent` estiver ativo, o Standard pode coordenar Builder e Auditor por handoffs estruturados sem transformar nenhum agente em Product Authority.
+Quando o pack `multi-agent` estiver ativo, o Standard define limites de autoridade para Builder e Auditor sem exigir um executor específico.
 
 Regras canônicas:
 
 - Builder e Auditor são distintos;
-- Builder entrega relatório estruturado e um commit candidato;
-- o SHA auditado é congelado e o resultado vale somente para esse SHA;
+- o resultado da auditoria identifica o commit verificado e vale somente para ele;
 - Auditor independente não possui escrita no alvo auditado;
-- `FAIL` retorna findings ao Builder dentro de um ciclo limitado;
-- disputa, escalada ou limite de rodadas gera `BLOCKED`, nunca decisão silenciosa do Orquestrador;
-- `PASS` leva a `WAITING_PRODUCT_AUTHORITY` quando há gate humano;
+- findings devem ser verificáveis e encaminhados à correção quando aplicável;
 - somente ação explícita da Product Authority pode registrar esse gate;
-- mesmo após aprovação, a próxima fase não começa automaticamente sem que o contrato do projeto a autorize;
-- o runner que inicia agentes é um adapter operacional e nunca fonte canônica.
+- automação externa não altera autoridade nem inicia a próxima fase sem autorização do contrato do projeto.
 
-Contratos:
-
-- `schemas/builder-report.schema.json`;
-- `schemas/audit-report.schema.json`;
-- `schemas/orchestration-policy.schema.json`;
-- `schemas/orchestrator-state.schema.json`.
-
-Workflow de referência: `builder-auditor-loop`.
-
-Máquina de estados de referência: `scripts/orchestrate_handoffs.py`.
-
-Detalhes: `docs/MULTI_AGENT_ORCHESTRATION.md`.
+O ciclo executável, seus relatórios e schemas próprios pertencem ao projeto
+[Runner](https://github.com/playertwo1/runner). O Standard mantém apenas a
+governança provider-neutral.
 
 ## 15. Anti-burocracia
 

@@ -19,7 +19,7 @@ Economizar tokens sem remover informação crítica.
 
 ## 2. REGRAS GLOBAIS
 
-Estas regras valem para O0 e S0–S8.
+Estas regras valem para S0–S8.
 
 - **R01** — Não ler o repositório inteiro sem necessidade.
 - **R02** — Começar por estado atual + tarefa + regras aplicáveis + arquivos diretamente necessários.
@@ -52,7 +52,6 @@ Estas regras valem para O0 e S0–S8.
 ## 3. ESTADO ATUAL
 
 - S0 = PASS / CLOSED
-- O0 = PARTIAL / PRIORITY_TOOLING
 - S1 = ACTIVE
 - S2 = NOT_STARTED
 - S3 = NOT_STARTED
@@ -70,21 +69,16 @@ S0 auditado no SHA:
 
 ## 4. DEPENDÊNCIAS
 
-- O0 → S0 PASS
 - S1 → S0 PASS
 - S2 → Gate S1 PASS
 - S3 → Gate S2 PASS
 - S4 → Gate S3 PASS
 - S5 → Gate S4 PASS
-- S6 → Gate S5 PASS + O0 OPERATIONALLY_READY + D-C03 PASS
+- S6 → Gate S5 PASS
 - S7 → Gate S6 PASS
 - S8 → Gate S7 PASS
 
-O0 é tooling transversal.
-
-O0 não substitui S1 e não possui gate de produto.
-
-S1 pode avançar em paralelo enquanto O0 é endurecido. O0 passa a operar no próprio repositório no dogfooding D-C01; depois disso, D-C02 permite usá-lo no restante de S1 quando seguro. S6 só inicia com O0 `OPERATIONALLY_READY`.
+O Runner é uma ferramenta externa opcional. Nenhuma fase do Standard depende da sua implementação.
 
 ---
 
@@ -151,166 +145,11 @@ Registrado pela Product Authority.
 
 ---
 
-## O0 — OPERATIONAL ORCHESTRATOR
+## Runner externo
 
-**Tipo:** TOOLING OPERACIONAL  
-**Status:** PARTIAL / PRIORITY
-
-### Objective
-
-Eliminar Product Authority como mensageiro manual entre Builder e Auditor.
-
-Fluxo:
-
-Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Authority
-
-### Checklist
-
-- [x] O0-C01 Runner carrega estado atual.
-- [x] O0-C02 Runner identifica `next_actor`.
-- [x] O0-C03 Runner inicia Builder quando autorizado.
-- [x] O0-C04 Runner inicia Auditor quando autorizado.
-- [x] O0-C05 Builder e Auditor operam em ambientes separados.
-- [x] O0-C06 Builder possui workspace de escrita controlada.
-- [x] O0-C07 Auditor opera read-only sobre alvo auditado.
-- [x] O0-C08 Builder produz `builder-report` válido.
-- [x] O0-C09 Builder report registra `result_sha`.
-- [x] O0-C10 `result_sha` vira `audit_target_sha`.
-- [x] O0-C11 `audit_target_sha` permanece imutável durante auditoria.
-- [x] O0-C12 Auditor produz `audit-report` válido.
-- [x] O0-C13 Auditor verifica exclusivamente o SHA congelado.
-- [x] O0-C14 FAIL → FIX_REQUIRED.
-- [x] O0-C15 Findings são encaminhados automaticamente ao Builder.
-- [x] O0-C16 Correção produz novo SHA.
-- [x] O0-C17 Novo SHA exige nova auditoria.
-- [x] O0-C18 PASS → WAITING_PRODUCT_AUTHORITY.
-- [x] O0-C19 ESCALATE → BLOCKED.
-- [x] O0-C20 DISPUTED → BLOCKED.
-- [x] O0-C21 `max_audit_rounds = 3`.
-- [x] O0-C22 Limite excedido → BLOCKED.
-- [x] O0-C23 Estado sobrevive restart/interrupção.
-- [x] O0-C24 Runner rejeita JSON inválido com segurança.
-- [x] O0-C25 Runner rejeita SHA inexistente/incorreto.
-- [x] O0-C26 Runner detecta tentativa de auditar SHA divergente.
-- [x] O0-C27 PASS com finding blocking é rejeitado.
-- [x] O0-C28 Nenhum gate humano é registrado automaticamente.
-- [x] O0-C29 Próxima fase não inicia automaticamente (avanço automático restrito a tarefas autorizadas da mesma fase via fila M4; transição entre fases ou gates permanece estritamente bloqueada até aprovação humana).
-- [x] O0-C30 Estado persistido inclui `run_id`.
-- [x] O0-C31 Estado persistido inclui rodada atual.
-- [x] O0-C32 Estado persistido inclui SHAs relevantes.
-- [x] O0-C33 Estado persistido inclui `next_actor`.
-- [x] O0-C34 Estado persistido inclui motivo de BLOCKED.
-- [x] O0-C35 Reauditoria usa delta/contexto mínimo quando suficiente.
-- [x] O0-C36 Histórico não é retransmitido integralmente sem necessidade.
-- [x] O0-C37 Evidência válida é referenciada por SHA/ID.
-- [x] O0-C38 Ciclo E2E real básico executado.
-- [x] O0-C39 Execuções concorrentes sobre o mesmo estado são serializadas ou rejeitadas com segurança.
-- [x] O0-C40 Transições possuem identidade idempotente e repetição não duplica handoff ou resultado.
-- [x] O0-C41 Interrupção entre execução, relatório e persistência é retomada sem executar o ator indevidamente duas vezes.
-- [x] O0-C42 Timeout e cancelamento produzem estado explícito, retomável e sem avanço parcial.
-- [x] O0-C43 Falha do runner persiste evidência estruturada e exit code sem expor secrets.
-- [x] O0-C44 Retry é limitado e não aceita duas vezes o mesmo relatório/operação.
-- [x] O0-C45 Ciclo E2E adversarial cobre concorrência, interrupção, timeout e retry.
-
-Todos os critérios O0-C01–O0-C45 são obrigatórios. Exceção exige `NOT_APPLICABLE` justificado e aceito explicitamente pela Product Authority; omissão não equivale a PASS.
-
-### Validation
-
-Cenário obrigatório:
-
-Builder → Auditor FAIL → Builder fix → Auditor PASS → WAITING_PRODUCT_AUTHORITY
-
-Também validar:
-
-- restart
-- SHA mismatch
-- invalid report
-- ESCALATE
-- DISPUTED
-- max rounds
-- concorrência sobre o mesmo estado
-- repetição idempotente
-- interrupção entre ator, relatório e persistência
-- timeout/cancelamento
-- retry sem execução ou aceitação duplicada
-- redaction de secrets na evidência de falha
-
-### Done
-
-Todos os O0-C01–O0-C45 possuem implementação validada e auditoria independente PASS no SHA exato.
-
-O ciclo real básico e o adversarial passaram, e D-C01 comprovou o Orchestrator no próprio `ideias_standard` em execução controlada.
-
-Estado:
-
-O0 = OPERATIONALLY_READY
-
-Não é gate de produto.
-
-### O0 v2 — integração local Antigravity ↔ Codex
-
-**Status:** PLANNED — prioridade operacional antes de retomar a implementação de S1. S1 permanece ACTIVE, Gate S1 = NOT_RUN e S2 = NOT_STARTED.
-
-**Objetivo:** eliminar o copiar/colar entre Builder e Auditor usando Antigravity CLI, `scripts/o0_runner.py` e Codex CLI. Reutilizar a máquina de estados, schemas, locks, evidências, limites de rodada e recovery de O0-C01–O0-C45. Os adapters são específicos dos provedores; os contratos do Standard continuam independentes deles.
-
-#### M1 — Validar as CLIs em repositório descartável
-
-**Estado:** PASS independente no SHA `38db3f5b31d6f614b841f1133c0b474c8eb0bdc5`. Evidência de aceite em `O0_V2_M1_EVIDENCE_REAUDIT.json` e pacote persistente `O0_V2_M1_EVIDENCE_REAUDIT_PACKAGE/` (`O0_V2_M1_EVIDENCE.json` mantido como registro histórico substituído). M2 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
-
-- [x] Registrar versão, autenticação, comando não interativo, código de saída e diretório de trabalho explícito de cada CLI.
-- [x] Antigravity alterar um arquivo, executar teste, criar commit e devolver SHA verificável.
-- [x] Codex auditar esse SHA em checkout separado, com código protegido contra escrita, temporários e relatório fora do checkout.
-- [x] Capturar saída estruturada das duas CLIs sem perguntas interativas.
-
-**Aceite:** uma execução real de cada CLI, com comandos e evidência reproduzível. Se faltar capacidade essencial, registrar bloqueio antes de M2.
-
-#### M2 — Conectar os adapters ao runner
-
-- [x] Criar apenas os adapters necessários para chamar Antigravity e Codex pelos comandos configuráveis do runner.
-- [x] Passar tarefa, contexto mínimo, workspace e destino de saída explicitamente.
-- [x] Converter a saída das CLIs para os relatórios canônicos e validar pelos schemas existentes.
-- [x] Verificar SHA, referências de evidência e integridade do checkout antes de aceitar o resultado.
-- [x] Aplicar os controles existentes de timeout, cancelamento e retomada às CLIs reais.
-
-**Aceite:** o runner chama cada agente e aceita relatórios válidos sem intermediação humana. PASS independente no SHA `c76317dfd0c3dd37adbc414455f8ad707b7dc88f`. Evidência canônica de aceite em `O0_V2_M2_EVIDENCE_PROCESS_PROOF_FINAL.json` e pacote persistente correspondente. `O0_V2_M2_EVIDENCE_REAUDIT.json`, seu pacote e `O0_V2_M2_EVIDENCE.json` permanecem históricos substituídos. M3 executado; M4 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
-
-#### M3 — Fechar o ciclo de correção
-
-- [x] Executar Builder → Auditor e encaminhar automaticamente findings de FAIL ao Builder.
-- [x] Exigir novo SHA após correção e iniciar nova auditoria, preservando `run_id`, rodadas e evidências.
-- [x] Respeitar `max_audit_rounds = 3`: três auditorias no total, sem retry automático de PASS, FAIL ou ESCALATE válidos.
-- [x] PASS terminar a tarefa em `WAITING_PRODUCT_AUTHORITY`; ESCALATE ou limite terminar em `BLOCKED` com motivo.
-- [x] Manter `approval = null` e Gate S1 = NOT_RUN.
-
-**Aceite:** ciclo real FAIL → correção → PASS iniciado uma única vez, sem copiar/colar. Evidência em `O0_V2_M3_EVIDENCE.json` e pacote persistente `O0_V2_M3_EVIDENCE_PACKAGE/`. PASS independente no SHA `9bc00e0df9c105e9ffc10b5cbaf7294244786c5a`. M4 executado; M5 não iniciado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
-
-
-#### M4 — Fila de tarefas previamente autorizadas
-
-- [x] Receber fila simples e ordenada; cada tarefa declara objetivo, escopo e critérios de aceite.
-- [x] Manter a fila fora da máquina de estados da tarefa; cada tarefa recebe seu próprio `run_id`.
-- [x] Após PASS técnico, iniciar apenas a próxima tarefa autorizada da mesma fase.
-- [x] Atualizar explicitamente o contrato e os testes afetados pela regra O0-C29, preservando a proibição de avanço automático de fase.
-- [x] Parar ao terminar a fila ou encontrar gate humano, BLOCKED ou mudança de escopo.
-
-**Aceite:** duas tarefas autorizadas executadas em sequência; nenhuma aprovação de produto inferida do PASS técnico. Identidade e progresso são persistidos antes da mutação da tarefa, permitindo rejeição segura após interrupção. PASS independente no SHA `bdd1dd1da5358e391c5ea39f25f3b694f2535582`. M5 executado; Gate S1 = NOT_RUN e S2 = NOT_STARTED.
-
-#### M5 — Prova final com agentes reais
-
-**Estado:** PASS independente no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`. Evidência de aceite em `O0_V2_M5_EVIDENCE.json` e pacote persistente `O0_V2_M5_EVIDENCE_PACKAGE/`. Gate S1 = NOT_RUN, approval = null e S2 = NOT_STARTED.
-
-- [x] Executar defeito conhecido: SHA A → FAIL → correção → SHA B distinto → PASS.
-- [x] Iniciar automaticamente a segunda tarefa autorizada e parar ao terminar a fila.
-- [x] Verificar relatórios, journals e referências de evidência por SHA-256.
-- [x] Testar timeout/cancelamento das CLIs reais sem aceitar relatório parcial; retomar sem duplicar resultado aceito (prova nova M5 de Builder timeout e Auditor cancelamento).
-- [x] Executar regressões pertinentes e self-check; documentar um comando de início e um de retomada.
-
-**Aceite:** ciclo local completo sem copiar/colar operacional. Evidência verificável em `O0_V2_M5_EVIDENCE.json` e `O0_V2_M5_EVIDENCE_PACKAGE/`. PASS independente no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`. Gate S1 = NOT_RUN, approval = null e S2 = NOT_STARTED. Não exigir respostas ou commits idênticos entre execuções de agentes reais.
-
-**Ordem:** M1 → M2 → M3 → M4 → M5. Um marco dependente só inicia após o aceite técnico do anterior. D-C01 registra o uso no próprio repositório após M5; D-C02 permite retomar S1 com O0. Gate S1 continua sob decisão explícita da Product Authority. Dashboard, banco externo, múltiplos auditores, execução distribuída e automação de GUI ficam fora deste plano.
+A automação Builder ↔ Auditor foi separada para [playertwo1/runner](https://github.com/playertwo1/runner). O histórico O0 permanece no Git deste repositório até `baf5c393e9e391dd0ddfc65551d37f4bfc7b2c58`; a execução e as evidências agora pertencem ao repositório Runner. O Standard mantém somente os contratos gerais de governança.
 
 ---
-
 ## S1 — CONFORMANCE FIRST
 
 **Status:** ACTIVE — retomado em D-C02; S1-C01 (`check`), S1-C02 (validação de project manifest), S1-C03 (validação de standard lock) e S1-C04 (validação de context manifest) concluídos.
@@ -513,31 +352,17 @@ Gate S5 = PASS.
 
 ### Objective
 
-Graduar O0 para ecossistema estável de adapters/runners.
+Compor contratos de projeto para diferentes fornecedores sem acoplar o Standard a um executor.
 
 ### Checklist
 
-- [ ] S6-C01 Formalizar runner contract.
-- [ ] S6-C02 Preservar contratos provider-neutral.
-- [ ] S6-C03 Adapter generic estável.
-- [ ] S6-C04 Adapter Codex estável.
-- [ ] S6-C05 Adapter Claude estável.
-- [ ] S6-C06 Adapter Gemini estável.
-- [ ] S6-C07 Runner Codex compatível.
-- [ ] S6-C08 Runner Claude compatível.
-- [ ] S6-C09 Runner Gemini compatível.
-- [ ] S6-C10 Todos preservam autoridade.
-- [ ] S6-C11 Todos preservam handoff semantics.
-- [ ] S6-C12 Todos preservam gate semantics.
-- [ ] S6-C13 Todos preservam ownership/provenance.
-- [ ] S6-C14 Adapters não duplicam contrato canônico.
-- [ ] S6-C15 Bundles versionados.
-- [ ] S6-C16 Workflows declarativos.
-- [ ] S6-C17 Conflict checks implementados.
-- [ ] S6-C18 O0 migra sem quebrar invariantes.
-- [ ] S6-C19 Protótipo O0 só é depreciado após substituição validada.
-- [ ] S6-C20 Testes de equivalência multi-provider PASS.
-- [ ] S6-C21 Auditoria independente PASS.
+- [ ] S6-C01 Definir contrato provider-neutral para adapters de projeto.
+- [ ] S6-C02 Validar adapters genéricos e específicos nos catálogos.
+- [ ] S6-C03 Garantir que adapters não mudem autoridade, gates ou ownership.
+- [ ] S6-C04 Versionar bundles e workflows declarativos.
+- [ ] S6-C05 Detectar conflitos entre packs, bundles e adapters.
+- [ ] S6-C06 Testar equivalência dos contratos gerados para provedores distintos.
+- [ ] S6-C07 Auditoria independente PASS.
 
 ### Gate
 
@@ -612,9 +437,9 @@ Gate S8 = PASS.
 
 ## 6. DOGFOODING
 
-- [x] D-C01 O0 v2 M1–M5 aceitos e O0 usado no próprio `ideias_standard`, antes de declarar `OPERATIONALLY_READY`.
-- [x] D-C02 Retomar a implementação de S1 usando O0 após D-C01, sem ampliar autoridade.
-- [ ] D-C03 O0 testado em pelo menos outro projeto antes de S6.
+- [x] D-C01 Histórico: O0 v2 M1–M5 aceitos e usado no próprio `ideias_standard`; execução transferida ao repositório Runner.
+- [x] D-C02 Histórico: S1 retomado após D-C01.
+- [ ] D-C03 Testar o Runner em outro projeto no repositório próprio; não bloqueia S6.
 - [ ] D-C04 S5 passa a gerar contexto do próprio Standard.
 - [ ] D-C05 S8 passa a controlar novas mudanças do próprio Standard.
 
@@ -673,15 +498,6 @@ Cada fase deve manter apenas:
 - [ ] PRODUCT_AUTHORITY_GATE_PASS
 
 Quando aplicável.
-
-O0 usa:
-
-- [ ] IMPLEMENTATION_COMPLETE
-- [ ] VALIDATION_PASS
-- [ ] E2E_PASS
-- [ ] DOGFOOD_PASS
-- [ ] AUDIT_PASS
-- [ ] OPERATIONALLY_READY
 
 Para cada entrega auditável, distinguir:
 
@@ -742,7 +558,7 @@ Não preencher lacuna material por suposição.
 ## 11. VISÃO FINAL
 
 - S0 Foundation — ✅ CLOSED
-- O0 Operational Orchestrator — 🔶 PRIORITY
+- Runner — ferramenta externa: https://github.com/playertwo1/runner
 - S1 Conformance First — 🟢 ACTIVE
 - S2 Init / Compiler
 - S3 Adopt / Brownfield
@@ -757,15 +573,14 @@ Resultado desejado:
 - Idea → define o projeto
 - Ideias Standard → define contrato e lifecycle
 - Context System → entrega contexto mínimo
-- Orchestrator → transporta estado/evidência
 - Builder → implementa
 - Auditor → verifica independentemente
-- Adapters/Runners → permitem trocar executor
+- Adapters → descrevem integração sem prender o Standard a um executor
 - Product Authority → mantém decisões materiais e gates
 
 Regra final:
 
-> Automatizar o transporte do trabalho, não a autoridade.
+> Adapters não ampliam a autoridade do projeto.
 
 Regra de contexto:
 

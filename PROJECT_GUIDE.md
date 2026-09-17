@@ -217,101 +217,12 @@ Audita um SHA específico e retorna:
 
 Não corrige o alvo enquanto audita.
 
-### Orchestrator
+### Automação externa
 
-Coordena o transporte de:
-
-- estado;
-- SHAs;
-- findings;
-- evidência;
-- contexto mínimo.
-
-Ele decide:
-
-> Quem age agora?
-
-Ele não decide:
-
-> Qual decisão de produto tomar?
+A execução do ciclo Builder ↔ Auditor pertence ao [Runner](https://github.com/playertwo1/runner). O Standard mantém regras de autoridade e contratos de projeto independentes do executor.
 
 ---
-
-## 11. Orquestração Builder ↔ Auditor
-
-Fluxo pretendido:
-
-Builder → Orchestrator → Auditor → Orchestrator → Builder ou Product Authority
-
-Fluxo principal:
-
-Builder → commit → `audit_target_sha` → Auditor
-
-Se houver FAIL:
-
-FAIL → FIX_REQUIRED → Builder → novo SHA → nova auditoria
-
-Se houver PASS:
-
-PASS → WAITING_PRODUCT_AUTHORITY
-
-Se houver conflito ou necessidade humana:
-
-ESCALATE / DISPUTED → BLOCKED → Product Authority
-
-PASS nunca migra automaticamente para outro SHA.
-
----
-
-## 12. Loop e retomada
-
-O ciclo automático deve ser limitado.
-
-Valor inicial:
-
-`max_audit_rounds = 3`
-
-Ao exceder:
-
-BLOCKED → Product Authority
-
-Processos longos devem persistir estado suficiente para retomar após interrupção.
-
-Não depender apenas da memória de uma conversa.
-
-Persistir, quando aplicável:
-
-- run;
-- tarefa;
-- estado;
-- SHAs;
-- rodada;
-- próximo ator;
-- motivo de bloqueio.
-
----
-
-## 13. Provider Neutrality
-
-Arquitetura:
-
-STANDARD → ORCHESTRATOR → RUNNER / ADAPTER → PROVIDER
-
-Codex pode ser o primeiro runner operacional.
-
-Depois podem existir Claude, Gemini ou outros.
-
-Trocar provider não pode alterar:
-
-- autoridade;
-- invariantes;
-- gates;
-- ownership;
-- significado dos handoffs.
-
----
-
-## 14. Relação com o Idea
+## 11. Relação com o Idea
 
 O Idea ajuda a definir:
 
@@ -329,18 +240,17 @@ O objetivo é transferir estado estruturado, não reproduzir a conversa inteira.
 
 ---
 
-## 15. Visão das fases
+## 12. Visão das fases
 
 Detalhes completos ficam no `ROADMAP.md`.
 
 - S0 — Foundation → contratos e fundação
-- O0 — Operational Orchestrator → automação Builder ↔ Auditor
 - S1 — Conformance First → check / doctor / findings / CLI
 - S2 — Init / Compiler → geração de projetos
 - S3 — Adopt / Brownfield → adoção de projetos existentes
 - S4 — Upgrade Lifecycle → atualização segura
 - S5 — Context Lifecycle → Minimum Sufficient Context formal
-- S6 — Multi-provider Ecosystem → runners e adapters estáveis
+- S6 — Multi-provider Ecosystem → contratos e adapters de projeto
 - S7 — Idea Integration → Idea → Standard
 - S8 — Change Lifecycle → evolução por delta
 
@@ -348,13 +258,12 @@ Para saber a fase atualmente ativa, consulte sempre `PROJECT_STATE.md`.
 
 ---
 
-## 16. Dogfooding
+## 13. Dogfooding
 
 O Standard deve usar suas próprias capacidades assim que forem confiáveis.
 
 Direção:
 
-- Orchestrator → opera o próprio Standard
 - Context Lifecycle → gera contexto do próprio Standard
 - Change Lifecycle → mudanças do próprio Standard usam change units
 
@@ -362,7 +271,7 @@ Capacidades maduras devem ser provadas internamente antes de generalização amp
 
 ---
 
-## 17. Como retomar o projeto
+## 14. Como retomar o projeto
 
 Após uma pausa longa:
 
@@ -378,7 +287,7 @@ Não reconstruir o projeto a partir de chats antigos quando o estado versionado 
 
 ---
 
-## 18. Quando parar e escalar
+## 15. Quando parar e escalar
 
 Parar quando houver:
 
@@ -400,7 +309,7 @@ Não preencher lacuna material por suposição.
 
 ---
 
-## 19. Visão final
+## 16. Visão final
 
 - IDEA → define o projeto
 - IDEIAS STANDARD → define contrato e lifecycle

@@ -1,5 +1,12 @@
 # Changelog
 
+## Separação do Runner — 2026-09-17
+
+O código, contratos específicos, testes e evidências do O0 foram transferidos
+para [playertwo1/runner](https://github.com/playertwo1/runner). As entradas
+históricas abaixo descrevem o repositório antes da separação; seus arquivos
+podem ser consultados no Git até `baf5c393e9e391dd0ddfc65551d37f4bfc7b2c58`.
+
 ## 0.1.0-draft — 2026-09-14
 
 ### Added

@@ -105,41 +105,6 @@ cases:
     kind: project-manifest
     expected_result: FAIL
     expected_codes: [IS-SEM-011]
-  - id: valid-orchestration-policy
-    path: fixtures/valid/basic.orchestration-policy.json
-    kind: orchestration-policy
-    expected_result: PASS
-    expected_codes: []
-  - id: valid-orchestrator-state
-    path: fixtures/valid/basic.orchestrator-state.json
-    kind: orchestrator-state
-    expected_result: PASS
-    expected_codes: []
-  - id: valid-builder-report
-    path: fixtures/valid/basic.builder-report.json
-    kind: builder-report
-    expected_result: PASS
-    expected_codes: []
-  - id: valid-audit-report
-    path: fixtures/valid/basic.audit-report.json
-    kind: audit-report
-    expected_result: PASS
-    expected_codes: []
-  - id: orchestration-requires-role-separation
-    path: fixtures/invalid/same-role.orchestration-policy.json
-    kind: orchestration-policy
-    expected_result: FAIL
-    expected_codes: [IS-SEM-012]
-  - id: audit-pass-rejects-blocker
-    path: fixtures/invalid/pass-with-blocker.audit-report.json
-    kind: audit-report
-    expected_result: FAIL
-    expected_codes: [IS-SEM-014]
-  - id: waiting-requires-pass
-    path: fixtures/invalid/waiting-without-pass.orchestrator-state.json
-    kind: orchestrator-state
-    expected_result: FAIL
-    expected_codes: [IS-SEM-013]
   - id: valid-context-manifest
     path: fixtures/valid/basic.context-manifest.json
     kind: context-manifest
