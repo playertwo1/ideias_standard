@@ -3,18 +3,20 @@
 - **Versão:** 0.1.0-draft
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
-- **Objetivo atual:** dogfooding de O0 v2 (D-C01) antes de retomar S1
-- **Última implementada:** O0 v2 M5 — ciclo real, fila autorizada e retomada após interrupção real (PASS independente no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`)
-- **Próxima:** D-C01 (dogfooding de O0 v2 no próprio repositório antes de D-C02)
-- **Bloqueios do projeto:** nenhum conhecido; M5 tem PASS independente no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`
+- **Objetivo atual:** implementação de S1 — Conformance First (S1-C02 em diante)
+- **Última implementada:** D-C02 / S1-C01 — comando check seguro (apenas leitura) com suporte a flags --json, --strict, --no-color e exit codes contratuais (0, 1, 2) e testes unitários em `scripts/test_check.py`
+- **Próxima:** S1-C02 (validar project manifest)
+- **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
 - **Gate S1:** NOT_RUN
-- **O0:** PARTIAL / PRIORITY — O0-C01–O0-C45 implementados; O0 v2 M1–M5 aprovados com PASS independente; Gate S1 = NOT_RUN e S2 = NOT_STARTED
+- **O0:** OPERATIONALLY_READY / PRIORITY_TOOLING — O0-C01–O0-C45 implementados; O0 v2 M1–M5 aprovados com PASS independente; D-C01 e D-C02 executados; Gate S1 = NOT_RUN e S2 = NOT_STARTED
 - **S2:** NOT_STARTED
 - **CLI completa:** NOT_RUN
-- **Validação atual:** PASS no workflow `Conformance` run `34857599652`, SHA `9e013b2f32aad6aaa2febea07f33c6e792efb230`
+- **Validação atual:** PASS no self-check e testes unitários de `check.py`
 
 ## Evidência atual
+
+- D-C02 / S1-C01: comando `check` implementado em `scripts/check.py` em conformidade com `CLI_CONTRACT.md` e `schemas/conformance-report.schema.json`. Suporta saída JSON determinística, flag `--strict` (elevando WARN a exit code 1), `--no-color` (sem códigos de escape ANSI) e exit codes contratuais (0=PASS/WARN sem strict, 1=FAIL/WARN com strict, 2=erro operacional). Coberto por 9 testes unitários em `scripts/test_check.py` com 100% de aprovação e `validate_standard.py --self-check` PASS. Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
 
 - Auditoria independente de O0 v2 M5: PASS no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`. Evidência canônica de aceite: `O0_V2_M5_EVIDENCE.json` e pacote persistente `O0_V2_M5_EVIDENCE_PACKAGE/`. Antigravity CLI e Codex CLI executaram FAIL, correção e PASS; a segunda tarefa autorizada iniciou automaticamente e a fila terminou. Provas de Builder timeout e Auditor cancelamento terminaram árvores reais, preservaram estado sem relatório parcial e retomaram explicitamente com um registro de operação cada. O snapshot imutável do Auditor é reutilizado com validação de bytes. Mantidos Gate S1 = NOT_RUN, approval = null e S2 = NOT_STARTED.
 
@@ -111,4 +113,4 @@ A camada que efetivamente inicia Codex, Claude, Gemini ou outro agente é um ada
 
 ## Próxima ação
 
-Executar dogfooding D-C01 (utilização de O0 v2 no próprio repositório antes de D-C02). S1 permanece ACTIVE; Gate S1 = NOT_RUN, approval = null, S2 = NOT_STARTED e S1-C01 não iniciado.
+Avançar na implementação de S1 (S1-C02: validação de project-manifest). S1 permanece ACTIVE; Gate S1 = NOT_RUN, approval = null, S2 = NOT_STARTED e S1-C01 aceito tecnicamente.

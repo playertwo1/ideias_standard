@@ -313,7 +313,7 @@ Não é gate de produto.
 
 ## S1 — CONFORMANCE FIRST
 
-**Status:** ACTIVE — implementação pausada enquanto O0 v2 é integrado; retomar em D-C02.
+**Status:** ACTIVE — retomado em D-C02 com implementação de S1-C01 (`check`).
 
 ### Objective
 
@@ -321,7 +321,7 @@ Criar interface estável de conformance.
 
 ### Checklist
 
-- [ ] S1-C01 Implementar `check`.
+- [x] S1-C01 Implementar `check`.
 - [ ] S1-C02 Validar project manifest.
 - [ ] S1-C03 Validar standard lock.
 - [ ] S1-C04 Validar contexto aplicável.
@@ -612,8 +612,8 @@ Gate S8 = PASS.
 
 ## 6. DOGFOODING
 
-- [ ] D-C01 O0 v2 M1–M5 aceitos e O0 usado no próprio `ideias_standard`, antes de declarar `OPERATIONALLY_READY`.
-- [ ] D-C02 Retomar a implementação de S1 usando O0 após D-C01, sem ampliar autoridade.
+- [x] D-C01 O0 v2 M1–M5 aceitos e O0 usado no próprio `ideias_standard`, antes de declarar `OPERATIONALLY_READY`.
+- [x] D-C02 Retomar a implementação de S1 usando O0 após D-C01, sem ampliar autoridade.
 - [ ] D-C03 O0 testado em pelo menos outro projeto antes de S6.
 - [ ] D-C04 S5 passa a gerar contexto do próprio Standard.
 - [ ] D-C05 S8 passa a controlar novas mudanças do próprio Standard.
