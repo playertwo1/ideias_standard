@@ -7,7 +7,10 @@ Modelo canônico: **Gold V5**.
 
 Definir uma base simples e reutilizável para projetos que precisam ser fáceis de entender, alterar, validar, auditar e manter por humanos e agentes de IA.
 
-O Ideias Standard não é um framework de governança. É um **Golden Standard operacional**.
+O Ideias Standard não é um framework de governança. É um **Golden Standard operacional** para dois cenários:
+
+- criar projetos novos já bem estruturados;
+- elevar projetos existentes ao Gold sem reconstruí-los.
 
 ## 2. Princípios canônicos
 
@@ -20,6 +23,8 @@ O Ideias Standard não é um framework de governança. É um **Golden Standard o
 7. **No Overengineering** — nenhuma abstração, arquivo ou camada existe sem problema concreto.
 8. **Preserve Existing Work** — padronizar não significa reescrever o projeto.
 9. **Security Proportional to Risk** — segurança cresce conforme o risco real.
+10. **Dogfooding** — o Standard deve conseguir aplicar a si mesmo o padrão que recomenda.
+11. **Prove Before Expand** — nada vira regra reutilizável do Gold antes de demonstrar valor em uso adequado.
 
 ## 3. Definição de Gold
 
@@ -95,7 +100,7 @@ Práticas Gold:
 5. Carregar docs, packs e Skills somente sob demanda.
 6. Ativar somente ferramentas/MCPs necessários à tarefa atual quando isso for controlável.
 7. Auditor começa por pedido, aceite, diff e resultado do `check`.
-8. Nova tarefa materialmente diferente deve preferir novo contexto/sessão em vez de carregar histórico irrelevante.
+8. Nova tarefa materialmente diferente prefere novo contexto/sessão a histórico irrelevante.
 9. Trabalho longo pode manter estado externo curto em vez de depender de histórico extenso.
 10. Não reduzir contexto crítico apenas para economizar tokens; retrabalho também é desperdício.
 
@@ -119,8 +124,6 @@ Planejamento é proporcional à complexidade da tarefa.
 ## 8. Verificação executável
 
 Todo projeto Gold deve possuir uma forma conhecida de verificar alterações.
-
-Conceitualmente:
 
 ```text
 check
@@ -182,7 +185,7 @@ Exemplos possíveis:
 - `sensitive-data`;
 - `agent-guardrails`.
 
-Um pack deve existir somente quando uma necessidade real justificar sua criação.
+Um pack só deve existir quando uma necessidade real justificar sua criação e, antes de virar reutilizável, deve ser exercitado em cenário adequado.
 
 Packs não devem despejar grandes blocos de texto no `AGENTS.md`. Contexto específico deve permanecer próximo do domínio ao qual pertence.
 
@@ -195,9 +198,10 @@ Princípios:
 - uma Skill deve ter uma responsabilidade clara;
 - metadata deve permitir descoberta sem carregar todo o conteúdo;
 - referências e scripts devem ser carregados/executados somente quando necessários;
-- não criar Skill quando um comando/script simples resolve melhor;
+- não criar Skill quando comando/script simples resolve melhor;
 - não duplicar instruções já presentes no Core;
-- Skills de terceiros entram somente após revisão de conteúdo, segurança, licença e adequação ao Gold.
+- Skills de terceiros entram somente após revisão de conteúdo, segurança, licença e adequação ao Gold;
+- nenhuma Skill vira parte recomendada do Template Gold antes de ser testada em fixture, exemplo ou projeto real apropriado.
 
 Fluxo para reaproveitar Skill externa:
 
@@ -205,11 +209,11 @@ Fluxo para reaproveitar Skill externa:
 DISCOVER → REVIEW → TRIM → ADAPT → TEST → INSTALL
 ```
 
-Prioridade inicial de Skills Gold:
+Prioridade inicial:
 
-- `gold-audit` — auditoria independente baseada em diff;
-- `goldify` — análise de projeto existente e Golden Diff;
-- `skill-author` — criar/revisar Skills pequenas e coerentes com o Standard.
+- `gold-audit`;
+- `goldify`;
+- `skill-author`.
 
 Novas Skills só entram quando uma tarefa repetitiva concreta justificar sua existência.
 
@@ -219,9 +223,11 @@ A primeira forma de criar projetos Gold deve ser a solução mais simples dispon
 
 Preferência inicial: GitHub Template Repository.
 
-Criar um gerador próprio somente se houver necessidade real não atendida por uma solução madura existente.
+Criar gerador próprio somente se uma necessidade real provar que uma solução madura e simples é insuficiente.
 
 Projeto criado deve passar no `check` aplicável.
+
+Antes de considerar o Template Gold estável, o próprio `ideias_standard` e pelo menos um exemplo/projeto adequado devem exercitar suas práticas essenciais.
 
 ## 13. Adopt / Goldify
 
@@ -240,6 +246,8 @@ Goldify deve:
 
 Não usar nota arbitrária ou sistema complexo de pontuação.
 
+A abordagem de Goldify deve ser comprovada em projetos existentes reais antes de automação ampla.
+
 ## 14. Segurança
 
 Baseline:
@@ -253,7 +261,28 @@ Baseline:
 
 Projetos com maior risco recebem controles adicionais por packs específicos.
 
-## 15. Anti-overengineering
+## 15. Dogfooding e prova antes da expansão
+
+### Dogfooding
+
+O `ideias_standard` deve ser o primeiro consumidor do próprio Gold sempre que a prática for aplicável.
+
+Se uma regra é difícil de usar, gera contexto excessivo ou cria burocracia neste próprio repositório, ela deve ser revisada antes de ser recomendada aos próximos projetos.
+
+### Prove Before Expand
+
+Uma capacidade só deve ser promovida de local/experimental para reutilizável quando:
+
+- resolve problema real;
+- a solução mais simples foi considerada;
+- foi testada em contexto adequado;
+- mostrou benefício claro;
+- tende a se repetir em mais de um cenário ou possui valor evidente para um pack específico;
+- não aumenta desnecessariamente o Core ou contexto permanente.
+
+Se não atender, permanece local, experimental ou fora do Standard.
+
+## 16. Anti-overengineering
 
 Nunca adicionar complexidade apenas para antecipar possibilidades futuras.
 
@@ -265,10 +294,11 @@ Prefira:
 - ferramenta madura antes de engine própria;
 - contexto local antes de leitura global;
 - teste de comportamento antes de cobertura cosmética;
-- mudança pequena antes de refatoração ampla.
+- mudança pequena antes de refatoração ampla;
+- prática comprovada antes de padronização.
 
 Complexidade que deixou de justificar sua existência deve poder ser removida.
 
-## 16. Regra final
+## 17. Regra final
 
-> Menos contexto, mais sinal. Menos processo, mais verificação. Menos abstração, mais utilidade.
+> Menos contexto, mais sinal. Menos processo, mais verificação. Menos abstração, mais utilidade. Primeiro provar, depois padronizar.
