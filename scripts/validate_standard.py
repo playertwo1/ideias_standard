@@ -103,7 +103,24 @@ def detect_kind(data: dict[str, Any], path: Path) -> str:
         return "orchestration-policy"
     if {"machine_state", "audit_round", "max_audit_rounds", "audit_target_sha"} <= data.keys():
         return "orchestrator-state"
-    if "standard_version" in data and "template_fingerprint" in data:
+    if (
+        name in {
+            "standard.lock",
+            "standard-lock.json",
+            "standard.lock.json",
+            "standard.lock.yaml",
+            "standard.lock.yml",
+            "standard-lock.yaml",
+            "standard-lock.yml",
+        }
+        or name.endswith(".standard-lock.json")
+        or name.endswith(".standard-lock.yaml")
+        or name.endswith(".standard-lock.yml")
+        or name.endswith(".lock.json")
+        or name.endswith(".lock.yaml")
+        or name.endswith(".lock.yml")
+        or ("standard_version" in data and "template_fingerprint" in data)
+    ):
         return "standard-lock"
     if "strategy" in data and "routes" in data:
         return "context-manifest"
@@ -204,6 +221,11 @@ def semantic_checks(data: dict[str, Any], kind: str) -> list[dict[str, Any]]:
         check_known_packs(checks, data.get("packs", []), "/packs", "IS-SEM-001")
         check_workflow(checks, data.get("workflow"), "/workflow")
         check_adapters(checks, data.get("adapters", []), "/adapters")
+        declared = data.get("standard_version")
+        if declared is not None and declared != current_version():
+            add_check(checks, "IS-SEM-006", "FAIL", "HIGH", f"Lock standard version {declared!r} != supported {current_version()!r}", "/standard_version")
+        elif declared is not None:
+            add_check(checks, "IS-SEM-006", "PASS", "INFO", "Lock targets the supported Standard version")
         artifact_paths = [artifact.get("path") for artifact in data.get("artifacts", [])]
         duplicates = sorted({p for p in artifact_paths if p is not None and artifact_paths.count(p) > 1})
         if duplicates:

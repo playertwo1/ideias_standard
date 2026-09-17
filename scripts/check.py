@@ -58,16 +58,50 @@ def check_target(
         manifest_json = target / "project-manifest.json"
         manifest_yaml = target / "project-manifest.yaml"
         manifest_yml = target / "project-manifest.yml"
-        if manifest_json.exists():
+        lock_json = target / "standard.lock"
+        lock_json_alt = target / "standard-lock.json"
+        lock_yaml = target / "standard.lock.yaml"
+        lock_yml = target / "standard.lock.yml"
+        lock_yaml_alt = target / "standard-lock.yaml"
+        lock_yml_alt = target / "standard-lock.yml"
+
+        if kind == "standard-lock":
+            if lock_json.exists():
+                report = validate(lock_json.resolve(), "standard-lock")
+            elif lock_json_alt.exists():
+                report = validate(lock_json_alt.resolve(), "standard-lock")
+            elif lock_yaml.exists():
+                report = validate(lock_yaml.resolve(), "standard-lock")
+            elif lock_yml.exists():
+                report = validate(lock_yml.resolve(), "standard-lock")
+            elif lock_yaml_alt.exists():
+                report = validate(lock_yaml_alt.resolve(), "standard-lock")
+            elif lock_yml_alt.exists():
+                report = validate(lock_yml_alt.resolve(), "standard-lock")
+            else:
+                raise FileNotFoundError(f"Directory does not contain standard.lock or standard-lock.json: {target}")
+        elif manifest_json.exists():
             report = validate(manifest_json.resolve(), kind or "project-manifest")
         elif manifest_yaml.exists():
             report = validate(manifest_yaml.resolve(), kind or "project-manifest")
         elif manifest_yml.exists():
             report = validate(manifest_yml.resolve(), kind or "project-manifest")
+        elif lock_json.exists():
+            report = validate(lock_json.resolve(), kind or "standard-lock")
+        elif lock_json_alt.exists():
+            report = validate(lock_json_alt.resolve(), kind or "standard-lock")
+        elif lock_yaml.exists():
+            report = validate(lock_yaml.resolve(), kind or "standard-lock")
+        elif lock_yml.exists():
+            report = validate(lock_yml.resolve(), kind or "standard-lock")
+        elif lock_yaml_alt.exists():
+            report = validate(lock_yaml_alt.resolve(), kind or "standard-lock")
+        elif lock_yml_alt.exists():
+            report = validate(lock_yml_alt.resolve(), kind or "standard-lock")
         elif (target / "VERSION").exists() and (target / "schemas").exists():
             report = self_check()
         else:
-            raise ValueError(f"Directory does not contain a recognizable project-manifest or Standard root: {target}")
+            raise ValueError(f"Directory does not contain a recognizable project-manifest, standard.lock, or Standard root: {target}")
     else:
         report = validate(target.resolve(), kind)
 

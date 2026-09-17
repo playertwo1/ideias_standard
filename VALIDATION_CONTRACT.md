@@ -21,7 +21,7 @@ Este contrato define os códigos determinísticos iniciais de conformance. O obj
 | `IS-SEM-003` | FAIL | Bundle referencia pack inexistente. |
 | `IS-SEM-004` | FAIL | Documento materializável referencia workflow inexistente. |
 | `IS-SEM-005` | FAIL | Documento materializável referencia adapter inexistente ou não `ACTIVE`. |
-| `IS-SEM-006` | FAIL | Manifest declara versão do Standard diferente da versão suportada. |
+| `IS-SEM-006` | FAIL | Manifest/lock declara versão do Standard diferente da versão suportada. |
 | `IS-SEM-007` | FAIL | Workflow contém IDs de steps duplicados. |
 | `IS-SEM-008` | FAIL | Reservado para contradição material de composição profile/bundle/packs. |
 | `IS-SEM-009` | FAIL/CRITICAL | `sensitive-data` exige `capabilities.human_gates=true`. |

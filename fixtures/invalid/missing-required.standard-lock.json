@@ -1,0 +1,13 @@
+{
+  "schema_version": "0.1",
+  "standard_version": "0.1.0-draft",
+  "profile": "STANDARD",
+  "packs": [
+    "android"
+  ],
+  "bundle": null,
+  "workflow": "default",
+  "adapters": [
+    "generic"
+  ]
+}

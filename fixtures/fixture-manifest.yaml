@@ -35,6 +35,46 @@ cases:
     kind: standard-lock
     expected_result: FAIL
     expected_codes: [IS-SEM-002]
+  - id: unknown-pack-lock
+    path: fixtures/invalid/unknown-pack.standard-lock.json
+    kind: standard-lock
+    expected_result: FAIL
+    expected_codes: [IS-SEM-001]
+  - id: unknown-workflow-lock
+    path: fixtures/invalid/unknown-workflow.standard-lock.json
+    kind: standard-lock
+    expected_result: FAIL
+    expected_codes: [IS-SEM-004]
+  - id: inactive-adapter-lock
+    path: fixtures/invalid/inactive-adapter.standard-lock.json
+    kind: standard-lock
+    expected_result: FAIL
+    expected_codes: [IS-SEM-005]
+  - id: invalid-version-lock
+    path: fixtures/invalid/invalid-version.standard-lock.json
+    kind: standard-lock
+    expected_result: FAIL
+    expected_codes: [IS-SEM-006]
+  - id: missing-required-lock
+    path: fixtures/invalid/missing-required.standard-lock.json
+    kind: standard-lock
+    expected_result: FAIL
+    expected_codes: [IS-SCHEMA-001]
+  - id: invalid-profile-lock
+    path: fixtures/invalid/invalid-profile.standard-lock.json
+    kind: standard-lock
+    expected_result: FAIL
+    expected_codes: [IS-SCHEMA-001]
+  - id: invalid-ownership-lock
+    path: fixtures/invalid/invalid-ownership.standard-lock.json
+    kind: standard-lock
+    expected_result: FAIL
+    expected_codes: [IS-SCHEMA-001]
+  - id: duplicate-pack-lock
+    path: fixtures/invalid/duplicate-pack.standard-lock.json
+    kind: standard-lock
+    expected_result: FAIL
+    expected_codes: [IS-SCHEMA-001]
   - id: inactive-adapter
     path: fixtures/invalid/inactive-adapter.bundle.yaml
     kind: bundle

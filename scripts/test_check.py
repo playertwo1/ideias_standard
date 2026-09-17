@@ -293,6 +293,148 @@ class CheckCommandTest(unittest.TestCase):
         fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
         self.assertIn("IS-SEM-011", fail_codes)
 
+    # --- S1-C03: Standard Lock Validation Tests ---
+
+    def test_standard_lock_valid_json(self):
+        target = ROOT / "fixtures" / "valid" / "basic.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+        codes = {c["code"]: c["status"] for c in report["checks"]}
+        self.assertEqual("PASS", codes.get("IS-SCHEMA-001"))
+        self.assertEqual("PASS", codes.get("IS-SEM-001"))
+        self.assertEqual("PASS", codes.get("IS-SEM-002"))
+        self.assertEqual("PASS", codes.get("IS-SEM-004"))
+        self.assertEqual("PASS", codes.get("IS-SEM-005"))
+        self.assertEqual("PASS", codes.get("IS-SEM-006"))
+
+    def test_standard_lock_valid_directory(self):
+        target_dir = ROOT / "fixtures" / "valid" / "standard-lock-dir"
+        exit_code, output = run_check(path=target_dir, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+
+    def test_standard_lock_valid_yaml_directory(self):
+        target_dir = ROOT / "fixtures" / "valid" / "yaml-standard-lock"
+        exit_code, output = run_check(path=target_dir, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+
+    def test_standard_lock_explicit_kind_override(self):
+        target = ROOT / "fixtures" / "valid" / "basic.standard-lock.json"
+        exit_code, output = run_check(path=target, kind="standard-lock", as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
+
+    def test_standard_lock_schema_failure_missing_required(self):
+        target = ROOT / "fixtures" / "invalid" / "missing-required.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SCHEMA-001", fail_codes)
+
+    def test_standard_lock_schema_failure_invalid_profile(self):
+        target = ROOT / "fixtures" / "invalid" / "invalid-profile.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SCHEMA-001", fail_codes)
+
+    def test_standard_lock_schema_failure_invalid_ownership(self):
+        target = ROOT / "fixtures" / "invalid" / "invalid-ownership.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SCHEMA-001", fail_codes)
+
+    def test_standard_lock_schema_failure_duplicate_pack(self):
+        target = ROOT / "fixtures" / "invalid" / "duplicate-pack.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SCHEMA-001", fail_codes)
+
+    def test_standard_lock_semantic_unknown_pack_is_sem_001(self):
+        target = ROOT / "fixtures" / "invalid" / "unknown-pack.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-001", fail_codes)
+
+    def test_standard_lock_semantic_duplicate_artifact_is_sem_002(self):
+        target = ROOT / "fixtures" / "invalid" / "duplicate-artifact.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-002", fail_codes)
+
+    def test_standard_lock_semantic_unknown_workflow_is_sem_004(self):
+        target = ROOT / "fixtures" / "invalid" / "unknown-workflow.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-004", fail_codes)
+
+    def test_standard_lock_semantic_inactive_adapter_is_sem_005(self):
+        target = ROOT / "fixtures" / "invalid" / "inactive-adapter.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-005", fail_codes)
+
+    def test_standard_lock_semantic_unsupported_version_is_sem_006(self):
+        target = ROOT / "fixtures" / "invalid" / "invalid-version.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SEM-006", fail_codes)
+
+    def test_standard_lock_managed_local_override_warn_is_warn_001(self):
+        target = ROOT / "fixtures" / "valid" / "warn.standard-lock.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("WARN", report["result"])
+        warn_codes = [c["code"] for c in report["checks"] if c["status"] == "WARN"]
+        self.assertIn("IS-WARN-001", warn_codes)
+
 
 if __name__ == "__main__":
     unittest.main()
+
