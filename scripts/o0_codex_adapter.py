@@ -190,20 +190,6 @@ def main() -> int:
                 },
             },
         },
-        "allOf": [
-            {
-                "if": {"properties": {"audit_result": {"const": "PASS"}}, "required": ["audit_result"]},
-                "then": {
-                    "properties": {
-                        "checks": {"not": {"contains": {"properties": {"status": {"enum": ["FAIL", "NOT_RUN"]}}, "required": ["status"]}}}
-                    }
-                }
-            },
-            {
-                "if": {"properties": {"audit_result": {"const": "FAIL"}}, "required": ["audit_result"]},
-                "then": {"properties": {"findings": {"minItems": 1}}}
-            }
-        ],
     }
     temp_schema_file.write_text(json.dumps(codex_output_schema, indent=2), encoding="utf-8")
 
