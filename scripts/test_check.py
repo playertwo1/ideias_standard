@@ -178,79 +178,40 @@ class CheckCommandTest(unittest.TestCase):
     # --- S1-C02: Project Manifest Validation Tests ---
 
     def test_project_manifest_valid_combinations(self):
-        import tempfile
+        # 1. Sensitive data valid combination
+        p1 = ROOT / "fixtures" / "valid" / "sensitive-data-valid.project.json"
+        ec1, out1 = run_check(path=p1, as_json=True)
+        self.assertEqual(0, ec1)
+        rep1 = json.loads(out1)
+        self.assert_conformance_schema(rep1)
+        self.assertEqual("PASS", rep1["result"])
+        codes1 = {c["code"]: c["status"] for c in rep1["checks"]}
+        self.assertEqual("PASS", codes1.get("IS-SCHEMA-001"))
+        self.assertEqual("PASS", codes1.get("IS-SEM-001"))
+        self.assertEqual("PASS", codes1.get("IS-SEM-006"))
+        self.assertEqual("PASS", codes1.get("IS-SEM-009"))
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmppath = Path(tmpdir)
-            # 1. Sensitive data valid combination
-            sensitive_manifest = {
-                "schema_version": "0.1",
-                "project": {"name": "Sensitive App", "type": "backend"},
-                "standard": {"name": "Ideias Standard", "version": "0.1.0-draft", "profile": "STANDARD"},
-                "packs": ["sensitive-data"],
-                "capabilities": {"human_gates": True},
-                "governance": {"product_authority": "USER", "builder": "AI_AGENT", "auditor": "INDEPENDENT_AI_AGENT"},
-                "context": {"strategy": "PROGRESSIVE", "full_repo_scan_default": False},
-            }
-            p1 = tmppath / "sensitive-valid.project.json"
-            p1.write_text(json.dumps(sensitive_manifest), encoding="utf-8")
-            ec1, out1 = run_check(path=p1, as_json=True)
-            self.assertEqual(0, ec1)
-            rep1 = json.loads(out1)
-            self.assert_conformance_schema(rep1)
-            self.assertEqual("PASS", rep1["result"])
-            codes1 = {c["code"]: c["status"] for c in rep1["checks"]}
-            self.assertEqual("PASS", codes1.get("IS-SCHEMA-001"))
-            self.assertEqual("PASS", codes1.get("IS-SEM-001"))
-            self.assertEqual("PASS", codes1.get("IS-SEM-006"))
-            self.assertEqual("PASS", codes1.get("IS-SEM-009"))
-
-            # 2. Multi-agent valid combination
-            multi_manifest = {
-                "schema_version": "0.1",
-                "project": {"name": "Multi Agent App", "type": "ai"},
-                "standard": {"name": "Ideias Standard", "version": "0.1.0-draft", "profile": "DEEP"},
-                "packs": ["multi-agent"],
-                "capabilities": {"independent_audit": True, "human_gates": True},
-                "governance": {"product_authority": "USER", "builder": "BUILDER_A", "auditor": "AUDITOR_B"},
-                "context": {"strategy": "PROGRESSIVE", "full_repo_scan_default": False},
-            }
-            p2 = tmppath / "multi-agent-valid.project.json"
-            p2.write_text(json.dumps(multi_manifest), encoding="utf-8")
-            ec2, out2 = run_check(path=p2, as_json=True)
-            self.assertEqual(0, ec2)
-            rep2 = json.loads(out2)
-            self.assert_conformance_schema(rep2)
-            self.assertEqual("PASS", rep2["result"])
-            codes2 = {c["code"]: c["status"] for c in rep2["checks"]}
-            self.assertEqual("PASS", codes2.get("IS-SCHEMA-001"))
-            self.assertEqual("PASS", codes2.get("IS-SEM-001"))
-            self.assertEqual("PASS", codes2.get("IS-SEM-006"))
-            self.assertEqual("PASS", codes2.get("IS-SEM-010"))
-            self.assertEqual("PASS", codes2.get("IS-SEM-011"))
+        # 2. Multi-agent valid combination
+        p2 = ROOT / "fixtures" / "valid" / "multi-agent-valid.project.json"
+        ec2, out2 = run_check(path=p2, as_json=True)
+        self.assertEqual(0, ec2)
+        rep2 = json.loads(out2)
+        self.assert_conformance_schema(rep2)
+        self.assertEqual("PASS", rep2["result"])
+        codes2 = {c["code"]: c["status"] for c in rep2["checks"]}
+        self.assertEqual("PASS", codes2.get("IS-SCHEMA-001"))
+        self.assertEqual("PASS", codes2.get("IS-SEM-001"))
+        self.assertEqual("PASS", codes2.get("IS-SEM-006"))
+        self.assertEqual("PASS", codes2.get("IS-SEM-010"))
+        self.assertEqual("PASS", codes2.get("IS-SEM-011"))
 
     def test_project_manifest_directory_yaml(self):
-        import tempfile
-        import yaml
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            tmppath = Path(tmpdir)
-            manifest_data = {
-                "schema_version": "0.1",
-                "project": {"name": "Yaml Project", "type": "backend"},
-                "standard": {"name": "Ideias Standard", "version": "0.1.0-draft", "profile": "LIGHT"},
-                "packs": ["backend"],
-                "governance": {"product_authority": "USER", "builder": "AGENT_A", "auditor": "AGENT_B"},
-                "context": {"strategy": "PROGRESSIVE", "full_repo_scan_default": False},
-            }
-            yaml_path = tmppath / "project-manifest.yaml"
-            yaml_path.write_text(yaml.dump(manifest_data), encoding="utf-8")
-
-            exit_code, output = run_check(path=tmppath, as_json=True)
-            self.assertEqual(0, exit_code)
-            report = json.loads(output)
-            self.assert_conformance_schema(report)
-            self.assertEqual("PASS", report["result"])
+        target = ROOT / "fixtures" / "valid" / "yaml-project"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("PASS", report["result"])
 
     def test_project_manifest_schema_failure_full_repo_scan(self):
         target = ROOT / "fixtures" / "invalid" / "full-repo-scan.project.json"
@@ -273,22 +234,14 @@ class CheckCommandTest(unittest.TestCase):
         self.assertIn("IS-SCHEMA-001", fail_codes)
 
     def test_project_manifest_schema_failure_missing_required(self):
-        import tempfile
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            invalid_manifest = {
-                "schema_version": "0.1",
-                "project": {"name": "Incomplete App", "type": "web"},
-            }
-            p = Path(tmpdir) / "project-manifest.json"
-            p.write_text(json.dumps(invalid_manifest), encoding="utf-8")
-            exit_code, output = run_check(path=p, as_json=True)
-            self.assertEqual(1, exit_code)
-            report = json.loads(output)
-            self.assert_conformance_schema(report)
-            self.assertEqual("FAIL", report["result"])
-            fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
-            self.assertIn("IS-SCHEMA-001", fail_codes)
+        target = ROOT / "fixtures" / "invalid" / "missing-required.project.json"
+        exit_code, output = run_check(path=target, as_json=True)
+        self.assertEqual(1, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        self.assertEqual("FAIL", report["result"])
+        fail_codes = [c["code"] for c in report["checks"] if c["status"] == "FAIL"]
+        self.assertIn("IS-SCHEMA-001", fail_codes)
 
     def test_project_manifest_semantic_unknown_pack_is_sem_001(self):
         target = ROOT / "fixtures" / "invalid" / "unknown-pack.project.json"

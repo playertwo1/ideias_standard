@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "project": {
+    "name": "Sensitive App",
+    "type": "backend"
+  },
+  "standard": {
+    "name": "Ideias Standard",
+    "version": "0.1.0-draft",
+    "profile": "STANDARD"
+  },
+  "packs": [
+    "sensitive-data"
+  ],
+  "capabilities": {
+    "human_gates": true
+  },
+  "governance": {
+    "product_authority": "USER",
+    "builder": "AI_AGENT",
+    "auditor": "INDEPENDENT_AI_AGENT"
+  },
+  "context": {
+    "strategy": "PROGRESSIVE",
+    "full_repo_scan_default": false
+  }
+}

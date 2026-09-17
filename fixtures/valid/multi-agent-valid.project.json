@@ -1,0 +1,28 @@
+{
+  "schema_version": "0.1",
+  "project": {
+    "name": "Multi Agent App",
+    "type": "ai"
+  },
+  "standard": {
+    "name": "Ideias Standard",
+    "version": "0.1.0-draft",
+    "profile": "DEEP"
+  },
+  "packs": [
+    "multi-agent"
+  ],
+  "capabilities": {
+    "independent_audit": true,
+    "human_gates": true
+  },
+  "governance": {
+    "product_authority": "USER",
+    "builder": "BUILDER_A",
+    "auditor": "AUDITOR_B"
+  },
+  "context": {
+    "strategy": "PROGRESSIVE",
+    "full_repo_scan_default": false
+  }
+}
