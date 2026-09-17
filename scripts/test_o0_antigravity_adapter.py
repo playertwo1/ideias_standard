@@ -109,7 +109,7 @@ class TestO0AntigravityAdapter(unittest.TestCase):
     @patch("scripts.o0_antigravity_adapter.subprocess.run")
     @patch("scripts.o0_antigravity_adapter._find_agy_binary")
     def test_accepts_when_new_commit_produced_without_test_cmd(self, mock_find_bin, mock_subproc_run):
-        """Adapter generates valid report with specific evidence when new commit exists without explicit test_cmd."""
+        """Adapter generates valid report with commit PASS and unit tests NOT_RUN when no explicit test_cmd."""
         mock_find_bin.return_value = Path("agy.exe")
 
         def subproc_side_effect(*args, **kwargs):
@@ -138,10 +138,11 @@ class TestO0AntigravityAdapter(unittest.TestCase):
                 report = json.loads(self.report_path.read_text(encoding="utf-8"))
                 self.assertEqual("READY_FOR_AUDIT", report["result"])
                 self.assertIn("feature.py", report["changed_paths"])
-                check = report["checks"][0]
-                self.assertEqual("PASS", check["status"])
-                self.assertIn("modifying 1 path(s)", check["evidence"])
-                self.assertNotIn("Unit tests verified by Antigravity Builder", check["evidence"])
+                commit_check = next(c for c in report["checks"] if c["id"] == "antigravity-commit")
+                self.assertEqual("PASS", commit_check["status"])
+                self.assertIn("modifying 1 path(s)", commit_check["evidence"])
+                unit_check = next(c for c in report["checks"] if c["id"] == "antigravity-unit-tests")
+                self.assertEqual("NOT_RUN", unit_check["status"])
             finally:
                 os.chdir(old_cwd)
 
@@ -179,9 +180,11 @@ class TestO0AntigravityAdapter(unittest.TestCase):
                 self.assertTrue(self.report_path.exists())
                 report = json.loads(self.report_path.read_text(encoding="utf-8"))
                 self.assertEqual("READY_FOR_AUDIT", report["result"])
-                check = report["checks"][0]
-                self.assertEqual("PASS", check["status"])
-                self.assertIn("passed successfully", check["evidence"])
+                commit_check = next(c for c in report["checks"] if c["id"] == "antigravity-commit")
+                self.assertEqual("PASS", commit_check["status"])
+                unit_check = next(c for c in report["checks"] if c["id"] == "antigravity-unit-tests")
+                self.assertEqual("PASS", unit_check["status"])
+                self.assertIn("passed successfully", unit_check["evidence"])
             finally:
                 os.chdir(old_cwd)
 

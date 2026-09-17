@@ -186,9 +186,17 @@ def main() -> int:
         if p_test.returncode != 0:
             print(f"ERROR: Builder tests failed: {p_test.stderr}", file=sys.stderr)
             return 1
-        test_evidence = f"Test command '{test_cmd}' passed successfully"
+        test_check = {
+            "id": "antigravity-unit-tests",
+            "status": "PASS",
+            "evidence": f"Test command '{test_cmd}' passed successfully",
+        }
     else:
-        test_evidence = f"Builder produced commit {result_sha} modifying {len(changed_paths)} path(s)"
+        test_check = {
+            "id": "antigravity-unit-tests",
+            "status": "NOT_RUN",
+            "evidence": "No test command configured via --test-cmd or IDEAS_STANDARD_TEST_CMD",
+        }
 
     # Assemble canonical builder-report.json
     report_payload: dict[str, Any] = {
@@ -202,10 +210,11 @@ def main() -> int:
         "changed_paths": changed_paths,
         "checks": [
             {
-                "id": "antigravity-build-and-test",
+                "id": "antigravity-commit",
                 "status": "PASS",
-                "evidence": test_evidence,
-            }
+                "evidence": f"Builder produced commit {result_sha} modifying {len(changed_paths)} path(s)",
+            },
+            test_check,
         ],
         "limitations": [],
         "disputed_findings": [],
