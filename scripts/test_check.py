@@ -123,6 +123,39 @@ class CheckCommandTest(unittest.TestCase):
         self.assertIn("PASS:", output)
         self.assertIn("IS-SCHEMA-001", output)
 
+    def test_offline_flag_forwarded_and_processed(self):
+        target = ROOT / "examples" / "standard-android-ai" / "project-manifest.json"
+        exit_code, output = run_check(path=target, as_json=True, offline=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        codes = [c["code"] for c in report["checks"]]
+        self.assertIn("IS-CLI-002", codes)
+        offline_check = next(c for c in report["checks"] if c["code"] == "IS-CLI-002")
+        self.assertEqual("PASS", offline_check["status"])
+        self.assertEqual("INFO", offline_check["severity"])
+
+    def test_dry_run_flag_forwarded_and_processed(self):
+        target = ROOT / "examples" / "standard-android-ai" / "project-manifest.json"
+        exit_code, output = run_check(path=target, as_json=True, dry_run=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        codes = [c["code"] for c in report["checks"]]
+        self.assertIn("IS-CLI-003", codes)
+        dry_run_check = next(c for c in report["checks"] if c["code"] == "IS-CLI-003")
+        self.assertEqual("PASS", dry_run_check["status"])
+        self.assertEqual("INFO", dry_run_check["severity"])
+
+    def test_self_check_with_offline_and_dry_run(self):
+        exit_code, output = run_check(is_self_check=True, as_json=True, offline=True, dry_run=True)
+        self.assertEqual(0, exit_code)
+        report = json.loads(output)
+        self.assert_conformance_schema(report)
+        codes = [c["code"] for c in report["checks"]]
+        self.assertIn("IS-CLI-002", codes)
+        self.assertIn("IS-CLI-003", codes)
+
     def test_main_cli_function(self):
         import io
         from contextlib import redirect_stdout
@@ -140,6 +173,27 @@ class CheckCommandTest(unittest.TestCase):
         self.assertEqual(2, exit_code_err)
         report_err = json.loads(buf_err.getvalue())
         self.assertEqual("FAIL", report_err["result"])
+
+    def test_main_cli_with_offline_and_dry_run(self):
+        import io
+        from contextlib import redirect_stdout
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            exit_code = main(["--self-check", "--json", "--offline", "--dry-run"])
+        self.assertEqual(0, exit_code)
+        report = json.loads(buf.getvalue())
+        self.assert_conformance_schema(report)
+        codes = [c["code"] for c in report["checks"]]
+        self.assertIn("IS-CLI-002", codes)
+        self.assertIn("IS-CLI-003", codes)
+
+    def test_text_report_with_offline_and_dry_run(self):
+        target = ROOT / "examples" / "standard-android-ai" / "project-manifest.json"
+        exit_code, output = run_check(path=target, as_json=False, offline=True, dry_run=True, no_color=True)
+        self.assertEqual(0, exit_code)
+        self.assertIn("IS-CLI-002", output)
+        self.assertIn("IS-CLI-003", output)
 
 
 if __name__ == "__main__":

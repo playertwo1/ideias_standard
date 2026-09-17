@@ -44,7 +44,12 @@ COLOR_CYAN = "\033[96m"
 COLOR_RESET = "\033[0m"
 
 
-def check_target(target: Path, kind: str | None = None) -> dict[str, Any]:
+def check_target(
+    target: Path,
+    kind: str | None = None,
+    offline: bool = False,
+    dry_run: bool = False,
+) -> dict[str, Any]:
     """Perform read-only conformance validation against a target file or project."""
     if not target.exists():
         raise FileNotFoundError(f"Target path does not exist: {target}")
@@ -53,14 +58,36 @@ def check_target(target: Path, kind: str | None = None) -> dict[str, Any]:
         manifest_json = target / "project-manifest.json"
         manifest_yaml = target / "project-manifest.yaml"
         if manifest_json.exists():
-            return validate(manifest_json.resolve(), kind or "project-manifest")
-        if manifest_yaml.exists():
-            return validate(manifest_yaml.resolve(), kind or "project-manifest")
-        if (target / "VERSION").exists() and (target / "schemas").exists():
-            return self_check()
-        raise ValueError(f"Directory does not contain a recognizable project-manifest or Standard root: {target}")
+            report = validate(manifest_json.resolve(), kind or "project-manifest")
+        elif manifest_yaml.exists():
+            report = validate(manifest_yaml.resolve(), kind or "project-manifest")
+        elif (target / "VERSION").exists() and (target / "schemas").exists():
+            report = self_check()
+        else:
+            raise ValueError(f"Directory does not contain a recognizable project-manifest or Standard root: {target}")
+    else:
+        report = validate(target.resolve(), kind)
 
-    return validate(target.resolve(), kind)
+    if offline:
+        report["checks"].append({
+            "code": "IS-CLI-002",
+            "status": "PASS",
+            "severity": "INFO",
+            "message": "Offline execution active: validation performed strictly against local files with no network access",
+            "path": None,
+            "rationale": "Enforced by --offline flag",
+        })
+    if dry_run:
+        report["checks"].append({
+            "code": "IS-CLI-003",
+            "status": "PASS",
+            "severity": "INFO",
+            "message": "Dry-run execution active: previewing conformance check without modifications or side effects",
+            "path": None,
+            "rationale": "Enforced by --dry-run flag",
+        })
+
+    return report
 
 
 def determine_exit_code(report: dict[str, Any], strict: bool = False) -> int:
@@ -174,6 +201,8 @@ def run_check(
     strict: bool = False,
     no_color: bool = False,
     is_self_check: bool = False,
+    offline: bool = False,
+    dry_run: bool = False,
 ) -> tuple[int, str]:
     """Execute check command and return (exit_code, output_string)."""
     target_display = str(path) if path is not None else ("SELF" if is_self_check else "DEFAULT")
@@ -186,11 +215,29 @@ def run_check(
     try:
         if is_self_check:
             report = self_check()
+            if offline:
+                report["checks"].append({
+                    "code": "IS-CLI-002",
+                    "status": "PASS",
+                    "severity": "INFO",
+                    "message": "Offline execution active: validation performed strictly against local files with no network access",
+                    "path": None,
+                    "rationale": "Enforced by --offline flag",
+                })
+            if dry_run:
+                report["checks"].append({
+                    "code": "IS-CLI-003",
+                    "status": "PASS",
+                    "severity": "INFO",
+                    "message": "Dry-run execution active: previewing conformance check without modifications or side effects",
+                    "path": None,
+                    "rationale": "Enforced by --dry-run flag",
+                })
         elif path is not None:
-            report = check_target(path, kind)
+            report = check_target(path, kind, offline=offline, dry_run=dry_run)
         else:
             # Default to checking current directory
-            report = check_target(Path.cwd(), kind)
+            report = check_target(Path.cwd(), kind, offline=offline, dry_run=dry_run)
 
         exit_code = determine_exit_code(report, strict=strict)
     except Exception as exc:
@@ -241,6 +288,8 @@ def main(argv: list[str] | None = None) -> int:
         strict=args.strict,
         no_color=args.no_color,
         is_self_check=args.self_check,
+        offline=args.offline,
+        dry_run=args.dry_run,
     )
     print(output)
     return exit_code

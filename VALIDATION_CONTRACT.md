@@ -48,6 +48,8 @@ Este contrato define os códigos determinísticos iniciais de conformance. O obj
 | `IS-SELF-007` | Workflow canônico falhou validação. |
 | `IS-SELF-008` | Policy canônica de orquestração multiagente falhou validação. |
 | `IS-CLI-001` | Erro operacional da ferramenta; exit code 2. |
+| `IS-CLI-002` | Modo offline ativo; validação estritamente local. |
+| `IS-CLI-003` | Modo dry-run ativo; preview de execução sem escrita ou efeitos colaterais. |
 
 ## Princípios
 

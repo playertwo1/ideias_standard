@@ -4,7 +4,7 @@
 - **Fase:** S1 — Conformance First
 - **Status:** ACTIVE
 - **Objetivo atual:** implementação de S1 — Conformance First (S1-C02 em diante)
-- **Última implementada:** D-C02 / S1-C01 — comando check seguro (apenas leitura) com suporte a flags --json, --strict, --no-color e exit codes contratuais (0, 1, 2) e testes unitários em `scripts/test_check.py`
+- **Última implementada:** D-C02 / S1-C01 — comando check seguro (apenas leitura) com suporte a flags --json, --strict, --no-color, --offline (IS-CLI-002), --dry-run (IS-CLI-003) e exit codes contratuais (0, 1, 2) e testes unitários em `scripts/test_check.py`
 - **Próxima:** S1-C02 (validar project manifest)
 - **Bloqueios do projeto:** nenhum conhecido
 - **Gate S0:** PASS — auditoria independente PASS no SHA `a327dc15d7a1a9c138903d6eb700977115166351`; aprovação registrada pela Product Authority
@@ -16,7 +16,7 @@
 
 ## Evidência atual
 
-- D-C02 / S1-C01: comando `check` implementado em `scripts/check.py` em conformidade com `CLI_CONTRACT.md` e `schemas/conformance-report.schema.json`. Suporta saída JSON determinística, flag `--strict` (elevando WARN a exit code 1), `--no-color` (sem códigos de escape ANSI) e exit codes contratuais (0=PASS/WARN sem strict, 1=FAIL/WARN com strict, 2=erro operacional). Coberto por 9 testes unitários em `scripts/test_check.py` com 100% de aprovação e `validate_standard.py --self-check` PASS. Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
+- D-C02 / S1-C01: comando `check` implementado em `scripts/check.py` em conformidade com `CLI_CONTRACT.md` e `schemas/conformance-report.schema.json`. Suporta saída JSON determinística, flag `--strict` (elevando WARN a exit code 1), `--no-color` (sem códigos de escape ANSI), `--offline` (encaminhado e processado via finding IS-CLI-002), `--dry-run` (encaminhado e processado via finding IS-CLI-003) e exit codes contratuais (0=PASS/WARN sem strict, 1=FAIL/WARN com strict, 2=erro operacional). Coberto por 14 testes unitários em `scripts/test_check.py` com 100% de aprovação e `validate_standard.py --self-check` PASS. Gate S1 mantido em NOT_RUN, approval = null e S2 = NOT_STARTED.
 
 - Auditoria independente de O0 v2 M5: PASS no SHA `a951e1338fa2444e3708bf4bba88409e296ae6ef`. Evidência canônica de aceite: `O0_V2_M5_EVIDENCE.json` e pacote persistente `O0_V2_M5_EVIDENCE_PACKAGE/`. Antigravity CLI e Codex CLI executaram FAIL, correção e PASS; a segunda tarefa autorizada iniciou automaticamente e a fila terminou. Provas de Builder timeout e Auditor cancelamento terminaram árvores reais, preservaram estado sem relatório parcial e retomaram explicitamente com um registro de operação cada. O snapshot imutável do Auditor é reutilizado com validação de bytes. Mantidos Gate S1 = NOT_RUN, approval = null e S2 = NOT_STARTED.
 
