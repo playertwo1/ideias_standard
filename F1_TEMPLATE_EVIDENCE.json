@@ -1,0 +1,1 @@
+{"status":"IMPLEMENTED_AWAITING_INDEPENDENT_AUDIT","template":"templates/gold","checks":["python scripts/check.py templates/gold --json","python -m unittest discover -s templates/gold/tests"],"packs_optional":true,"skills_installed_by_default":false,"runner_changed":false,"future_phases_started":false}

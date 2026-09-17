@@ -2,9 +2,9 @@
 
 - **Versão do repositório:** 0.1.0-draft
 - **Modelo atual:** Gold V5
-- **Fase atual:** F0 — Golden Standard
+- **Fase atual:** F1 — CREATE
 - **Status:** ACTIVE
-- **Objetivo atual:** F0/F0-SK implementado; aguarda auditoria independente do SHA final.
+- **Objetivo atual:** F1 — Template Gold implementado; aguarda auditoria independente.
 - **Evidência F0-SK:** `F0_SK_EVIDENCE.json` referencia fixtures e Skills por SHA-256; `scripts.test_gold_skills` reproduz as provas locais.
 
 ## Direção atual
@@ -101,5 +101,5 @@ Não alterar esses ativos apenas para fazê-los parecer alinhados documentalment
 
 ## Próxima ação
 
-1. executar auditoria independente de F0/F0-SK no SHA final;
-2. manter F1–F5 não iniciadas.
+1. executar auditoria independente de F1 no SHA final;
+2. manter F2–F5 não iniciadas.

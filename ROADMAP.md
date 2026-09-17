@@ -370,7 +370,7 @@ Avaliar somente diante de necessidade real:
 
 # F1 — CREATE
 
-**Status:** NOT_STARTED
+**Status:** IMPLEMENTED — aguardando auditoria independente
 
 ## Objetivo
 
@@ -384,13 +384,13 @@ Adicionar gerador próprio somente se uma necessidade real provar que o template
 
 ## Entregas
 
-- [ ] template Gold utilizável;
-- [ ] criação de projeto base em poucos passos;
-- [ ] packs escolhidos somente quando aplicáveis;
-- [ ] Skills fora do Core por padrão;
-- [ ] Skills aprovadas adicionadas somente quando pertinentes;
-- [ ] projeto criado passa no `check`;
-- [ ] fluxo de criação documentado em poucas linhas.
+- [x] template Gold utilizável;
+- [x] criação de projeto base em poucos passos;
+- [x] packs escolhidos somente quando aplicáveis;
+- [x] Skills fora do Core por padrão;
+- [x] Skills aprovadas adicionadas somente quando pertinentes;
+- [x] projeto criado passa no `check`;
+- [x] fluxo de criação documentado em poucas linhas.
 
 ## Template alvo
 
