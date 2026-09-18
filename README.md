@@ -219,8 +219,8 @@ O projeto está consolidado em **F5 — SYNC**, última fase do Gold.
 
 A arquitetura antiga baseada em profiles, bundles, gates e lifecycle amplo foi substituída pelo modelo Gold. O código e os artefatos existentes serão reaproveitados apenas quando simplificarem o novo Standard.
 
-F0/F0-SK, F1, F2, F3, F4 e F5 estão implementados e possuem auditoria independente registrada.
-A consolidação final ainda requer auditoria do conjunto. Sync gera diff antes de aplicar,
+F0/F0-SK, F1, F2, F3, F4 e F5 estão implementados e possuem auditoria independente registrada;
+isso não equivale à aprovação da consolidação final, que ainda requer auditoria do conjunto. Sync gera diff antes de aplicar,
 preserva USER_OWNED e não sobrescreve conflitos silenciosamente.
 
 ## Regra principal

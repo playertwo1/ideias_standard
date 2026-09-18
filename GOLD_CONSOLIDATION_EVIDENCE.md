@@ -7,3 +7,5 @@ Referências: `F0_SK_EVIDENCE.json`, `F1_TEMPLATE_EVIDENCE.json`, `F3_PACKS_SKIL
 
 Validação: self-check, suítes unitárias, checks dos exemplos Gold e `git diff --check`.
 Nenhum gate, aprovação humana, Runner externo ou fase posterior é criado automaticamente.
+
+Verificação documental: `AGENTS.md` permanece mínimo (bootstrap, regras operacionais e validação), sem catálogo de Skills ou contexto permanente desnecessário.

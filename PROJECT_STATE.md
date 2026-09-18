@@ -6,6 +6,7 @@
 - **Status:** GOLD_CONSOLIDATED — auditoria final do conjunto pendente
 - **Objetivo atual:** F5 — última fase Gold implementada; preservar coerência e aguardar auditoria final.
 - **Evidência F0-SK:** `F0_SK_EVIDENCE.json` referencia fixtures e Skills por SHA-256; `scripts.test_gold_skills` reproduz as provas locais.
+- **Auditorias individuais:** F0/F0-SK–F5 registradas; a consolidação final ainda aguarda auditoria do conjunto.
 
 ## Direção atual
 
@@ -41,7 +42,7 @@ Se a necessidade for local, a solução permanece local.
 - revisar ativos legados e remover complexidade sem função prática;
 - dogfood as práticas Gold no próprio repositório;
 - criar um exemplo Gold completo;
-- realizar auditoria independente final de F0.
+- realizar auditoria independente final da consolidação Gold.
 
 ## Princípios ativos
 

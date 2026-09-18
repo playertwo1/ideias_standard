@@ -181,7 +181,7 @@ Definir e provar a menor base que torna um projeto Gold.
 
 ## Entregas
 
-- [x] consolidar o Standard Gold (aguardando auditoria independente);
+- [x] consolidar o Standard Gold (auditoria independente registrada; consolidação final pendente);
 - [x] manter `AGENTS.md` como contexto mínimo universal;
 - [x] consolidar `README.md` do template;
 - [x] definir estrutura mínima recomendada;
@@ -364,13 +364,13 @@ Avaliar somente diante de necessidade real:
 - [x] `goldify` desenhada e testada em fixture de projeto existente (sem alegar projeto real);
 - [x] `skill-author` desenhada para controlar futuras Skills;
 - [x] critérios claros de rejeição;
-- [ ] nenhum aumento relevante do contexto permanente do `AGENTS.md`.
+- [x] nenhum aumento relevante do contexto permanente do `AGENTS.md` (verificado; arquivo permanece mínimo).
 
 ---
 
 # F1 — CREATE
 
-**Status:** IMPLEMENTED — aguardando auditoria independente
+**Status:** IMPLEMENTED — auditoria independente registrada; consolidação final pendente
 
 ## Objetivo
 
@@ -415,7 +415,7 @@ O template deve ser primeiro exercitado pelo próprio `ideias_standard` e por pe
 
 # F2 — CHECK + AUDIT
 
-**Status:** IMPLEMENTED — aguardando auditoria independente
+**Status:** IMPLEMENTED — auditoria independente registrada; consolidação final pendente
 
 ## Objetivo
 
@@ -459,7 +459,7 @@ Falhas mostram informação acionável; logs completos ficam sob demanda.
 
 # F3 — PACKS + SKILLS
 
-**Status:** IMPLEMENTED — aguardando auditoria independente
+**Status:** IMPLEMENTED — auditoria independente registrada; consolidação final pendente
 
 ## Objetivo
 
@@ -487,7 +487,7 @@ O projeto `playertwo1/guardrail` continua como fonte de padrões úteis; control
 
 # F4 — ADOPT / GOLDIFY
 
-**Status:** IMPLEMENTED — aguardando auditoria independente
+**Status:** IMPLEMENTED — auditoria independente registrada; consolidação final pendente
 
 ## Objetivo
 
