@@ -487,7 +487,7 @@ O projeto `playertwo1/guardrail` continua como fonte de padrões úteis; control
 
 # F4 — ADOPT / GOLDIFY
 
-**Status:** NOT_STARTED
+**Status:** IMPLEMENTED — aguardando auditoria independente
 
 ## Objetivo
 
@@ -524,6 +524,9 @@ RECOMENDADO
 ```
 
 A Skill `goldify` é candidata principal para essa descoberta.
+
+Implementação mínima: `scripts/goldify.py` faz descoberta somente leitura e produz
+Golden Diff em `NECESSÁRIO` e `RECOMENDADO`; arquivos existentes são USER_OWNED por padrão.
 
 Proteções:
 

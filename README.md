@@ -219,8 +219,8 @@ O projeto está em **F1 — CREATE**.
 
 A arquitetura antiga baseada em profiles, bundles, gates e lifecycle amplo foi substituída pelo modelo Gold. O código e os artefatos existentes serão reaproveitados apenas quando simplificarem o novo Standard.
 
-F0/F0-SK, F1, F2 e F3 estão implementados e aguardam auditoria independente. Packs continuam
-opcionais, Skills não são instaladas por padrão e F4–F5 permanecem não iniciadas.
+F0/F0-SK, F1, F2, F3 e F4 estão implementados e aguardam auditoria independente. Goldify é
+somente leitura e produz Golden Diff mínimo; F5 permanece não iniciada.
 
 ## Regra principal
 
