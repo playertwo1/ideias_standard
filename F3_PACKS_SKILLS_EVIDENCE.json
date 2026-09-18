@@ -1,0 +1,1 @@
+{"status":"IMPLEMENTED_AWAITING_INDEPENDENT_AUDIT","pack_catalog":"packs/catalog.yaml","skills":[".agents/skills/gold-audit",".agents/skills/goldify",".agents/skills/skill-author"],"positive":"examples/gold-standard","negative":"fixtures/invalid/inactive-adapter.bundle.yaml","checks":["IS-SELF-009","IS-SEM-005"],"skills_installed_by_default":false,"runner_changed":false}

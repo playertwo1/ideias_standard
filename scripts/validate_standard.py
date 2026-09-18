@@ -552,6 +552,16 @@ def self_check() -> dict[str, Any]:
             if rel is not None and not (ROOT / rel).exists():
                 add_check(checks, "IS-SELF-003", "FAIL", "HIGH", f"Catalog path does not exist: {rel}")
 
+    pack_descriptor_errors = []
+    for item in catalog_items(ROOT / "packs" / "catalog.yaml", "packs"):
+        path = ROOT / item.get("path", "")
+        if path.is_file():
+            descriptor = load_yaml(path)
+            if descriptor.get("id") != item.get("id") or not descriptor.get("version"):
+                pack_descriptor_errors.append(item.get("id", "<unknown>"))
+    add_check(checks, "IS-SELF-009", "FAIL" if pack_descriptor_errors else "PASS", "HIGH" if pack_descriptor_errors else "INFO",
+              f"Invalid pack descriptors: {', '.join(pack_descriptor_errors)}" if pack_descriptor_errors else "Pack descriptors match catalog IDs and declare versions")
+
     compatibility = load_yaml(ROOT / "COMPATIBILITY.yaml")
     if compatibility.get("standard_version") != current_version():
         add_check(checks, "IS-SELF-004", "FAIL", "HIGH", "COMPATIBILITY.yaml standard_version does not match VERSION")

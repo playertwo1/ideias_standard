@@ -459,7 +459,7 @@ Falhas mostram informação acionável; logs completos ficam sob demanda.
 
 # F3 — PACKS + SKILLS
 
-**Status:** NOT_STARTED
+**Status:** IMPLEMENTED — aguardando auditoria independente
 
 ## Objetivo
 
@@ -479,7 +479,7 @@ Regra:
 
 > Pack ou Skill só entra no ecossistema reutilizável depois que uma necessidade real e uso comprovado justificarem sua existência.
 
-As três primeiras Skills planejadas são `gold-audit`, `goldify` e `skill-author`.
+As três primeiras Skills planejadas são `gold-audit`, `goldify` e `skill-author`; permanecem opcionais e não são instaladas no template.
 
 O projeto `playertwo1/guardrail` continua como fonte de padrões úteis; controles ampliados pertencem ao pack `agent-guardrails`, não ao Core.
 

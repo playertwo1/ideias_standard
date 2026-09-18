@@ -39,6 +39,12 @@ class ValidateStandardTest(unittest.TestCase):
     def test_self_check_passes(self):
         report = self_check()
         self.assertEqual("PASS", report["result"], report)
+        self.assertIn(("IS-SELF-009", "PASS"), self.codes(report))
+
+    def test_inactive_bundle_adapter_is_rejected(self):
+        report = validate(ROOT / "fixtures/invalid/inactive-adapter.bundle.yaml", "bundle")
+        self.assertEqual("FAIL", report["result"])
+        self.assertIn("IS-SEM-005", {c["code"] for c in report["checks"] if c["status"] == "FAIL"})
 
     def assert_golden(self, fixture, expected_path, kind="project-manifest"):
         report = validate(ROOT / fixture, kind)

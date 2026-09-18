@@ -2,9 +2,9 @@
 
 - **Versão do repositório:** 0.1.0-draft
 - **Modelo atual:** Gold V5
-- **Fase atual:** F2 — CHECK + AUDIT
+- **Fase atual:** F3 — PACKS + SKILLS
 - **Status:** ACTIVE
-- **Objetivo atual:** F2 — check curto, detalhável e alinhado ao CI; aguarda auditoria independente.
+- **Objetivo atual:** F3 — packs opcionais e Skills comprovadas sem inflar o Core; aguarda auditoria independente.
 - **Evidência F0-SK:** `F0_SK_EVIDENCE.json` referencia fixtures e Skills por SHA-256; `scripts.test_gold_skills` reproduz as provas locais.
 
 ## Direção atual
@@ -101,5 +101,5 @@ Não alterar esses ativos apenas para fazê-los parecer alinhados documentalment
 
 ## Próxima ação
 
-1. executar auditoria independente de F2 no SHA final;
-2. manter F3–F5 não iniciadas.
+1. executar auditoria independente de F3 no SHA final;
+2. manter F4–F5 não iniciadas.
