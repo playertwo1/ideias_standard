@@ -2,9 +2,9 @@
 
 - **Versão do repositório:** 0.1.0-draft
 - **Modelo atual:** Gold V5
-- **Fase atual:** F4 — ADOPT / GOLDIFY
+- **Fase atual:** F5 — SYNC
 - **Status:** ACTIVE
-- **Objetivo atual:** F4 — Goldify somente leitura e Golden Diff mínimo; aguarda auditoria independente.
+- **Objetivo atual:** F5 — sincronização conservadora e reversível; aguarda auditoria independente.
 - **Evidência F0-SK:** `F0_SK_EVIDENCE.json` referencia fixtures e Skills por SHA-256; `scripts.test_gold_skills` reproduz as provas locais.
 
 ## Direção atual
@@ -101,5 +101,4 @@ Não alterar esses ativos apenas para fazê-los parecer alinhados documentalment
 
 ## Próxima ação
 
-1. executar auditoria independente de F4 no SHA final;
-2. manter F5 não iniciada.
+1. executar auditoria independente de F5 no SHA final;

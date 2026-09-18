@@ -1,0 +1,1 @@
+{"status":"IMPLEMENTED_AWAITING_INDEPENDENT_AUDIT","script":"scripts/sync.py","fixture":"fixtures/sync-old -> fixtures/sync-new -> temporary target","default":"read-only plan","preserves_user_owned":true,"destructive_confirmation_required":true,"runner_changed":false}

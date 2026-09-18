@@ -1,0 +1,3 @@
+# Gold
+
+New guidance.

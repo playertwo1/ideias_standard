@@ -219,8 +219,8 @@ O projeto está em **F1 — CREATE**.
 
 A arquitetura antiga baseada em profiles, bundles, gates e lifecycle amplo foi substituída pelo modelo Gold. O código e os artefatos existentes serão reaproveitados apenas quando simplificarem o novo Standard.
 
-F0/F0-SK, F1, F2, F3 e F4 estão implementados e aguardam auditoria independente. Goldify é
-somente leitura e produz Golden Diff mínimo; F5 permanece não iniciada.
+F0/F0-SK, F1, F2, F3, F4 e F5 estão implementados e aguardam auditoria independente. Sync
+gera diff antes de aplicar, preserva USER_OWNED e não sobrescreve conflitos silenciosamente.
 
 ## Regra principal
 

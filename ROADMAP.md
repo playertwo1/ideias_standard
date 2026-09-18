@@ -541,7 +541,7 @@ F4 deve ser validada primeiro em projetos reais antes de qualquer tentativa de a
 
 # F5 — SYNC
 
-**Status:** FUTURE
+**Status:** IMPLEMENTED — aguardando auditoria independente
 
 ## Objetivo
 
@@ -550,6 +550,9 @@ Permitir que projetos Gold existentes recebam melhorias futuras sem reescrever o
 Só implementar depois de Create, Check e Adopt estarem comprovados em uso real.
 
 Nada novo é empurrado automaticamente para projetos que não precisam da capacidade.
+
+Implementação mínima: `scripts/sync.py` gera plano antes de escrever, preserva conflitos
+USER_OWNED e exige confirmação explícita para ações destrutivas.
 
 ---
 
