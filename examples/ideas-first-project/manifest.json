@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "1.0",
+  "projectId": "ideas-first-project",
+  "template": "gold",
+  "purpose": "compact reference for the first project using the template",
+  "currentPhase": "F01",
+  "gate": "G01",
+  "gateStatus": "NOT_RUN",
+  "source": "https://github.com/Sora-bluesky/ideas"
+}
