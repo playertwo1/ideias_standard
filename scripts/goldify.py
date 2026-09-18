@@ -12,7 +12,9 @@ def discover(root: Path) -> dict:
     if not root.is_dir():
         raise ValueError(f"IS-GOLD-001: project path must be an existing directory: {root}")
     names = {p.name for p in root.iterdir()}
-    has_tests = any((root / name).is_dir() for name in ("tests", "test"))
+    has_tests = any((root / name).is_dir() for name in ("tests", "test")) or any(
+        path.is_file() for path in (root / "scripts").glob("test_*.py")
+    )
     has_ci = (root / ".github" / "workflows").is_dir()
     has_check = any((root / name).is_file() for name in ("check.py", "check.sh", "Makefile")) or (root / "scripts" / "check.py").is_file()
     necessary = []
