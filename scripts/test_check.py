@@ -138,6 +138,14 @@ class CheckCommandTest(unittest.TestCase):
         self.assertIn("PASS:", output)
         self.assertIn("IS-SCHEMA-001", output)
 
+    def test_text_report_short_by_default_and_details_on_demand(self):
+        target = ROOT / "examples" / "standard-android-ai" / "project-manifest.json"
+        _, short = run_check(path=target, as_json=False, no_color=True, details=False)
+        _, detailed = run_check(path=target, as_json=False, no_color=True, details=True)
+        self.assertIn("PASS:", short)
+        self.assertIn("checks)", short)
+        self.assertIn("IS-SCHEMA-001", detailed)
+
     def test_offline_flag_forwarded_and_processed(self):
         target = ROOT / "examples" / "standard-android-ai" / "project-manifest.json"
         exit_code, output = run_check(path=target, as_json=True, offline=True)

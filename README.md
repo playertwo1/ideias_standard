@@ -113,6 +113,9 @@ O Auditor começa pelo pedido, critérios de aceite, diff e evidências de valid
 
 A automação Builder ↔ Auditor pode ser feita pelo projeto externo [playertwo1/runner](https://github.com/playertwo1/runner), mas o Runner não é requisito para usar o Standard.
 
+`python scripts/check.py <projeto>` produz resumo curto; use `--details` para expandir checks ou
+`--json` para automação. Exit codes: `0` sucesso, `1` falha de validação, `2` erro operacional.
+
 ## Skills no Gold
 
 Skills guardam procedimentos especializados fora do contexto permanente.

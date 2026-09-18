@@ -204,7 +204,7 @@ def determine_exit_code(report: dict[str, Any], strict: bool = False) -> int:
     return 2
 
 
-def format_text_report(report: dict[str, Any], use_color: bool = True) -> str:
+def format_text_report(report: dict[str, Any], use_color: bool = True, details: bool = True) -> str:
     """Format report for human-readable terminal output."""
     result = report.get("result", "UNKNOWN")
     target = report.get("target", "UNKNOWN")
@@ -222,7 +222,10 @@ def format_text_report(report: dict[str, Any], use_color: bool = True) -> str:
         result_label = result
 
     lines = [f"{result_label}: {target}"]
-    for check in report.get("checks", []):
+    checks = report.get("checks", []) if details else [c for c in report.get("checks", []) if c.get("status") in {"FAIL", "WARN"}]
+    if not details and not checks:
+        return f"{result_label}: {target} ({len(report.get('checks', []))} checks)"
+    for check in checks:
         st = check.get("status", "UNKNOWN")
         code = check.get("code", "UNKNOWN")
         msg = check.get("message", "")
@@ -293,6 +296,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Preview check execution (check is read-only by default).",
     )
+    parser.add_argument(
+        "--details",
+        action="store_true",
+        help="Show every check; default human output shows only failures and warnings.",
+    )
     return parser
 
 
@@ -305,6 +313,7 @@ def run_check(
     is_self_check: bool = False,
     offline: bool = False,
     dry_run: bool = False,
+    details: bool = True,
 ) -> tuple[int, str]:
     """Execute check command and return (exit_code, output_string)."""
     target_display = str(path) if path is not None else ("SELF" if is_self_check else "DEFAULT")
@@ -370,7 +379,7 @@ def run_check(
             and hasattr(sys.stdout, "isatty")
             and sys.stdout.isatty()
         )
-        output = format_text_report(report, use_color=use_color)
+        output = format_text_report(report, use_color=use_color, details=details)
 
     return exit_code, output
 
@@ -392,6 +401,7 @@ def main(argv: list[str] | None = None) -> int:
         is_self_check=args.self_check,
         offline=args.offline,
         dry_run=args.dry_run,
+        details=args.details,
     )
     print(output)
     return exit_code

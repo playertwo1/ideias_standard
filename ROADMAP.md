@@ -415,7 +415,7 @@ O template deve ser primeiro exercitado pelo próprio `ideias_standard` e por pe
 
 # F2 — CHECK + AUDIT
 
-**Status:** NOT_STARTED
+**Status:** IMPLEMENTED — aguardando auditoria independente
 
 ## Objetivo
 
@@ -446,13 +446,13 @@ Falhas mostram informação acionável; logs completos ficam sob demanda.
 
 ## Entregas
 
-- [ ] `check` simples e reproduzível;
-- [ ] saída curta;
-- [ ] detalhes expandíveis;
-- [ ] CI reutiliza as verificações importantes;
-- [ ] regressão relevante recebe teste quando fizer sentido;
-- [ ] Auditor começa pelo diff;
-- [ ] `gold-audit` utilizada quando comprovada;
+- [x] `check` simples e reproduzível;
+- [x] saída curta;
+- [x] detalhes expandíveis;
+- [x] CI reutiliza as verificações importantes;
+- [x] regressão relevante recebe teste quando fizer sentido;
+- [x] Auditor começa pelo diff;
+- [x] `gold-audit` utilizada quando comprovada;
 - [ ] Auditor amplia contexto somente quando necessário.
 
 ---

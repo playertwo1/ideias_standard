@@ -45,6 +45,9 @@ jobs:
       - name: Validate positive reference project
         run: python scripts/validate_standard.py examples/standard-android-ai/project-manifest.json --json > project-check.json
 
+      - name: Run Gold check
+        run: python scripts/check.py examples/gold-standard --json > gold-check.json
+
       - name: Upload conformance evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -53,4 +56,5 @@ jobs:
           path: |
             self-check.json
             project-check.json
+            gold-check.json
           if-no-files-found: warn
