@@ -43,6 +43,8 @@ def plan(source: Path, target: Path) -> dict:
 
 
 def apply_missing(source: Path, target: Path, report: dict, confirm_destructive: bool = False) -> dict:
+    validate_directory(source, "source")
+    validate_directory(target, "target")
     if report["conflicting"]:
         raise SystemExit("conflicting USER_OWNED files require explicit resolution")
     for path in report["necessary"]:
