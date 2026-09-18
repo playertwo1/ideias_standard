@@ -55,6 +55,24 @@ def check_target(
         raise FileNotFoundError(f"Target path does not exist: {target}")
 
     if target.is_dir():
+        compact_manifest = target / "manifest.json"
+        if compact_manifest.exists() and (target / "README.md").exists():
+            value = json.loads(compact_manifest.read_text(encoding="utf-8"))
+            required = ("schemaVersion", "projectId", "template", "sourceCommit", "lastReviewed")
+            missing = [key for key in required if not value.get(key)]
+            report = {
+                "schema_version": "0.1",
+                "target": str(target),
+                "result": "FAIL" if missing else "PASS",
+                "checks": [{
+                    "code": "IS-EXAMPLE-001",
+                    "status": "FAIL" if missing else "PASS",
+                    "severity": "HIGH" if missing else "INFO",
+                    "message": f"compact example manifest {'missing: ' + ', '.join(missing) if missing else 'is valid'}",
+                    "path": str(compact_manifest),
+                }],
+            }
+            return report
         manifest_json = target / "project-manifest.json"
         manifest_yaml = target / "project-manifest.yaml"
         manifest_yml = target / "project-manifest.yml"

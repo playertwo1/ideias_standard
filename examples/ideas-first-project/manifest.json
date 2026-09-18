@@ -6,5 +6,7 @@
   "currentPhase": "F01",
   "gate": "G01",
   "gateStatus": "NOT_RUN",
-  "source": "https://github.com/Sora-bluesky/ideas"
+  "source": "https://github.com/Sora-bluesky/ideas",
+  "sourceCommit": "8e25151",
+  "lastReviewed": "2026-09-18"
 }
