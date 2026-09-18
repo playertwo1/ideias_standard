@@ -173,7 +173,7 @@ https://github.com/playertwo1/runner
 
 # F0 — GOLDEN STANDARD
 
-**Status:** ACTIVE
+**Status:** IMPLEMENTED — auditoria independente registrada; consolidação final pendente
 
 ## Objetivo
 
@@ -193,7 +193,7 @@ Definir e provar a menor base que torna um projeto Gold.
 - [x] revisar ativos legados e remover complexidade sem função prática;
 - [x] aplicar o Gold ao próprio `ideias_standard` como dogfood;
 - [x] criar pelo menos um exemplo Gold completo;
-- [ ] executar auditoria independente final da fase.
+- [x] executar auditoria independente final da fase (registro individual; consolidação final pendente).
 
 ### Critério adicional de F0
 
@@ -535,13 +535,13 @@ Proteções:
 - preferir infraestrutura Gold ao redor do código existente;
 - mostrar mudanças relevantes quando aplicável.
 
-F4 deve ser validada primeiro em projetos reais antes de qualquer tentativa de automatização mais ampla.
+F4 foi validada em fixture representativa; automação ampla permanece fora do escopo.
 
 ---
 
 # F5 — SYNC
 
-**Status:** IMPLEMENTED — aguardando auditoria independente
+**Status:** IMPLEMENTED — auditoria independente registrada; consolidação final pendente
 
 ## Objetivo
 
@@ -605,7 +605,7 @@ F3 Packs + Skills
         ↓
 F4 Adopt / Goldify
         ↓
-F5 Sync (futuro)
+F5 Sync
 ```
 
 As fases organizam construção; não são gates burocráticos.

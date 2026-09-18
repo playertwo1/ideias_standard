@@ -200,7 +200,7 @@ Nenhuma pasta ou Skill opcional precisa existir se não houver uso concreto.
 3. **F2 — Check + Audit**: verificação executável e revisão independente;
 4. **F3 — Packs + Skills**: capacidades específicas já estudadas e comprovadas;
 5. **F4 — Adopt / Goldify**: elevar projetos existentes ao Gold sem reconstruí-los;
-6. **F5 — Sync**: futuro, para distribuir melhorias comprovadas.
+6. **F5 — Sync**: sincronização conservadora de melhorias comprovadas.
 
 Consulte `ROADMAP.md` para os critérios detalhados e `PROJECT_STATE.md` para o estado atual.
 
@@ -215,12 +215,13 @@ Consulte `ROADMAP.md` para os critérios detalhados e `PROJECT_STATE.md` para o 
 
 ## Estado atual
 
-O projeto está em **F1 — CREATE**.
+O projeto está consolidado em **F5 — SYNC**, última fase do Gold.
 
 A arquitetura antiga baseada em profiles, bundles, gates e lifecycle amplo foi substituída pelo modelo Gold. O código e os artefatos existentes serão reaproveitados apenas quando simplificarem o novo Standard.
 
-F0/F0-SK, F1, F2, F3, F4 e F5 estão implementados e aguardam auditoria independente. Sync
-gera diff antes de aplicar, preserva USER_OWNED e não sobrescreve conflitos silenciosamente.
+F0/F0-SK, F1, F2, F3, F4 e F5 estão implementados e possuem auditoria independente registrada.
+A consolidação final ainda requer auditoria do conjunto. Sync gera diff antes de aplicar,
+preserva USER_OWNED e não sobrescreve conflitos silenciosamente.
 
 ## Regra principal
 

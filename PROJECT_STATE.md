@@ -3,8 +3,8 @@
 - **Versão do repositório:** 0.1.0-draft
 - **Modelo atual:** Gold V5
 - **Fase atual:** F5 — SYNC
-- **Status:** ACTIVE
-- **Objetivo atual:** F5 — sincronização conservadora e reversível; aguarda auditoria independente.
+- **Status:** GOLD_CONSOLIDATED — auditoria final do conjunto pendente
+- **Objetivo atual:** F5 — última fase Gold implementada; preservar coerência e aguardar auditoria final.
 - **Evidência F0-SK:** `F0_SK_EVIDENCE.json` referencia fixtures e Skills por SHA-256; `scripts.test_gold_skills` reproduz as provas locais.
 
 ## Direção atual
@@ -101,4 +101,4 @@ Não alterar esses ativos apenas para fazê-los parecer alinhados documentalment
 
 ## Próxima ação
 
-1. executar auditoria independente de F5 no SHA final;
+1. executar auditoria independente final da consolidação Gold;
