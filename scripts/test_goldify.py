@@ -40,6 +40,21 @@ class GoldifyTest(unittest.TestCase):
             self.assertTrue(report["inventory"]["check"])
             self.assertNotIn("check reproduzível: documentar ou criar comando existente", report["recommended"])
 
+    def test_existing_scripts_tests_are_detected_without_moving_them(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            (target / "scripts").mkdir(parents=True)
+            (target / "scripts" / "test_contract.py").write_text(
+                "import unittest\n", encoding="utf-8"
+            )
+            result = subprocess.run(
+                [sys.executable, "scripts/goldify.py", str(target), "--json"],
+                cwd=ROOT, capture_output=True, text=True, check=True,
+            )
+            report = json.loads(result.stdout)
+            self.assertTrue(report["inventory"]["tests"])
+            self.assertFalse(any(item.startswith("tests/") for item in report["necessary"]))
+
     def test_invalid_paths_fail_before_any_write(self):
         with tempfile.TemporaryDirectory() as tmp:
             missing = Path(tmp) / "missing"
