@@ -116,6 +116,14 @@ A automação Builder ↔ Auditor pode ser feita pelo projeto externo [playertwo
 `python scripts/check.py <projeto>` produz resumo curto; use `--details` para expandir checks ou
 `--json` para automação. Exit codes: `0` sucesso, `1` falha de validação, `2` erro operacional.
 
+### Alcance dos PASS
+
+- `python scripts/validate_standard.py --self-check` valida os contratos internos, schemas e catálogos do Standard; não executa testes ou build do projeto.
+- `python scripts/check.py <projeto>` valida o contrato do projeto, composição e referências aplicáveis; PASS não prova execução, testes, lint, typecheck ou build.
+- `python -m unittest ...`, lint, typecheck e build são validações de execução separadas e só cobrem o comando executado.
+
+`goldify` exige um diretório de projeto existente e apenas lê; reconhece `check.py`, `check.sh`, `Makefile` ou `scripts/check.py`. `sync` exige diretórios source/target existentes, gera o plano antes de escrever e ignora `.git`, `__pycache__`, `*.pyc`, `.env` e `.env.*`.
+
 ## Skills no Gold
 
 Skills guardam procedimentos especializados fora do contexto permanente.

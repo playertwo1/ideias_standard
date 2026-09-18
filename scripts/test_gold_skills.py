@@ -1,6 +1,7 @@
 import hashlib
 import json
 import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -9,10 +10,20 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class GoldSkillsTest(unittest.TestCase):
     def test_gold_audit_valid_and_defective_fixtures(self):
-        valid = json.loads((ROOT / "fixtures/gold-skills/valid-change.json").read_text())
-        bad = json.loads((ROOT / "fixtures/gold-skills/defective-change.json").read_text())
-        self.assertEqual("PASS", valid["check"])
-        self.assertEqual([], bad["acceptance"])
+        valid = ROOT / "fixtures/gold-skills/valid-change.json"
+        bad = ROOT / "fixtures/gold-skills/defective-change.json"
+        valid_result = subprocess.run(
+            [sys.executable, "scripts/gold_audit.py", str(valid), "--json"],
+            cwd=ROOT, capture_output=True, text=True, check=True,
+        )
+        bad_result = subprocess.run(
+            [sys.executable, "scripts/gold_audit.py", str(bad), "--json"],
+            cwd=ROOT, capture_output=True, text=True, check=True,
+        )
+        self.assertEqual("PASS", json.loads(valid_result.stdout)["result"])
+        defective = json.loads(bad_result.stdout)
+        self.assertEqual("FAIL", defective["result"])
+        self.assertTrue(any(f["code"] == "IS-AUDIT-001" for f in defective["findings"]))
 
     def test_goldify_fixture_is_existing_project(self):
         self.assertTrue((ROOT / "fixtures/gold-skills/existing-project/README.md").is_file())

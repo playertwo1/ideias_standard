@@ -9,3 +9,5 @@ Validação: self-check, suítes unitárias, checks dos exemplos Gold e `git dif
 Nenhum gate, aprovação humana, Runner externo ou fase posterior é criado automaticamente.
 
 Verificação documental: `AGENTS.md` permanece mínimo (bootstrap, regras operacionais e validação), sem catálogo de Skills ou contexto permanente desnecessário.
+
+Prova executável de Skills: `scripts.test_gold_skills` executa `scripts/gold_audit.py` sobre `valid-change.json` (resultado `PASS`) e `defective-change.json` (resultado `FAIL`, finding `IS-AUDIT-001`). Os testes de Goldify e Sync cobrem descoberta de `scripts/check.py`, rejeição de caminhos e exclusão de artefatos gerados/privados; hashes e metadata permanecem apenas provas de integridade.

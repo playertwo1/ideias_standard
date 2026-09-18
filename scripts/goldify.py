@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 
 def discover(root: Path) -> dict:
-    names = {p.name for p in root.iterdir()} if root.is_dir() else set()
+    if not root.is_dir():
+        raise ValueError(f"IS-GOLD-001: project path must be an existing directory: {root}")
+    names = {p.name for p in root.iterdir()}
     has_tests = any((root / name).is_dir() for name in ("tests", "test"))
     has_ci = (root / ".github" / "workflows").is_dir()
-    has_check = any((root / name).is_file() for name in ("check.py", "check.sh", "Makefile"))
+    has_check = any((root / name).is_file() for name in ("check.py", "check.sh", "Makefile")) or (root / "scripts" / "check.py").is_file()
     necessary = []
     recommended = []
     if "README.md" not in names:
@@ -39,7 +42,11 @@ def main() -> int:
     parser.add_argument("path", type=Path)
     parser.add_argument("--json", action="store_true", dest="as_json")
     args = parser.parse_args()
-    report = discover(args.path.resolve())
+    try:
+        report = discover(args.path.resolve())
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     if args.as_json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
