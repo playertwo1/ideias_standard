@@ -242,18 +242,17 @@ O objetivo é transferir estado estruturado, não reproduzir a conversa inteira.
 
 ## 12. Visão das fases
 
-Detalhes completos ficam no `ROADMAP.md`.
+Detalhes operacionais ficam no `ROADMAP.md`; o estado atual fica no
+`PROJECT_STATE.md`.
 
-- S0 — Foundation → contratos e fundação
-- S1 — Conformance First → check / doctor / findings / CLI
-- S2 — Init / Compiler → geração de projetos
-- S3 — Adopt / Brownfield → adoção de projetos existentes
-- S4 — Upgrade Lifecycle → atualização segura
-- S5 — Context Lifecycle → Minimum Sufficient Context formal
-- S6 — Multi-provider Ecosystem → contratos e adapters de projeto
-- S7 — Idea Integration → Idea → Standard
-- S8 — Change Lifecycle → evolução por delta
+- F0 — Golden Standard → Core, validação, Skills provadas e dogfooding
+- F1 — Create → criação simples de projetos Gold
+- F2 — Check + Audit → verificação e revisão independentes
+- F3 — Packs + Skills → capacidades opcionais comprovadas
+- F4 — Adopt / Goldify → adoção sem sobrescrever o projeto
+- F5 — Sync → atualização conservadora e revisável
 
+A sequência S0–S8 é histórica e não deve ser usada para planejar trabalho novo.
 Para saber a fase atualmente ativa, consulte sempre `PROJECT_STATE.md`.
 
 ---
@@ -264,8 +263,9 @@ O Standard deve usar suas próprias capacidades assim que forem confiáveis.
 
 Direção:
 
-- Context Lifecycle → gera contexto do próprio Standard
-- Change Lifecycle → mudanças do próprio Standard usam change units
+- o próprio Standard usa suas regras quando aplicáveis;
+- mudanças do Standard passam por `check`, diff e auditoria quando pertinente;
+- práticas maduras só são promovidas ao Gold depois de prova em uso adequado.
 
 Capacidades maduras devem ser provadas internamente antes de generalização ampla.
 

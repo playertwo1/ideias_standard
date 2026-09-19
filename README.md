@@ -1,75 +1,45 @@
 # Ideias Standard
 
-O **Ideias Standard** é uma base Gold simples e reutilizável para criar, validar e melhorar projetos desenvolvidos por humanos e agentes de IA.
+Base Gold simples para criar, validar, adotar e atualizar projetos preparados
+para humanos e agentes de IA.
 
-A proposta é direta:
+> **Small Core · contexto progressivo · verificação executável · auditoria independente**
 
-> projeto fácil de entender + contexto mínimo + verificação objetiva + auditoria independente.
+## O problema que resolve
 
-Sem transformar cada repositório em um sistema de governança complexo.
+Projetos assistidos por IA precisam de estado operacional claro, contexto curto,
+regras estáveis e evidência reproduzível. O Standard fornece essa base sem impor
+arquitetura, fornecedor de IA ou burocracia igual para todo projeto.
 
-## Missão
-
-O projeto atende dois caminhos:
-
-```text
-NOVO PROJETO → CREATE → TEMPLATE GOLD → PROJETO GOLD
-PROJETO EXISTENTE → GOLDIFY → GOLDEN DIFF → CHECK + AUDIT → PROJETO GOLD
-```
-
-Gold padroniza qualidade e operação. Não obriga projetos diferentes a terem a mesma arquitetura.
-
-## Princípios
-
-- **Small Core** — poucas regras universais;
-- **Progressive Context** — contexto específico somente quando necessário;
-- **Token Discipline** — maximizar sinal por token;
-- **Executable Verification** — mudanças devem poder ser verificadas por comandos reais;
-- **Independent Audit** — alterações relevantes podem ser revisadas por outro agente/processo;
-- **Optional Packs & Skills** — capacidades específicas entram somente quando úteis;
-- **No Overengineering** — nenhuma abstração existe sem problema concreto;
-- **Dogfooding** — o próprio Standard deve usar o que recomenda;
-- **Prove Before Expand** — primeiro provar em uso adequado, depois promover ao Gold.
-
-## Duas regras de execução
-
-### Dogfooding obrigatório
-
-O próprio `ideias_standard` deve seguir o Gold que define sempre que a prática for aplicável. Se uma regra gera burocracia ou contexto excessivo aqui, ela deve ser revisada antes de ser recomendada aos próximos projetos.
-
-### Provar antes de expandir
-
-Nova Skill, pack, regra, arquivo ou abstração não entra no Core apenas porque parece útil.
+## Dois caminhos
 
 ```text
-problema real
-   ↓
-solução mais simples
-   ↓
-teste no próprio Standard, fixture, exemplo ou projeto real
-   ↓
-benefício comprovado
-   ↓
-reutilizável no Gold
+NOVO PROJETO      → CREATE  → TEMPLATE GOLD → PROJETO GOLD
+PROJETO EXISTENTE → GOLDIFY → GOLDEN DIFF   → CHECK + AUDIT → PROJETO GOLD
 ```
 
-Se a necessidade for local, a solução permanece local.
+Gold padroniza qualidade e operação; não padroniza a implementação interna.
 
-## O que é um projeto Gold
+## O contrato mínimo
 
-Um projeto Gold:
+Um projeto Gold, quando aplicável, tem:
 
-- explica claramente o que faz;
-- possui `README.md` útil;
-- possui `AGENTS.md` curto e operacional;
-- tem estrutura compreensível;
-- possui build/test/lint/typecheck aplicáveis;
-- possui mecanismo conhecido de `check`;
-- executa verificações importantes no CI;
-- carrega documentação específica somente sob necessidade;
-- filtra ou resume outputs grandes antes de colocá-los no contexto;
-- pode ser auditado pelo diff sem exigir leitura integral do repositório;
-- usa segurança proporcional ao risco.
+- `README.md` útil e `AGENTS.md` curto;
+- estado atual e próxima ação identificáveis;
+- comandos reais de verificação;
+- contexto carregado progressivamente;
+- ownership, origem e mudanças locais preservados;
+- segurança proporcional ao risco;
+- diff revisável e auditoria independente para mudanças relevantes.
+
+Regras essenciais:
+
+- `NOT_RUN` não significa `PASS`;
+- sugestão de IA não vira decisão humana automaticamente;
+- automação não amplia autoridade;
+- contexto obrigatório não é truncado silenciosamente;
+- uma nova regra só entra no Gold após prova em uso adequado;
+- arquivos existentes são preservados por padrão.
 
 ## Contexto para agentes
 
@@ -79,158 +49,84 @@ Bootstrap padrão:
 AGENTS.md + pedido atual
 ```
 
-`PROJECT_STATE.md`, `STANDARD.md`, `ROADMAP.md`, documentação, packs, Skills e dependências são consultados somente quando relevantes.
+Depois, localizar antes de ler e abrir somente o trecho necessário de
+`PROJECT_STATE.md`, `STANDARD.md`, `ROADMAP.md`, documentação e Skills.
 
-```text
-pedido
-  ↓
-localizar antes de ler
-  ↓
-menor trecho suficiente
-  ↓
-expandir somente quando necessário
+## Verificação
+
+Para validar o próprio Standard:
+
+```bash
+python scripts/validate_standard.py --self-check
+python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-`AGENTS.md` é a fonte canônica de instruções universais e deve permanecer pequeno. Evite duplicar as mesmas instruções em arquivos específicos de Codex, Claude, Gemini, Antigravity ou Copilot.
+Para verificar um projeto:
 
-## Fluxo de trabalho
-
-```text
-pedido
-  ↓
-Builder
-  ↓
-check resumido
-  ↓
-diff
-  ↓
-Auditor independente
-  ↓
-PASS ou FINDINGS
+```bash
+python scripts/check.py <projeto>
+python scripts/check.py <projeto> --details
+python scripts/check.py <projeto> --json
 ```
 
-O Auditor começa pelo pedido, critérios de aceite, diff e evidências de validação. Ele amplia contexto somente quando houver razão concreta.
+Exit codes de `check.py`: `0` sucesso, `1` falha de validação, `2` erro
+operacional. O resumo não substitui testes, lint, typecheck ou build do projeto.
 
-A automação Builder ↔ Auditor pode ser feita pelo projeto externo [playertwo1/runner](https://github.com/playertwo1/runner), mas o Runner não é requisito para usar o Standard.
-
-`python scripts/check.py <projeto>` produz resumo curto; use `--details` para expandir checks ou
-`--json` para automação. Exit codes: `0` sucesso, `1` falha de validação, `2` erro operacional.
-
-### Alcance dos PASS
-
-- `python scripts/validate_standard.py --self-check` valida os contratos internos, schemas e catálogos do Standard; não executa testes ou build do projeto.
-- `python scripts/check.py <projeto>` valida o contrato do projeto, composição e referências aplicáveis; PASS não prova execução, testes, lint, typecheck ou build.
-- `python -m unittest ...`, lint, typecheck e build são validações de execução separadas e só cobrem o comando executado.
-
-`goldify` exige um diretório de projeto existente e apenas lê; reconhece `check.py`, `check.sh`, `Makefile` ou `scripts/check.py`. `sync` exige diretórios source/target existentes, gera o plano antes de escrever e ignora `.git`, `__pycache__`, `*.pyc`, `.env` e `.env.*`.
-
-## Skills no Gold
-
-Skills guardam procedimentos especializados fora do contexto permanente.
-
-O Template Gold não instala um catálogo inteiro de Skills. Ele nasce preparado para adicionar somente as que o projeto realmente precisa.
-
-Primeiras Skills Gold planejadas:
-
-- **`gold-audit`** — revisar alteração usando pedido + critérios de aceite + diff + resultado do `check`;
-- **`goldify`** — analisar projeto existente e produzir um Golden Diff curto;
-- **`skill-author`** — criar/revisar Skills pequenas, seguras e com progressive disclosure.
-
-Candidata futura:
-
-- **`skill-curator`** — recomendar o menor conjunto útil de Skills para um projeto.
-
-Skills externas seguem:
+## Fluxo de mudança
 
 ```text
-DISCOVER → REVIEW → TRIM → ADAPT → TEST → INSTALL
+pedido → Builder → check resumido → diff → Auditor independente → PASS ou findings
 ```
 
-Adoção depende de utilidade real, revisão de segurança, licença, ausência de sobreposição, teste e compatibilidade com contexto progressivo.
+O Auditor começa pelo pedido, aceite, diff e evidências. O Runner externo
+[`playertwo1/runner`](https://github.com/playertwo1/runner) é opcional e não é
+fonte canônica nem requisito do Standard.
 
-## Pesquisa de Skills usada pelo projeto
+## Skills e Packs
 
-Principais referências já estudadas:
+Skills e Packs são opcionais. Só entram quando resolvem uma necessidade real e
+foram revisados, testados e considerados menores que uma regra ou script local.
 
-- [Agent Skills](https://github.com/agentskills/agentskills) — especificação e progressive disclosure;
-- [Anthropic Claude Code — skill-development](https://github.com/anthropics/claude-code/tree/main/plugins/plugin-dev/skills/skill-development) — Skills, scripts e referências;
-- [OpenAI Codex — code-review](https://github.com/openai/codex/tree/main/.codex/skills/code-review) — revisão focada em findings;
-- [Trail of Bits — second-opinion](https://github.com/trailofbits/skills/tree/main/plugins/second-opinion/skills/second-opinion) — revisão independente de diff/commit;
-- [Trail of Bits — audit-context-building](https://github.com/trailofbits/skills/tree/main/plugins/audit-context-building/skills/audit-context-building) — expansão progressiva de contexto;
-- [GitHub Awesome Copilot — ai-ready](https://github.com/github/awesome-copilot/tree/main/skills/ai-ready) — preparar repositórios para agentes;
-- [GitHub Awesome Copilot — acquire-codebase-knowledge](https://github.com/github/awesome-copilot/tree/main/skills/acquire-codebase-knowledge) — descobrir stack, estrutura, CI e testes;
-- [GitHub Awesome Copilot — agent-skill-stack](https://github.com/github/awesome-copilot/tree/main/skills/agent-skill-stack) — escolher o menor conjunto de Skills;
-- [GitHub Awesome Copilot — security-review](https://github.com/github/awesome-copilot/tree/main/skills/security-review) — referência para projetos de maior risco;
-- [GitHub Awesome Copilot — secret-scanning](https://github.com/github/awesome-copilot/tree/main/skills/secret-scanning) — proteção de secrets;
-- [GitHub Awesome Copilot — agentic-eval](https://github.com/github/awesome-copilot/tree/main/skills/agentic-eval) — referência futura para projetos de IA.
+Skills Gold prioritárias:
 
-Discussões práticas no Reddit são usadas como sinal complementar. O aprendizado principal é evitar stacks enormes de Skills/plugins, usar catálogos como fonte de pesquisa e testar Skills importantes contra pequenos fixtures.
+- `gold-audit` — revisão curta orientada por pedido, aceite, diff e check;
+- `goldify` — descoberta somente leitura e Golden Diff;
+- `skill-author` — criação segura de Skills pequenas.
 
-## Como a pesquisa vira Template Gold
+O Template Gold não instala um catálogo inteiro por padrão.
 
-```text
-pesquisa
-   ↓
-padrão útil
-   ↓
-trim + adaptação provider-neutral
-   ↓
-teste / dogfooding
-   ↓
-benefício comprovado
-   ↓
-capacidade opcional reutilizável
-   ↓
-próximos projetos Gold
-```
+## Roadmap resumido
 
-Estrutura conceitual de projeto novo:
+| Fase | Resultado | Estado |
+|---|---|---|
+| F0 — Golden Standard | Core, check, Skills provadas e dogfooding | implementada |
+| F1 — Create | Template Gold utilizável | implementada |
+| F2 — Check + Audit | verificação e revisão reproduzíveis | implementada |
+| F3 — Packs + Skills | capacidades opcionais comprovadas | implementada |
+| F4 — Adopt / Goldify | adoção sem sobrescrever o projeto | implementada |
+| F5 — Sync | atualização conservadora e revisável | implementada |
 
-```text
-novo-projeto/
-├─ README.md
-├─ AGENTS.md
-├─ .gitignore
-├─ .editorconfig
-├─ .github/workflows/ci.yml
-├─ src/...
-├─ tests/...
-├─ docs/...              somente quando útil
-└─ .agents/skills/...    somente Skills necessárias
-```
-
-Nenhuma pasta ou Skill opcional precisa existir se não houver uso concreto.
-
-## Roadmap
-
-1. **F0 — Golden Standard**: definir, dogfood e provar a base Gold;
-2. **F1 — Create**: criar projetos novos usando primeiro GitHub Template;
-3. **F2 — Check + Audit**: verificação executável e revisão independente;
-4. **F3 — Packs + Skills**: capacidades específicas já estudadas e comprovadas;
-5. **F4 — Adopt / Goldify**: elevar projetos existentes ao Gold sem reconstruí-los;
-6. **F5 — Sync**: sincronização conservadora de melhorias comprovadas.
-
-Consulte `ROADMAP.md` para os critérios detalhados e `PROJECT_STATE.md` para o estado atual.
+O mapa operacional está em [`ROADMAP.md`](ROADMAP.md). O estado atual está em
+[`PROJECT_STATE.md`](PROJECT_STATE.md).
 
 ## Arquivos principais
 
-- `STANDARD.md` — regras canônicas do Gold Standard;
-- `ROADMAP.md` — evolução, dogfooding e trilha de Skills;
-- `PROJECT_STATE.md` — estado atual;
-- `AGENTS.md` — instruções mínimas para agentes;
-- `CLI_CONTRACT.md` — superfície mínima esperada de automação/CLI;
-- `packs/`, `examples/`, `fixtures/`, `schemas/` e `scripts/` — ativos mantidos somente quando continuam úteis ao Gold.
+- [`AGENTS.md`](AGENTS.md) — instruções universais mínimas;
+- [`STANDARD.md`](STANDARD.md) — contrato normativo Gold;
+- [`ROADMAP.md`](ROADMAP.md) — objetivos, entregas e critérios por fase;
+- [`PROJECT_STATE.md`](PROJECT_STATE.md) — estado operacional atual;
+- [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md) — orientação conceitual e retomada;
+- `scripts/` — validação, check, Goldify e sync;
+- `schemas/`, `fixtures/`, `examples/`, `templates/` — contratos e provas.
 
 ## Estado atual
 
-O projeto está consolidado em **F5 — SYNC**, última fase do Gold.
+O repositório está consolidado em **F5 — SYNC**. As auditorias individuais de
+F0/F0-SK a F5 estão registradas; a auditoria final da consolidação Gold ainda é
+a próxima ação. Isso não registra novo gate humano nem autoriza uma fase futura.
 
-A arquitetura antiga baseada em profiles, bundles, gates e lifecycle amplo foi substituída pelo modelo Gold. O código e os artefatos existentes serão reaproveitados apenas quando simplificarem o novo Standard.
+## Licença e evolução
 
-F0/F0-SK, F1, F2, F3, F4 e F5 estão implementados e possuem auditoria independente registrada;
-isso não equivale à aprovação da consolidação final, que ainda requer auditoria do conjunto. Sync gera diff antes de aplicar,
-preserva USER_OWNED e não sobrescreve conflitos silenciosamente.
-
-## Regra principal
-
-> Se uma solução mais simples resolve corretamente o problema, use a solução mais simples. Se ainda não foi provada, não a transforme em padrão.
+Mudanças devem ser pequenas, verificáveis e compatíveis. Preserve trabalho
+local, atualize evidência somente após executar os checks e prefira remover
+complexidade sem função prática.
