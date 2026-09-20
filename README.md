@@ -124,6 +124,9 @@ O mapa operacional está em [`ROADMAP.md`](ROADMAP.md). O estado atual está em
 O repositório está consolidado em **F5 — SYNC**. As auditorias individuais de
 F0/F0-SK a F5 estão registradas; a auditoria final da consolidação Gold ainda é
 a próxima ação. Isso não registra novo gate humano nem autoriza uma fase futura.
+Goldify e Sync também possuem validações de caminho, ownership, exclusão de
+artefatos privados/gerados e idempotência; esses testes não substituem a
+auditoria independente final.
 
 ## Licença e evolução
 

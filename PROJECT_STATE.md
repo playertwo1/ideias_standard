@@ -7,6 +7,7 @@
 - **Objetivo atual:** F5 — última fase Gold implementada; preservar coerência e aguardar auditoria final.
 - **Evidência F0-SK:** `F0_SK_EVIDENCE.json` referencia fixtures e Skills por SHA-256; `scripts.test_gold_skills` reproduz as provas locais.
 - **Auditorias individuais:** F0/F0-SK–F5 registradas; a consolidação final ainda aguarda auditoria do conjunto.
+- **Confiabilidade Gold:** Goldify/Sync validados no SHA `e0464063eab116b1feb026a4c59d2a2d73c2478b`; evidência executável em `scripts.test_goldify`, `scripts.test_sync` e `scripts.test_gold_skills`.
 
 ## Direção atual
 

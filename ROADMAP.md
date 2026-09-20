@@ -119,6 +119,10 @@ inventário leve → Golden Diff → plano curto → mudanças necessárias → 
 Arquivos existentes são USER_OWNED por padrão. O fluxo preserva arquitetura,
 mudanças locais, conflitos e possibilidade de retorno.
 
+Confiabilidade verificada: caminhos inexistentes ou inadequados são rejeitados
+antes de qualquer escrita, e projetos que já possuem `scripts/check.py` não são
+reorganizados.
+
 **Estado:** implementada; auditoria individual registrada.
 
 ## 9. F5 — Sync
@@ -132,6 +136,10 @@ ações destrutivas.
 
 **Critério:** uma atualização mostra origem, destino, conflito e ação prevista;
 nenhum arquivo é alterado silenciosamente.
+
+Seleção de arquivos: `.git`, `__pycache__`, `*.pyc`, `.env` e `.env.*` ficam
+fora do plano. Source e target precisam ser diretórios existentes; a repetição
+do mesmo plano permanece sem novas escritas.
 
 **Estado:** implementada; auditoria individual registrada, consolidação final
 pendente.
