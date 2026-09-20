@@ -122,11 +122,12 @@ O mapa operacional está em [`ROADMAP.md`](ROADMAP.md). O estado atual está em
 ## Estado atual
 
 O repositório está consolidado em **F5 — SYNC**. As auditorias individuais de
-F0/F0-SK a F5 estão registradas; a auditoria final da consolidação Gold ainda é
-a próxima ação. Isso não registra novo gate humano nem autoriza uma fase futura.
+F0/F0-SK a F5 e a consolidação final estão registradas; a consolidação recebeu
+PASS independente no SHA `6d836da5c0b4cd15e38343eae1cb30d03d458b44`.
+Isso não registra gate humano nem autoriza uma fase futura.
 Goldify e Sync também possuem validações de caminho, ownership, exclusão de
-artefatos privados/gerados e idempotência; esses testes não substituem a
-auditoria independente final.
+artefatos privados/gerados e idempotência; esses testes permanecem vinculados ao
+SHA auditado e não criam autoridade adicional.
 
 ## Licença e evolução
 

@@ -31,7 +31,8 @@ O Standard não impõe stack, arquitetura, fornecedor de IA ou governança máxi
 
 ## 3. Estado e dependências
 
-Estado atual: `F5 — SYNC`, consolidado, aguardando auditoria final do conjunto.
+Estado atual: `F5 — SYNC`, consolidado; auditoria independente PASS registrada no
+SHA `6d836da5c0b4cd15e38343eae1cb30d03d458b44`.
 
 ```text
 F0 Golden Standard
@@ -61,8 +62,7 @@ qualquer item descoberto. A próxima ação sempre vem de `PROJECT_STATE.md`.
 **Critério:** cada prática promovida ao Gold foi exercitada no Standard, fixture,
 exemplo ou projeto adequado; documentação isolada não basta.
 
-**Estado:** implementada; auditoria individual registrada, consolidação final
-pendente.
+**Estado:** implementada; auditoria individual e consolidação final registradas.
 
 ## 5. F1 — Create
 
@@ -141,8 +141,7 @@ Seleção de arquivos: `.git`, `__pycache__`, `*.pyc`, `.env` e `.env.*` ficam
 fora do plano. Source e target precisam ser diretórios existentes; a repetição
 do mesmo plano permanece sem novas escritas.
 
-**Estado:** implementada; auditoria individual registrada, consolidação final
-pendente.
+**Estado:** implementada; auditoria individual e consolidação final registradas.
 
 ## 10. Contratos e limites
 
@@ -174,6 +173,5 @@ limitações e atualizar `PROJECT_STATE.md` somente se o estado real mudou.
 
 ## 12. Próxima ação
 
-Executar a auditoria independente final da consolidação Gold. Até essa auditoria,
-não declarar a consolidação como novo PASS nem iniciar uma trilha posterior por
-inferência.
+Manter a consolidação Gold auditada no SHA `6d836da5c0b4cd15e38343eae1cb30d03d458b44`.
+Não iniciar nova fase por inferência; qualquer evolução requer autorização explícita.

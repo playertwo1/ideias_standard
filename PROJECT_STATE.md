@@ -3,10 +3,10 @@
 - **Versão do repositório:** 0.1.0-draft
 - **Modelo atual:** Gold V5
 - **Fase atual:** F5 — SYNC
-- **Status:** GOLD_CONSOLIDATED — auditoria final do conjunto pendente
-- **Objetivo atual:** F5 — última fase Gold implementada; preservar coerência e aguardar auditoria final.
+- **Status:** GOLD_CONSOLIDATED — auditoria independente registrada
+- **Objetivo atual:** F5 — Gold consolidado; preservar coerência sem iniciar nova fase automaticamente.
 - **Evidência F0-SK:** `F0_SK_EVIDENCE.json` referencia fixtures e Skills por SHA-256; `scripts.test_gold_skills` reproduz as provas locais.
-- **Auditorias individuais:** F0/F0-SK–F5 registradas; a consolidação final ainda aguarda auditoria do conjunto.
+- **Auditorias:** F0/F0-SK–F5 e consolidação final registradas; consolidação PASS no SHA `6d836da5c0b4cd15e38343eae1cb30d03d458b44`.
 - **Confiabilidade Gold:** Goldify/Sync validados no SHA `e0464063eab116b1feb026a4c59d2a2d73c2478b`; evidência executável em `scripts.test_goldify`, `scripts.test_sync` e `scripts.test_gold_skills`.
 
 ## Direção atual
@@ -43,7 +43,7 @@ Se a necessidade for local, a solução permanece local.
 - revisar ativos legados e remover complexidade sem função prática;
 - dogfood as práticas Gold no próprio repositório;
 - criar um exemplo Gold completo;
-- realizar auditoria independente final da consolidação Gold.
+- preservar a evidência da auditoria independente final da consolidação Gold.
 
 ## Princípios ativos
 
@@ -103,4 +103,5 @@ Não alterar esses ativos apenas para fazê-los parecer alinhados documentalment
 
 ## Próxima ação
 
-1. executar auditoria independente final da consolidação Gold;
+1. manter o Gold consolidado;
+2. não iniciar nova fase sem autorização explícita.
