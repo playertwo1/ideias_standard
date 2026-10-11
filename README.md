@@ -1,136 +1,67 @@
 # Ideias Standard
 
-Base Gold simples para criar, validar, adotar e atualizar projetos preparados
-para humanos e agentes de IA.
+Kit mínimo para começar qualquer projeto trabalhado por pessoas e agentes de IA (Claude, Codex, Gemini, Hermes…): visão clara, estado retomável, critérios verificáveis e evidência antes de "pronto".
 
-> **Small Core · contexto progressivo · verificação executável · auditoria independente**
+> Menos contexto, mais sinal. Menos processo, mais verificação. Primeiro provar, depois padronizar.
 
-## O problema que resolve
-
-Projetos assistidos por IA precisam de estado operacional claro, contexto curto,
-regras estáveis e evidência reproduzível. O Standard fornece essa base sem impor
-arquitetura, fornecedor de IA ou burocracia igual para todo projeto.
-
-## Dois caminhos
-
-```text
-NOVO PROJETO      → CREATE  → TEMPLATE GOLD → PROJETO GOLD
-PROJETO EXISTENTE → GOLDIFY → GOLDEN DIFF   → CHECK + AUDIT → PROJETO GOLD
-```
-
-Gold padroniza qualidade e operação; não padroniza a implementação interna.
-
-## O contrato mínimo
-
-Um projeto Gold, quando aplicável, tem:
-
-- `README.md` útil e `AGENTS.md` curto;
-- estado atual e próxima ação identificáveis;
-- comandos reais de verificação;
-- contexto carregado progressivamente;
-- ownership, origem e mudanças locais preservados;
-- segurança proporcional ao risco;
-- diff revisável e auditoria independente para mudanças relevantes.
-
-Regras essenciais:
-
-- `NOT_RUN` não significa `PASS`;
-- sugestão de IA não vira decisão humana automaticamente;
-- automação não amplia autoridade;
-- contexto obrigatório não é truncado silenciosamente;
-- uma nova regra só entra no Gold após prova em uso adequado;
-- arquivos existentes são preservados por padrão.
-
-## Contexto para agentes
-
-Bootstrap padrão:
-
-```text
-AGENTS.md + pedido atual
-```
-
-Depois, localizar antes de ler e abrir somente o trecho necessário de
-`PROJECT_STATE.md`, `STANDARD.md`, `ROADMAP.md`, documentação e Skills.
-
-## Verificação
-
-Para validar o próprio Standard:
+## Começar um projeto novo
 
 ```bash
-python scripts/validate_standard.py --self-check
-python -m unittest discover -s tests -p 'test_*.py' -v
+cp -r template/. ../meu-projeto/
 ```
 
-Para verificar um projeto:
-
-```bash
-python scripts/check.py <projeto>
-python scripts/check.py <projeto> --details
-python scripts/check.py <projeto> --json
+```powershell
+Copy-Item -Recurse -Force template\* ..\meu-projeto\
+Copy-Item -Force template\.gitignore, template\.editorconfig ..\meu-projeto\
 ```
 
-Exit codes de `check.py`: `0` sucesso, `1` falha de validação, `2` erro
-operacional. O resumo não substitui testes, lint, typecheck ou build do projeto.
+Depois:
+1. Preencha os marcadores entre chaves duplas de `PROJECT.md`, `AGENTS.md`, `README.md`, `ROADMAP.md` e `STATE.md` (apague o que não se aplica).
+2. Escolha **um** marco ativo no `ROADMAP.md`; os demais ficam só com objetivo e gate.
+3. Escreva em `STATE.md` a próxima ação verificável.
+4. Confira: `python scripts/check.py ../meu-projeto`.
 
-## Fluxo de mudança
+Projeto existente: siga o [GUIA §7](docs/GUIA.md#7-adotar-em-projeto-existente).
 
-```text
-pedido → Builder → check resumido → diff → Auditor independente → PASS ou findings
-```
+## O que vem no template
 
-O Auditor começa pelo pedido, aceite, diff e evidências. O Runner externo
-[`playertwo1/runner`](https://github.com/playertwo1/runner) é opcional e não é
-fonte canônica nem requisito do Standard.
-
-## Skills e Packs
-
-Skills e Packs são opcionais. Só entram quando resolvem uma necessidade real e
-foram revisados, testados e considerados menores que uma regra ou script local.
-
-Skills Gold prioritárias:
-
-- `gold-audit` — revisão curta orientada por pedido, aceite, diff e check;
-- `goldify` — descoberta somente leitura e Golden Diff;
-- `skill-author` — criação segura de Skills pequenas.
-
-O Template Gold não instala um catálogo inteiro por padrão.
-
-## Roadmap resumido
-
-| Fase | Resultado | Estado |
+| Arquivo | Pergunta que responde | Quando atualizar |
 |---|---|---|
-| F0 — Golden Standard | Core, check, Skills provadas e dogfooding | implementada |
-| F1 — Create | Template Gold utilizável | implementada |
-| F2 — Check + Audit | verificação e revisão reproduzíveis | implementada |
-| F3 — Packs + Skills | capacidades opcionais comprovadas | implementada |
-| F4 — Adopt / Goldify | adoção sem sobrescrever o projeto | implementada |
-| F5 — Sync | atualização conservadora e revisável | implementada |
+| `PROJECT.md` | Por que existe? Para quem? O que fica fora do MVP? | ao criar e quando a visão muda |
+| `ROADMAP.md` | O que entra agora, depois e no futuro? | ao priorizar ou mudar escopo |
+| `STATE.md` | Onde paramos e qual a próxima ação? | ao fim de cada sessão relevante |
+| `AGENTS.md` | Como qualquer agente deve trabalhar aqui? | só quando a política muda |
+| `CLAUDE.md` | só `@AGENTS.md`, sem duplicar | raramente |
+| `docs/DECISIONS.md` | Por que escolhemos isso? | em escolhas caras de desfazer |
+| `docs/RELEASE_CHECKLIST.md` | Como provamos que está pronto? | ao definir os comandos do projeto |
+| `docs/templates/FEATURE.md` | Qual comportamento, com quais critérios? | antes de feature média ou maior |
+| `docs/templates/EXECUTION_PLAN.md` | Como executar mudança grande sem depender da conversa? | só mudança complexa |
+| `docs/templates/REVIEW.md` | O que foi provado? | ao concluir feature ou marco |
 
-O mapa operacional está em [`ROADMAP.md`](ROADMAP.md). O estado atual está em
-[`PROJECT_STATE.md`](PROJECT_STATE.md).
+O projeto funciona só com `PROJECT`, `ROADMAP`, `STATE` e `AGENTS`. O resto é progressivo e entra quando a complexidade justifica ([GUIA §1](docs/GUIA.md#1-quanto-documento-cada-tarefa-merece)).
 
-## Arquivos principais
+## Regras centrais
+- Roadmap (quando/o quê) ≠ spec (comportamento) ≠ plano (como) ≠ review (prova).
+- `NOT_RUN` não é `PASS`; "feito" dito pela IA não é evidência; teste verde não é aprovação de produto.
+- Exclusões, ações irreversíveis, produção, gastos, segredos e dados pessoais exigem aprovação humana.
+- Uma regra em um só lugar; o resto aponta para ela. Marco fechado sai do roadmap.
+- Contexto progressivo: `AGENTS.md` curto, docs lidos sob demanda.
 
-- [`AGENTS.md`](AGENTS.md) — instruções universais mínimas;
-- [`STANDARD.md`](STANDARD.md) — contrato normativo Gold;
-- [`ROADMAP.md`](ROADMAP.md) — objetivos, entregas e critérios por fase;
-- [`PROJECT_STATE.md`](PROJECT_STATE.md) — estado operacional atual;
-- [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md) — orientação conceitual e retomada;
-- `scripts/` — validação, check, Goldify e sync;
-- `schemas/`, `fixtures/`, `examples/`, `templates/` — contratos e provas.
+## Neste repositório
 
-## Estado atual
+| Caminho | Conteúdo |
+|---|---|
+| [`template/`](template/) | o kit a copiar |
+| [`examples/command/`](examples/command/) | exemplo preenchido (didático) |
+| [`docs/GUIA.md`](docs/GUIA.md) | passo a passo, estados, papéis, prompts, adoção, segurança |
+| [`docs/PESQUISA.md`](docs/PESQUISA.md) | evidências, fontes R01–R28 e protocolo comparativo |
+| [`scripts/check.py`](scripts/check.py) | confere um projeto (só leitura, sem dependências) |
+| [`STATE.md`](STATE.md), [`ROADMAP.md`](ROADMAP.md) | estado e evolução do próprio kit |
 
-O repositório está consolidado em **F5 — SYNC**. As auditorias individuais de
-F0/F0-SK a F5 e a consolidação final estão registradas; a consolidação recebeu
-PASS independente no SHA `6d836da5c0b4cd15e38343eae1cb30d03d458b44`.
-Isso não registra gate humano nem autoriza uma fase futura.
-Goldify e Sync também possuem validações de caminho, ownership, exclusão de
-artefatos privados/gerados e idempotência; esses testes permanecem vinculados ao
-SHA auditado e não criam autoridade adicional.
+```bash
+python scripts/check.py <projeto>              # 0 ok · 1 falhou · 2 erro de uso
+python scripts/check.py template --template    # aceita marcadores não preenchidos
+python -m unittest discover -s tests -v
+```
 
-## Licença e evolução
-
-Mudanças devem ser pequenas, verificáveis e compatíveis. Preserve trabalho
-local, atualize evidência somente após executar os checks e prefira remover
-complexidade sem função prática.
+A versão anterior (Gold V5: schemas, lock, packs, profiles, goldify, sync) está preservada na tag [`v0.1-gold-legacy`](https://github.com/playertwo1/ideias_standard/tree/v0.1-gold-legacy).

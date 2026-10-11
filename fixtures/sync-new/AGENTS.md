@@ -1,3 +1,0 @@
-# Instructions
-
-Keep changes small.

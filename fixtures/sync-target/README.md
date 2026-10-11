@@ -1,3 +1,0 @@
-# Local project
-
-Local content.

@@ -1,9 +1,0 @@
-schema_version: '0.1'
-strategy: PROGRESSIVE
-routes:
-  DEFAULT:
-    required:
-      - AGENTS.md
-      - PROJECT_STATE.md
-    conditional:
-      - ROADMAP.md

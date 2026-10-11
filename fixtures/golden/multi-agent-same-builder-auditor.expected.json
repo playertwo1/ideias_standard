@@ -1,6 +1,0 @@
-{
-  "result": "FAIL",
-  "checks": [
-    {"code": "IS-SEM-011", "status": "FAIL", "severity": "CRITICAL"}
-  ]
-}

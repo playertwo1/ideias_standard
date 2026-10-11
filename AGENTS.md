@@ -1,40 +1,15 @@
 # AGENTS.md — Ideias Standard
 
-## Objetivo
+Repositório do kit de projeto. Comece por `STATE.md`; abra `docs/` só se a tarefa pedir.
 
-Construir e manter o Ideias Standard como uma base Gold simples, reutilizável e preparada para humanos e agentes de IA.
-
-## Antes de alterar
-
-Leia somente:
-
-1. este `AGENTS.md`;
-2. o pedido atual.
-
-Abra `PROJECT_STATE.md`, `STANDARD.md`, `ROADMAP.md` ou outros arquivos apenas quando forem relevantes para a tarefa.
+## Comandos
+- Verificar: `python -m unittest discover -s tests -v` e `python scripts/check.py examples/command`
 
 ## Regras
-
-- faça a menor mudança correta;
-- preserve comportamento e trabalho existentes;
-- não trate suposição como fato;
-- não crie abstrações para necessidades hipotéticas;
-- não duplique contexto entre arquivos;
-- localize antes de ler e carregue o menor trecho suficiente;
-- limite ou filtre outputs potencialmente grandes;
-- não esconda erros nem altere testes apenas para obter PASS;
-- aplique ao próprio Standard as práticas Gold que forem relevantes;
-- não promova nova capacidade ao Gold antes de provar sua utilidade;
-- valide antes de concluir.
-
-## Verificação
-
-Use os testes, lint, build e checks aplicáveis à mudança.
-
-Para alterações relevantes, revise o diff e prefira auditoria independente começando pelo delta.
-
-## Contexto
-
-Use contexto progressivo. Abra documentação, packs, Skills, estado ou dependências somente quando necessário.
-
-Atualize `PROJECT_STATE.md` apenas quando o estado real do projeto mudar.
+1. Dogfooding: este repositório segue o próprio kit. Regra difícil de usar aqui não vai para o template.
+2. Mudou o `template/`: atualize `examples/command/` e o `README.md` no mesmo commit; os testes têm de passar.
+3. Uma regra em um só lugar: template → regra; `docs/GUIA.md` → explicação; `docs/PESQUISA.md` → evidência. Não duplicar.
+4. Nova capacidade só entra depois de provada em projeto real e se for menor que a alternativa (ver `ROADMAP.md`).
+5. Repositório **público**: nada de dado real de projeto (nomes, telefones, clientes), segredo ou caminho pessoal.
+6. Não declarar teste não executado; `NOT_RUN` não é `PASS`. Atualize `STATE.md` quando o estado mudar.
+7. Commits na `main`; não reescrever histórico nem apagar tags.

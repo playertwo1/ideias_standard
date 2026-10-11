@@ -1,9 +1,0 @@
-{
-  "schema_version": "0.1",
-  "strategy": "PROGRESSIVE",
-  "routes": {
-    "UNSAFE": {
-      "required": ["../secret.env", "PROJECT_STATE.md"]
-    }
-  }
-}
