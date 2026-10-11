@@ -32,13 +32,14 @@ Projeto existente: siga o [GUIA §7](docs/GUIA.md#7-adotar-em-projeto-existente)
 | `STATE.md` | Onde paramos e qual a próxima ação? | ao fim de cada sessão relevante |
 | `AGENTS.md` | Como qualquer agente deve trabalhar aqui? | só quando a política muda |
 | `CLAUDE.md` | só `@AGENTS.md`, sem duplicar | raramente |
+| `DESIGN.md` | Qual é a cara do app? Cores, tipografia, layout, componentes (tokens + porquê) | antes da primeira tela; apague se não houver interface |
 | `docs/DECISIONS.md` | Por que escolhemos isso? | em escolhas caras de desfazer |
 | `docs/RELEASE_CHECKLIST.md` | Como provamos que está pronto? | ao definir os comandos do projeto |
 | `docs/templates/FEATURE.md` | Qual comportamento, com quais critérios? | antes de feature média ou maior |
 | `docs/templates/EXECUTION_PLAN.md` | Como executar mudança grande sem depender da conversa? | só mudança complexa |
 | `docs/templates/REVIEW.md` | O que foi provado? | ao concluir feature ou marco |
 
-O projeto funciona só com `PROJECT`, `ROADMAP`, `STATE` e `AGENTS`. O resto é progressivo e entra quando a complexidade justifica ([GUIA §1](docs/GUIA.md#1-quanto-documento-cada-tarefa-merece)).
+O projeto funciona só com `PROJECT`, `ROADMAP`, `STATE` e `AGENTS`. Nomes podem variar quando uma ferramenta exige outro (ex.: `PRODUCT.md` no lugar de `PROJECT.md`; o checker aceita os dois). O resto é progressivo e entra quando a complexidade justifica ([GUIA §1](docs/GUIA.md#1-quanto-documento-cada-tarefa-merece)).
 
 ## Regras centrais
 - Roadmap (quando/o quê) ≠ spec (comportamento) ≠ plano (como) ≠ review (prova).

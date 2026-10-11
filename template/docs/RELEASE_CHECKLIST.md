@@ -21,7 +21,7 @@ O resultado técnico (`PASS` / `FAIL` / `NOT_RUN`) é separado do aceite de prod
 - [ ] V1 Capturas reais nas larguras-alvo ({{ex.: 1440 e 390 px}}), sem overflow nem texto sobreposto.
 - [ ] V2 Estados vazios, carregando, erro e dados longos conferidos.
 - [ ] V3 Teclado, foco visível, rótulos e contraste; estado indicado por texto/ícone além da cor.
-- [ ] V4 Comparado à referência de design aprovada; diferenças registradas com motivo.
+- [ ] V4 Conforme `DESIGN.md` (tokens, composição e componentes) e à referência visual aprovada; diferenças registradas no `DESIGN.md` com motivo.
 - [ ] V5 Aceite visual humano do que foi mostrado (data + link).
 
 ## 4. Fechamento e publicação

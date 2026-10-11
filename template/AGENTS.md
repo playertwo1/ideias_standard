@@ -5,6 +5,7 @@ Contrato curto para qualquer agente (Claude, Codex, Gemini, Hermes…). Se uma i
 ## Fontes de verdade
 - `STATE.md` — onde paramos e a próxima ação. **Comece por aqui.**
 - `ROADMAP.md` — marcos e fila. `PROJECT.md` — problema, MVP e fora de escopo.
+- `DESIGN.md` — a cara do app; leia antes de criar ou mudar tela.
 - `docs/DECISIONS.md` — o porquê das escolhas caras. `docs/RELEASE_CHECKLIST.md` — como provar que está pronto.
 
 ## Comandos

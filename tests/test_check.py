@@ -47,6 +47,20 @@ class CheckTest(unittest.TestCase):
         (p / "CLAUDE.md").write_text("cópia das regras\n", encoding="utf-8")
         self.assertEqual(levels(check.check(p)), ["WARN", "WARN"])
 
+    def test_product_md_replaces_project_md(self):
+        p = self.copy("examples/command")
+        (p / "PROJECT.md").rename(p / "PRODUCT.md")
+        self.assertEqual(check.check(p), [])
+        (p / "PRODUCT.md").unlink()
+        self.assertTrue(any("PROJECT.md ou PRODUCT.md" in m for _, m in check.check(p)))
+
+    def test_unfilled_design_fails_only_when_present(self):
+        p = self.copy("examples/command")
+        (p / "DESIGN.md").unlink()
+        self.assertEqual(check.check(p), [])
+        shutil.copy(ROOT / "template" / "DESIGN.md", p / "DESIGN.md")
+        self.assertTrue(any(m.startswith("DESIGN.md") for _, m in check.check(p)))
+
     def test_exit_codes(self):
         self.assertEqual(check.main([str(ROOT / "examples" / "command")]), 0)
         self.assertEqual(check.main([str(ROOT / "template")]), 1)

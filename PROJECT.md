@@ -12,7 +12,7 @@ Quem cria projetos trabalhando com vários agentes (Claude, Codex, Gemini, Herme
 3. Adotar o kit num projeto existente seguindo o `docs/GUIA.md`.
 
 ## Fora do MVP
-- Gerador, lockfile, sincronização automática de versões, packs por stack (ver ideias no `ROADMAP.md`).
+- Script de criação (copiar a pasta basta), lockfile, sincronização automática de versões, packs por stack (ver ideias no `ROADMAP.md`).
 
 ## Restrições
 - Repositório público; independente de fornecedor de IA; só biblioteca padrão do Python.

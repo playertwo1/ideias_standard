@@ -19,6 +19,7 @@
 | Por que existe, MVP, fora de escopo | [PROJECT.md](PROJECT.md) |
 | Onde paramos, próxima ação | [STATE.md](STATE.md) |
 | Marcos e fila | [ROADMAP.md](ROADMAP.md) |
+| Cara do app (frontend) | [DESIGN.md](DESIGN.md) |
 | Regras para agentes | [AGENTS.md](AGENTS.md) (`CLAUDE.md` só importa este) |
 | Decisões e o porquê | [docs/DECISIONS.md](docs/DECISIONS.md) |
 | Como provar que está pronto | [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) |

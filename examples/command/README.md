@@ -9,4 +9,5 @@ Ver o estado do PC Windows pelo celular Android, com autenticação e sem depend
 | Visão e MVP | [PROJECT.md](PROJECT.md) |
 | Onde paramos | [STATE.md](STATE.md) |
 | Marcos | [ROADMAP.md](ROADMAP.md) |
+| Cara do app | [DESIGN.md](DESIGN.md) |
 | Spec da primeira entrega | [docs/features/CMD-001-status-do-pc.md](docs/features/CMD-001-status-do-pc.md) |

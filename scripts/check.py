@@ -9,7 +9,9 @@ import re
 import sys
 from pathlib import Path
 
-CORE = ["README.md", "AGENTS.md", "PROJECT.md", "ROADMAP.md", "STATE.md"]
+# Cada item aceita nomes alternativos: projetos podem divergir (ex.: PRODUCT.md exigido por ferramenta de design).
+CORE = [("README.md",), ("AGENTS.md",), ("PROJECT.md", "PRODUCT.md"), ("ROADMAP.md",), ("STATE.md",)]
+OPTIONAL = ["DESIGN.md"]  # conferido só se existir (projeto sem interface não tem)
 PLACEHOLDER = re.compile(r"\{\{[^{}\n]*\}\}")
 NEXT_ACTION = re.compile(r"^#+\s*(pr[oó]xima a[cç][aã]o|next action)", re.I | re.M)
 AGENTS_MAX_LINES = 120  # contexto permanente demais reduz acerto e encarece (docs/PESQUISA.md, R22)
@@ -17,11 +19,16 @@ AGENTS_MAX_LINES = 120  # contexto permanente demais reduz acerto e encarece (do
 
 def check(root: Path, template: bool = False) -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
-    for name in CORE:
-        if not (root / name).is_file():
-            found.append(("FAIL", f"{name}: arquivo obrigatório ausente"))
+    present = []
+    for names in CORE:
+        hit = next((n for n in names if (root / n).is_file()), None)
+        if hit:
+            present.append(hit)
+        else:
+            found.append(("FAIL", f"{' ou '.join(names)}: arquivo obrigatório ausente"))
+    present += [n for n in OPTIONAL if (root / n).is_file()]
     if not template:
-        for name in CORE:
+        for name in present:
             path = root / name
             if path.is_file():
                 n = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if PLACEHOLDER.search(line))

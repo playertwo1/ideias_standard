@@ -17,6 +17,7 @@ O projeto funciona só com `PROJECT`, `ROADMAP`, `STATE` e `AGENTS`. O resto ent
 1. **Descoberta** — preencha `PROJECT.md`: quem sofre, por que a solução atual não basta, qual fluxo básico entrega valor. Pesquise alternativas e licenças antes de reimplementar.
 2. **Decida o que NÃO fazer** — tire o que não ajuda a validar o primeiro fluxo e escreva em "Fora do MVP".
 3. **Marcos com demonstração** — D0 visão → v0.1 fluxo real → v0.2 MVP → v0.3 estabilização → v1.0 entrega. Cada marco termina em algo observável, não em "API pronta".
+3a. **Cara do app (se houver interface)** — preencha `DESIGN.md` antes da primeira tela: personalidade, referências e anti-referências, tokens de cor e tipografia, layout por tela e estados. Telas geradas por ferramenta (Stitch, Figma, v0) entram como referência em `docs/design/`; o `DESIGN.md` consolida o que vale. Referência adotada não é tela aprovada.
 4. **Detalhe só o marco ativo** — IDs, dependências e prioridade no `ROADMAP.md`, em unidades que caibam numa sessão.
 5. **Especifique** — `FEATURE` com Dado/Quando/Então, casos negativos, pré e pós-condições e AC-01, AC-02… O responsável pelo produto confirma o que é sucesso.
 6. **Plano só se necessário** — `EXECUTION_PLAN` autocontido para integração ou refatoração grande.
@@ -69,7 +70,7 @@ O objetivo é o máximo de sinal por token sem perder correção.
 
 ## 7. Adotar em projeto existente
 
-1. **Descubra sem alterar**: leia README, docs e estrutura; liste o que já cumpre o papel de cada arquivo do kit (um `PRODUCT.md` pode ser o `PROJECT.md`; uma tabela "Agora" no roadmap é o `STATE.md`).
+1. **Descubra sem alterar**: leia README, docs e estrutura; liste o que já cumpre o papel de cada arquivo do kit (um `PRODUCT.md` pode ser o `PROJECT.md` — o checker aceita os dois; um guia visual existente vira o `DESIGN.md`; uma tabela "Agora" no roadmap é o `STATE.md`).
 2. **Proponha um diff** antes de mover: o que entra, o que muda de lugar, o que vira histórico. Arquivos do projeto (código, decisões humanas, docs autorais) não são sobrescritos; o kit só sugere.
 3. **Corte redundância**: uma regra em um só lugar (gates no `RELEASE_CHECKLIST`, regras no `AGENTS`, estado no `STATE`); fases fechadas saem do roadmap para `docs/arquivo/`; repetidos viram link.
 4. **Preserve**: mova com `git mv`, corrija links relativos, não reescreva histórico, não apague evidência de aceite.

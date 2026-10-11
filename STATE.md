@@ -8,6 +8,7 @@
 - CI roda testes e checker em Python 3.11–3.13.
 
 ## Última atividade
+- v1.1.0: `DESIGN.md` no template e nomes alternativos no checker (atrito do primeiro projeto existente adotado).
 - v1.0: Gold V5 simplificado para kit de documentos, com base no manual multi-IA v2 e na adoção real em um projeto existente. Legado na tag `v0.1-gold-legacy`.
 - Testes: ver commit da v1.0 (unittest, `check.py examples/command`, `check.py template --template`).
 
