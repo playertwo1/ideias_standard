@@ -14,11 +14,12 @@
 |---|---|---|---|
 | v1.1-01 | Projeto novo criado do `template/` | READY | `check.py` PASS + lista de atritos |
 | v1.1-02 | Adoção em projeto existente | IN_PROGRESS | 1º caso passa no checker; atritos: `PRODUCT.md` (resolvido: nome alternativo), falta de `DESIGN.md` no kit (resolvido) |
+| v1.1-03 | Guardrails do repositório `guardrail` no template (`WATCHDOG.md`, `AUDIT.md`) — v1.2.0 | REVIEW | PR aprovado + uso registrado no próximo projeto (v1.1-01) |
 
 ## Ideias (não autorizadas até o piloto pedir)
 | Ideia | Quando reavaliar |
 |---|---|
-| Skill de auditoria em `.agents/skills/` | se o prompt do GUIA §5 não bastar |
+| Skill de auditoria em `.agents/skills/` | se o prompt do GUIA §5 e o `template/docs/AUDIT.md` não bastarem |
 | Pack por stack (Python, web, Android) | se dois projetos repetirem a mesma regra |
 
 ## Critério para mudar o kit

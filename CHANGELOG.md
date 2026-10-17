@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0 — 2026-10-17
+- `template/docs/WATCHDOG.md`: guardião de execução (hierarquia de decisão, escopo e anti-drift, proteção contra regressão, ações de alto risco, loop de erro, regra de parada). Lido antes de mudança média, grande ou arriscada.
+- `template/docs/AUDIT.md`: auditoria final independente (escopo, diff, regressão, qualidade, segurança, caça a atalhos) com severidade CRITICAL/HIGH/MEDIUM/LOW e `AUDIT RESULT: PASS | FAIL` registrado na review.
+- Origem: repositório [playertwo1/guardrail](https://github.com/playertwo1/guardrail) (`WATCHDOG.md`, `AUDIT.md`, `AGENTS_GUARDRAILS.md`, commit `5bf7008`), adaptado ao kit: verificação, git e segurança apontam para `RELEASE_CHECKLIST` e `AGENTS.md` em vez de se repetirem; o bloco `AGENTS_GUARDRAILS.md` virou ajustes nas regras 3, 4 e 7 do `template/AGENTS.md` (as 10 regras continuam 10).
+- `template/AGENTS.md`, `README.md`, `RELEASE_CHECKLIST` e `templates/REVIEW.md` apontam para os dois arquivos; `GUIA` (papéis, prompt de auditoria, adoção), `examples/command/AGENTS.md` e o `AGENTS.md` deste repositório também.
+- Teste novo garante que o template entrega `WATCHDOG.md` e `AUDIT.md` sem marcadores e referenciados no `AGENTS.md`.
+
 ## 1.1.0 — 2026-10-11
 - `template/DESIGN.md`: a cara do app (tokens de cor, tipografia, forma e componentes no frontmatter + overview, layout, estados e do's/don'ts), compatível com o formato usado pelo Impeccable. Exemplo preenchido em `examples/command/DESIGN.md`.
 - `check.py` aceita nomes alternativos (`PRODUCT.md` no lugar de `PROJECT.md`) e confere `DESIGN.md` quando existe. Primeiro atrito do piloto (projeto existente).

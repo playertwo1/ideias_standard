@@ -43,9 +43,9 @@ Papéis, não capacidades exclusivas de um modelo. O ponto de integração são 
 - **Autoridade de produto** (pessoa): resolve trade-offs e autoriza fechar marco.
 - **Planejador**: confirma objetivo e cria ID, spec e gate.
 - **Builder**: escopo limitado, menor mudança correta, registra commits, comandos e alterações.
-- **Auditor** (outro agente ou pessoa): começa por pedido, ACs, diff e resultado dos checks; expande contexto só para testar uma hipótese; devolve `PASS` ou findings com arquivo, impacto e correção. Verifica correção, regressão, escopo, complexidade desnecessária e falso sucesso.
+- **Auditor** (outro agente ou pessoa): começa por pedido, ACs, diff e resultado dos checks; expande contexto só para testar uma hipótese; devolve `PASS` ou findings com arquivo, impacto e correção. Verifica correção, regressão, escopo, complexidade desnecessária e falso sucesso. Roteiro e severidades (CRITICAL/HIGH/MEDIUM/LOW) em `docs/AUDIT.md` do template.
 
-Não deixe dois agentes alterando os mesmos arquivos sem coordenação.
+Não deixe dois agentes alterando os mesmos arquivos sem coordenação. O Builder segue `docs/WATCHDOG.md` (escopo, alto risco, regra de parada) em mudança média ou maior.
 
 ## 5. Prompts prontos
 
@@ -56,7 +56,7 @@ Não deixe dois agentes alterando os mesmos arquivos sem coordenação.
 > Implemente somente a FEATURE [ID], respeitando pré-condições e ACs. Se for complexa, escreva ou atualize o plano. Rode os testes pertinentes, registre resultados reais e bloqueios e atualize STATE.md. Não marque DONE sem evidência.
 
 **Auditar**
-> Revise a entrega [ID] a partir do pedido, dos ACs, do `git diff` e da saída dos checks. Reproduza os ACs que puder. Devolva PASS ou findings (arquivo, impacto, correção). Marque NOT_RUN o que não executou.
+> Siga docs/AUDIT.md. Revise a entrega [ID] a partir do pedido, dos ACs, do `git diff` e da saída dos checks. Reproduza os ACs que puder. Devolva `AUDIT RESULT: PASS` ou `FAIL` com findings (severidade, arquivo, impacto, correção). Marque NOT_RUN o que não executou.
 
 ## 6. Contexto e tokens
 
@@ -70,7 +70,7 @@ O objetivo é o máximo de sinal por token sem perder correção.
 
 ## 7. Adotar em projeto existente
 
-1. **Descubra sem alterar**: leia README, docs e estrutura; liste o que já cumpre o papel de cada arquivo do kit (um `PRODUCT.md` pode ser o `PROJECT.md` — o checker aceita os dois; um guia visual existente vira o `DESIGN.md`; uma tabela "Agora" no roadmap é o `STATE.md`).
+1. **Descubra sem alterar**: leia README, docs e estrutura; liste o que já cumpre o papel de cada arquivo do kit (um `PRODUCT.md` pode ser o `PROJECT.md` — o checker aceita os dois; um guia visual existente vira o `DESIGN.md`; uma tabela "Agora" no roadmap é o `STATE.md`; guardrails próprios, como os do repositório `guardrail`, viram `docs/WATCHDOG.md` e `docs/AUDIT.md`, com o bloco de agente incorporado ao `AGENTS.md` por link e não copiado).
 2. **Proponha um diff** antes de mover: o que entra, o que muda de lugar, o que vira histórico. Arquivos do projeto (código, decisões humanas, docs autorais) não são sobrescritos; o kit só sugere.
 3. **Corte redundância**: uma regra em um só lugar (gates no `RELEASE_CHECKLIST`, regras no `AGENTS`, estado no `STATE`); fases fechadas saem do roadmap para `docs/arquivo/`; repetidos viram link.
 4. **Preserve**: mova com `git mv`, corrija links relativos, não reescreva histórico, não apague evidência de aceite.

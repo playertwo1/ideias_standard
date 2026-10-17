@@ -13,3 +13,4 @@ Repositório do kit de projeto. Comece por `STATE.md`; abra `docs/` só se a tar
 5. Repositório **público**: nada de dado real de projeto (nomes, telefones, clientes), segredo ou caminho pessoal.
 6. Não declarar teste não executado; `NOT_RUN` não é `PASS`. Atualize `STATE.md` quando o estado mudar.
 7. Commits na `main`; não reescrever histórico nem apagar tags.
+8. Mudança no kit segue `template/docs/WATCHDOG.md`; mudança relevante passa por `template/docs/AUDIT.md` antes de fechar.
