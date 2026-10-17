@@ -36,6 +36,8 @@ Soluções que só fazem o problema sumir da vista: exceção ignorada, `catch` 
 - **LOW** — melhoria recomendada que não impede o funcionamento.
 
 ## 9. Resultado
+Tarefa não está concluída só porque o código foi escrito. Está concluída quando o objetivo pedido foi atendido, a solução foi validada, não há regressão conhecida e não há alteração inexplicável no diff.
+
 Registre na review (`docs/reviews/<ID>.md`):
 
 ```text

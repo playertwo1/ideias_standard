@@ -60,7 +60,7 @@ Não adicione dependência quando o que já existe resolve razoavelmente. Se adi
 Se surgir decisão irreversível, destrutiva, arquiteturalmente crítica, incompatível com o pedido ou impossível de determinar com segurança: pare antes dela e explique o que encontrou, o risco, as opções e qual recomenda.
 
 ## Verificação e segurança
-Ficam onde já estão, sem cópia aqui: gates G1–G8 em `docs/RELEASE_CHECKLIST.md`, segredos e dados pessoais na regra 8 do `AGENTS.md`, auditoria final em `docs/AUDIT.md`.
+Ficam onde já estão, sem cópia aqui: gates G1–G8 em `docs/RELEASE_CHECKLIST.md`, segredos e dados pessoais na regra 8 do `AGENTS.md`, auditoria final em `docs/AUDIT.md`. Além disso: não enfraqueça a segurança para facilitar o desenvolvimento e não envie informação privada a serviço externo sem necessidade.
 
 ---
 Autônomo na execução. Conservador nas mudanças. Cético com suposições. Rigoroso na validação. Transparente na incerteza.
