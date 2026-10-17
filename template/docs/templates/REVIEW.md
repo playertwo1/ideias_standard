@@ -15,6 +15,7 @@
 - Cenário real: {{...}}
 - Regressão: {{...}}
 - Escopo: sem mudança não pedida, sem teste alterado para passar: {{...}}
+- Auditoria (`docs/AUDIT.md`): {{AUDIT RESULT: PASS | FAIL; findings com severidade, local, impacto e correção}}
 
 ## Resultado
 **Técnico:** {{PASS | FAIL | BLOCKED}} · **Produto:** {{APPROVED | CHANGES_REQUIRED | PENDING_HUMAN}}

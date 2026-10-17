@@ -61,6 +61,15 @@ class CheckTest(unittest.TestCase):
         shutil.copy(ROOT / "template" / "DESIGN.md", p / "DESIGN.md")
         self.assertTrue(any(m.startswith("DESIGN.md") for _, m in check.check(p)))
 
+    def test_template_ships_guardrails(self):
+        # WATCHDOG e AUDIT são usados como estão: existem, sem marcadores, e o AGENTS.md aponta para eles.
+        agents = (ROOT / "template" / "AGENTS.md").read_text(encoding="utf-8")
+        for name in ("WATCHDOG.md", "AUDIT.md"):
+            path = ROOT / "template" / "docs" / name
+            self.assertTrue(path.is_file(), name)
+            self.assertIsNone(check.PLACEHOLDER.search(path.read_text(encoding="utf-8")), name)
+            self.assertIn(f"docs/{name}", agents)
+
     def test_exit_codes(self):
         self.assertEqual(check.main([str(ROOT / "examples" / "command")]), 0)
         self.assertEqual(check.main([str(ROOT / "template")]), 1)

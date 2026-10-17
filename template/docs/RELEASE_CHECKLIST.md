@@ -26,7 +26,7 @@ O resultado técnico (`PASS` / `FAIL` / `NOT_RUN`) é separado do aceite de prod
 
 ## 4. Fechamento e publicação
 1. Gates acima registrados na review (`docs/reviews/<ID>.md`, modelo em `templates/REVIEW.md`).
-2. Revisão independente quando o risco for alto (outro agente ou pessoa, começando por pedido, critérios, diff e checks).
+2. Revisão independente quando o risco for alto, seguindo `docs/AUDIT.md` (outro agente ou pessoa, começando por pedido, critérios, diff e checks; `AUDIT RESULT` registrado na review).
 3. Aceite humano exigido registrado com data.
 4. Marco sai do `ROADMAP.md` (linha em "Entregues" + texto em `docs/arquivo/`); `STATE.md` aponta a próxima ação.
 5. Commit só com arquivos do marco; push conforme `AGENTS.md`; depois conferir que o commit está no remoto.

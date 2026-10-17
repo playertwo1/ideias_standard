@@ -24,8 +24,12 @@ template/
 └── docs/
     ├── DECISIONS.md            o porquê das escolhas caras de desfazer
     ├── RELEASE_CHECKLIST.md    como provar que está pronto (gates e publicação)
+    ├── WATCHDOG.md             limites do agente na execução: escopo, alto risco, regra de parada
+    ├── AUDIT.md                auditoria final independente: AUDIT RESULT PASS/FAIL com severidade
     └── templates/              FEATURE, EXECUTION_PLAN, REVIEW (copiados quando precisar)
 ```
+
+`WATCHDOG.md` e `AUDIT.md` vêm do repositório [guardrail](https://github.com/playertwo1/guardrail), adaptados para não repetir o que já está no `AGENTS.md` e no `RELEASE_CHECKLIST.md`; não têm marcadores e podem ser usados como estão.
 
 **Obrigatórios:** `README`, `PROJECT`, `ROADMAP`, `STATE` e `AGENTS`. O resto entra quando a complexidade justifica. Os nomes podem variar quando uma ferramenta exige outro: `PRODUCT.md` vale como `PROJECT.md`.
 
@@ -50,7 +54,7 @@ Não copie por cima. Mapeie o que já cumpre cada papel, proponha o diff, mova p
 ## Ciclo de trabalho
 
 ```text
-ideia → PROJECT → ROADMAP (marco ativo) → FEATURE com ACs → código + testes → REVIEW → checklist + aceite humano → STATE
+ideia → PROJECT → ROADMAP (marco ativo) → FEATURE com ACs → código + testes (WATCHDOG) → REVIEW (AUDIT) → checklist + aceite humano → STATE
 ```
 
 A documentação acompanha o risco da tarefa: uma correção simples só precisa de commit e teste; uma feature pede uma spec curta; uma mudança grande pede também plano e revisão independente ([GUIA §1](docs/GUIA.md#1-quanto-documento-cada-tarefa-merece)). Estados, papéis entre agentes e prompts prontos estão no [GUIA](docs/GUIA.md).

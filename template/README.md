@@ -23,5 +23,6 @@
 | Regras para agentes | [AGENTS.md](AGENTS.md) (`CLAUDE.md` só importa este) |
 | Decisões e o porquê | [docs/DECISIONS.md](docs/DECISIONS.md) |
 | Como provar que está pronto | [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) |
+| Limites na execução e auditoria final | [docs/WATCHDOG.md](docs/WATCHDOG.md), [docs/AUDIT.md](docs/AUDIT.md) |
 | Specs, planos, reviews | `docs/features/`, `docs/plans/`, `docs/reviews/` (modelos em [docs/templates/](docs/templates/)) |
 | Histórico (não editar) | `docs/arquivo/` |
