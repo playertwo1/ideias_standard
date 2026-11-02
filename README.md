@@ -36,16 +36,26 @@ template/
 ## Como usar
 
 ### Projeto novo
-1. Copie a pasta:
-   ```bash
-   cp -r template/. ../meu-projeto/
-   ```
-   ```powershell
-   New-Item -ItemType Directory -Force ..\meu-projeto | Out-Null
-   Copy-Item -Recurse -Force template\* ..\meu-projeto\
-   Copy-Item -Force template\.gitignore, template\.editorconfig ..\meu-projeto\
-   ```
-2. Preencha os marcadores entre chaves duplas, nesta ordem: `PROJECT.md` (problema e MVP) → `ROADMAP.md` (um marco ativo) → `STATE.md` (próxima ação) → comandos reais em `AGENTS.md` e `docs/RELEASE_CHECKLIST.md` → `DESIGN.md`, se houver interface. Apague o que não se aplica.
+1. Inicialize o projeto:
+   - **Localmente (se já clonou este repositório):**
+     ```bash
+     python scripts/init.py ../meu-projeto
+     ```
+   - **Remotamente em 1 linha (sem clonar nada):**
+     ```powershell
+     # Windows PowerShell
+     irm https://raw.githubusercontent.com/playertwo1/ideias_standard/main/scripts/init.py | python - meu-projeto
+     ```
+     ```bash
+     # Linux / macOS
+     curl -sSL https://raw.githubusercontent.com/playertwo1/ideias_standard/main/scripts/init.py | python3 - meu-projeto
+     ```
+   - **Nativo no GitHub (Template Repository):**
+     Clique no botão **"Use this template"** no topo do repositório ou pelo CLI:
+     ```bash
+     gh repo create meu-projeto --template playertwo1/ideias_standard --public
+     ```
+2. Preencha os marcadores entre chaves duplas, nesta ordem: `PROJECT.md` (problema e MVP) → `ROADMAP.md` (um marco ativo) → `STATE.md` (próxima ação) → comandos reais em `AGENTS.md` e `docs/RELEASE_CHECKLIST.md` → `DESIGN.md`, se houver interface. Apague o que não se aplica (ou use `--no-design` no `init.py`).
 3. Confira: `python scripts/check.py ../meu-projeto`.
 
 ### Projeto existente
@@ -84,7 +94,7 @@ O próprio repositório segue o kit: [PROJECT.md](PROJECT.md), [ROADMAP.md](ROAD
 | [`examples/command/`](examples/command/) | exemplo preenchido (didático), incluindo o `DESIGN.md` |
 | [`docs/GUIA.md`](docs/GUIA.md) | passo a passo, estados, papéis, prompts, adoção, segurança |
 | [`docs/PESQUISA.md`](docs/PESQUISA.md) | evidências, fontes R01–R28 e protocolo comparativo |
-| [`scripts/check.py`](scripts/check.py), [`tests/`](tests/) | verificador e seus testes |
+| [`scripts/`](scripts/), [`tests/`](tests/) | inicializador (`init.py`), verificador (`check.py`) e testes |
 
 Para mudar o kit: a mudança precisa ter vindo de atrito real de uso ([ROADMAP](ROADMAP.md)). Quem altera o `template/` atualiza o exemplo no mesmo commit e roda:
 

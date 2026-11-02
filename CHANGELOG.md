@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0 — 2026-11-02
+- `scripts/init.py`: inicializador do kit em Python puro (sem dependências externas). Cria novo projeto, copia os arquivos do template, substitui o nome do projeto e oferece flag `--no-design` para projetos sem interface.
+- Execução remota em uma linha (sem clonar o repositório) via PowerShell (`irm ... | python -`) e Unix (`curl -sSL ... | python3 -`).
+- Habilitado como repositório template oficial no GitHub (`gh repo create meu-projeto --template playertwo1/ideias_standard`).
+- Testes unitários para o `init.py` em `tests/test_init.py`.
+- Limpeza e prune de todas as branches remotas órfãs de agentes.
+
 ## 1.2.0 — 2026-10-17
 - `template/docs/WATCHDOG.md`: guardião de execução (hierarquia de decisão, escopo e anti-drift, proteção contra regressão, ações de alto risco, loop de erro, regra de parada). Lido antes de mudança média, grande ou arriscada.
 - `template/docs/AUDIT.md`: auditoria final independente (escopo, diff, regressão, qualidade, segurança, caça a atalhos) com severidade CRITICAL/HIGH/MEDIUM/LOW e `AUDIT RESULT: PASS | FAIL` registrado na review.
