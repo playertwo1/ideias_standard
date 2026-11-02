@@ -32,34 +32,47 @@ Em vez de iniciar cada projeto do zero — perdendo o contexto entre sessões, a
 
 ---
 
-## ⚡ Início Rápido (1 segundo)
+## ⚡ Início Rápido (Zero instalação)
 
-Você **não precisa clonar este repositório** para usá-lo. Escolha a sua forma preferida:
+Abra o terminal em qualquer pasta do computador e rode:
 
-### Método 1: PowerShell (Windows) — 1 Linha
-Abra o PowerShell na pasta onde deseja criar o projeto e execute:
+**No Windows (PowerShell):**
 ```powershell
-irm https://raw.githubusercontent.com/playertwo1/ideias_standard/main/scripts/init.py | python - meu-projeto
+irm https://raw.githubusercontent.com/playertwo1/ideias_standard/main/scripts/init.py | python - meu-novo-projeto
 ```
 
-### Método 2: Curl / Bash (Linux / macOS) — 1 Linha
+**No Linux / macOS:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/playertwo1/ideias_standard/main/scripts/init.py | python3 - meu-projeto
+curl -sSL https://raw.githubusercontent.com/playertwo1/ideias_standard/main/scripts/init.py | python3 - meu-novo-projeto
 ```
 
-### Método 3: Template Oficial no GitHub
-- Pelo navegador: clique no botão verde [**Use this template**](https://github.com/playertwo1/ideias_standard/generate) no topo desta página.
+Ele baixa o template direto do GitHub em memória e gera a pasta `meu-novo-projeto` com todos os arquivos (`PROJECT.md`, `AGENTS.md`, `.gitignore`, etc.) já com o nome preenchido.
+
+<details>
+<summary><b>Outras formas de uso (Template GitHub, CLI local e atalho permanente)</b></summary>
+
+### Via GitHub Template (Nativo)
+- Pelo navegador: clique em [**Use this template**](https://github.com/playertwo1/ideias_standard/generate) no topo desta página.
 - Pelo GitHub CLI (`gh`):
   ```bash
-  gh repo create meu-projeto --template playertwo1/ideias_standard --public
+  gh repo create meu-novo-projeto --template playertwo1/ideias_standard --public
   ```
 
-### Método 4: Localmente (se já clonou o repositório)
+### Localmente (se já clonou este repositório)
 ```bash
-python scripts/init.py ../meu-projeto
+python scripts/init.py ../meu-novo-projeto
 # Para projetos backend/CLI sem interface visual:
 python scripts/init.py ../minha-api --no-design
 ```
+
+### Dica: Crie o comando curto `ideias <projeto>`
+Adicione esta função ao seu perfil do PowerShell (`notepad $PROFILE`):
+```powershell
+function ideias { irm https://raw.githubusercontent.com/playertwo1/ideias_standard/main/scripts/init.py | python - $args }
+```
+Depois é só rodar direto: `ideias meu-novo-projeto`.
+
+</details>
 
 ---
 
