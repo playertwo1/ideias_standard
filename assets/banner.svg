@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090d16" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+    <linearGradient id="card-glow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02" />
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#334155" stroke-width="0.5" stroke-opacity="0.3" />
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="360" rx="16" fill="url(#bg)" />
+  <rect width="1200" height="360" rx="16" fill="url(#grid)" />
+
+  <!-- Ambient light blobs -->
+  <circle cx="200" cy="80" r="180" fill="#38bdf8" opacity="0.12" filter="blur(60px)" />
+  <circle cx="980" cy="220" r="180" fill="#818cf8" opacity="0.15" filter="blur(60px)" />
+
+  <!-- Outer subtle border -->
+  <rect x="1" y="1" width="1198" height="358" rx="15" fill="none" stroke="#334155" stroke-opacity="0.6" stroke-width="1.5" />
+
+  <!-- Pill Top Tag -->
+  <g transform="translate(60, 48)">
+    <rect width="360" height="28" rx="14" fill="#1e293b" stroke="#475569" stroke-width="1" />
+    <circle cx="14" cy="14" r="5" fill="#38bdf8">
+      <animate attributeName="opacity" values="0.4;1;0.4" dur="2s" repeatCount="indefinite" />
+    </circle>
+    <text x="28" y="18" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" letter-spacing="1.2">HUMAN + AI ENGINEERING STANDARD</text>
+  </g>
+
+  <!-- Title -->
+  <text x="60" y="132" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="52" font-weight="800" letter-spacing="-1">Ideias Standard</text>
+  <text x="440" y="132" fill="url(#glow)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="52" font-weight="800" letter-spacing="-1">v1.3</text>
+
+  <!-- Subtitle -->
+  <text x="60" y="174" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="400">
+    Esqueleto de qualidade, governança ágil e verificação rigorosa para projetos com IA.
+  </text>
+  <text x="60" y="204" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="400">
+    "Menos contexto, mais sinal. Menos processo, mais verificação. Primeiro provar, depois padronizar."
+  </text>
+
+  <!-- Feature Cards / Badges -->
+  <g transform="translate(60, 246)">
+    <!-- Item 1: 1-Line Scaffolding -->
+    <g transform="translate(0, 0)">
+      <rect width="250" height="64" rx="10" fill="url(#card-glow)" stroke="#334155" stroke-width="1" />
+      <circle cx="28" cy="32" r="14" fill="#0369a1" fill-opacity="0.4" />
+      <text x="28" y="37" text-anchor="middle" fill="#38bdf8" font-family="monospace" font-size="15" font-weight="bold">⚡</text>
+      <text x="52" y="27" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">Scaffold em 1 Linha</text>
+      <text x="52" y="45" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Via init.py ou GitHub Template</text>
+    </g>
+
+    <!-- Item 2: Zero Dependencies -->
+    <g transform="translate(268, 0)">
+      <rect width="250" height="64" rx="10" fill="url(#card-glow)" stroke="#334155" stroke-width="1" />
+      <circle cx="28" cy="32" r="14" fill="#4338ca" fill-opacity="0.4" />
+      <text x="28" y="37" text-anchor="middle" fill="#818cf8" font-family="monospace" font-size="15" font-weight="bold">📦</text>
+      <text x="52" y="27" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">Zero Dependências</text>
+      <text x="52" y="45" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">100% Python Standard Library</text>
+    </g>
+
+    <!-- Item 3: Multi-Agent Ready -->
+    <g transform="translate(536, 0)">
+      <rect width="250" height="64" rx="10" fill="url(#card-glow)" stroke="#334155" stroke-width="1" />
+      <circle cx="28" cy="32" r="14" fill="#701a75" fill-opacity="0.4" />
+      <text x="28" y="37" text-anchor="middle" fill="#e879f9" font-family="monospace" font-size="15" font-weight="bold">🤖</text>
+      <text x="52" y="27" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">Universal Multi-IA</text>
+      <text x="52" y="45" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Claude, Gemini, Codex, Hermes</text>
+    </g>
+
+    <!-- Item 4: Audit & Watchdog -->
+    <g transform="translate(804, 0)">
+      <rect width="276" height="64" rx="10" fill="url(#card-glow)" stroke="#334155" stroke-width="1" />
+      <circle cx="28" cy="32" r="14" fill="#065f46" fill-opacity="0.4" />
+      <text x="28" y="37" text-anchor="middle" fill="#34d399" font-family="monospace" font-size="15" font-weight="bold">🛡️</text>
+      <text x="52" y="27" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700">Auditoria &amp; Watchdog</text>
+      <text x="52" y="45" fill="#94a3b8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11">Portões de aceite com evidência real</text>
+    </g>
+  </g>
+</svg>
