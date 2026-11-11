@@ -9,7 +9,7 @@ Guardrails: [WATCHDOG](../../template/docs/WATCHDOG.md) na execução e [AUDIT](
 
 ## Regras deste projeto
 - Nenhum endpoint de controle exposto à internet; só rede local autenticada.
-- Comando que altera o PC (abrir/encerrar app) só da allowlist e com confirmação no celular. Mexer na allowlist ou no pareamento é alto risco (WATCHDOG §5).
+- Comando que altera o PC (abrir/encerrar app) só da allowlist e com confirmação no celular. Mexer na allowlist ou no pareamento é alto risco (WATCHDOG §4).
 - Token de pareamento nunca aparece em tela, log ou evidência.
 
 ## Git

@@ -1,6 +1,6 @@
 # AGENTS.md — {{nome do projeto}}
 
-Contrato curto para qualquer agente (Claude, Codex, Gemini, Hermes…). Se uma instrução não serve à maioria das tarefas, ela não fica aqui: vai para `docs/` e é lida só quando precisar.
+Contrato curto para qualquer agente. O que não serve à maioria das tarefas vai para `docs/` e é lido sob demanda.
 
 ## Fontes de verdade
 - `STATE.md` — onde paramos e a próxima ação. **Comece por aqui.**

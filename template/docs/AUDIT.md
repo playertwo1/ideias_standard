@@ -1,7 +1,5 @@
 # AUDIT — auditoria final
 
-> Origem: [playertwo1/guardrail](https://github.com/playertwo1/guardrail) (`AUDIT.md`), adaptado ao kit: validação e git apontam para os gates de `docs/RELEASE_CHECKLIST.md`; o resultado vai para a review (`docs/templates/REVIEW.md`).
-
 Aplique antes de declarar `DONE` uma mudança relevante, e sempre na revisão independente de mudança grande ou arriscada (`AGENTS.md`, regra 4). Quem audita age como revisor independente: o objetivo não é confirmar que o agente acertou, é descobrir onde ele pode ter errado. Comece pelo pedido, pelos ACs, pelo `git diff` e pela saída dos checks; expanda o contexto só para testar uma hipótese.
 
 ## 1. Escopo
@@ -12,7 +10,9 @@ Aplique antes de declarar `DONE` uma mudança relevante, e sempre na revisão in
 ## 2. Diff
 Pergunta central: **cada alteração tem uma razão clara ligada à tarefa?** Se não, investigue.
 
-Procure: arquivos alterados sem necessidade, código removido por acidente, mudança gigante para problema pequeno, duplicação, código morto, TODO esquecido, log de debug, hardcode, mock, comentário temporário, alteração suspeita.
+Procure: arquivos alterados sem necessidade, código removido por acidente, mudança gigante para problema pequeno, duplicação, código morto, TODO esquecido, log de debug, comentário temporário.
+
+Caça a atalhos (soluções que só fazem o problema sumir da vista): exceção ignorada, `catch` vazio, validação desativada, teste removido ou afrouxado, valor hardcoded, feature desligada, sucesso falso, mock em produção.
 
 ## 3. Regressão
 Impacto em: funcionalidades existentes, APIs, banco e migrations, configuração, autenticação e permissões, UI, integrações, persistência, jobs em segundo plano, compatibilidade.
@@ -26,16 +26,13 @@ Segredos, tokens, credenciais, permissões excessivas, dado sensível em log, va
 ## 6. Validação e git
 Rode e registre os gates G1–G4 de `docs/RELEASE_CHECKLIST.md` (testes, lint, tipos/build, diff e `git status` sem arquivo inesperado, grande, gerado ou segredo). Falha não se esconde; não executado é `NOT_RUN`. Não confunda alterações anteriores do usuário com as da tarefa.
 
-## 7. Caça a atalhos
-Soluções que só fazem o problema sumir da vista: exceção ignorada, `catch` vazio, validação desativada, teste removido ou afrouxado, valor hardcoded, feature desligada, sucesso falso, mock em produção.
-
-## 8. Classificação
+## 7. Classificação
 - **CRITICAL** — perda de dados, vulnerabilidade, quebra grave ou comportamento destrutivo.
 - **HIGH** — grande chance de regressão ou funcionamento incorreto.
 - **MEDIUM** — problema real que deveria ser corrigido.
 - **LOW** — melhoria recomendada que não impede o funcionamento.
 
-## 9. Resultado
+## 8. Resultado
 Tarefa não está concluída só porque o código foi escrito. Está concluída quando o objetivo pedido foi atendido, a solução foi validada, não há regressão conhecida e não há alteração inexplicável no diff.
 
 Registre na review (`docs/reviews/<ID>.md`):
