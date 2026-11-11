@@ -49,9 +49,14 @@ class InitTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             init.init_project(dest, force=False)
 
-        # Com force deve passar
-        init.init_project(dest, force=True)
+        # Com force adiciona o que falta e nunca sobrescreve o que já existe
+        (dest / "README.md").write_text("meu readme", encoding="utf-8")
+        (dest / "DESIGN.md").write_text("meu design", encoding="utf-8")
+        kept = init.init_project(dest, force=True, no_design=True)
         self.assertTrue((dest / "PROJECT.md").is_file())
+        self.assertEqual(kept, ["README.md"])
+        self.assertEqual((dest / "README.md").read_text(encoding="utf-8"), "meu readme")
+        self.assertEqual((dest / "DESIGN.md").read_text(encoding="utf-8"), "meu design")
 
     def test_cli_exit_codes(self):
         dest = self.tmp / "cli_projeto"

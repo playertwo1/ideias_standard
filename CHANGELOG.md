@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — 2026-11-11
+Corte de redundância (uma regra em um só lugar), sem capacidade nova.
+- `template/docs/WATCHDOG.md`: 10 seções → 7; saiu o que repetia as regras 2, 3, 7 e 9 do `AGENTS.md` (4,4 → 2,8 KB). "Alto risco" passou de §5 para §4.
+- `template/docs/AUDIT.md`: "Caça a atalhos" fundida em "Diff" (as listas se repetiam); nota de origem fica só neste changelog.
+- `template/README.md`: tabela de documentos trocada por ponteiro para o mapa do `AGENTS.md`.
+- `README.md`: 12,4 → 3 KB. Saíram prompts (ficam no `GUIA` §5), adoção (`GUIA` §7), lista do checker e resumo de severidades que divergia do `AUDIT.md`.
+- `scripts/init.py`: `--force` só adiciona o que falta e nunca sobrescreve (antes sobrescrevia `README.md`, `AGENTS.md` etc. do projeto existente, e `--no-design` apagava um `DESIGN.md` existente).
+- `PROJECT.md`: removida a divergência "script de criação fora do MVP".
+
 ## 1.3.0 — 2026-11-02
 - `scripts/init.py`: inicializador do kit em Python puro (sem dependências externas). Cria novo projeto, copia os arquivos do template, substitui o nome do projeto e oferece flag `--no-design` para projetos sem interface.
 - Execução remota em uma linha (sem clonar o repositório) via PowerShell (`irm ... | python -`) e Unix (`curl -sSL ... | python3 -`).

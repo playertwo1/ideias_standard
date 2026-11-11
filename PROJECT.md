@@ -7,12 +7,12 @@ Todo projeto novo com agentes de IA recomeça a organização do zero: estado pe
 Quem cria projetos trabalhando com vários agentes (Claude, Codex, Gemini, Hermes) e precisa que qualquer um deles retome o trabalho sem a conversa anterior.
 
 ## MVP
-1. Copiar `template/` e ter, em minutos, visão, roadmap, estado e regras de agente.
+1. Criar um projeto com `scripts/init.py` (ou copiando `template/`) e ter, em minutos, visão, roadmap, estado e regras de agente.
 2. Conferir o projeto com `scripts/check.py`.
 3. Adotar o kit num projeto existente seguindo o `docs/GUIA.md`.
 
 ## Fora do MVP
-- Script de criação (copiar a pasta basta), lockfile, sincronização automática de versões, packs por stack (ver ideias no `ROADMAP.md`).
+- Lockfile, sincronização automática de versões, packs por stack (ver ideias no `ROADMAP.md`).
 
 ## Restrições
 - Repositório público; independente de fornecedor de IA; só biblioteca padrão do Python.
